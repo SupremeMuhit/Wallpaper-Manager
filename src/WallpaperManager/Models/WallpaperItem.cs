@@ -36,6 +36,28 @@ public sealed class WallpaperItem
 
     public double CardPreviewHeight { get; set; } = 132;
 
+    public double ListPreviewWidth { get; set; } = 88;
+
+    public double ListPreviewHeight { get; set; } = 52;
+
+    public double ListRowMinHeight { get; set; } = 72;
+
+    public double ListTitleFontSize { get; set; } = 15;
+
+    public Thickness ListRowPadding { get; set; } = new(12, 8, 12, 8);
+
+    public Visibility ListPreviewVisibility { get; set; } = Visibility.Visible;
+
+    public Visibility DirectHomeActionVisibility { get; set; } = Visibility.Visible;
+
+    public Visibility ListDetailsVisibility { get; set; } = Visibility.Visible;
+
+    public Visibility ThumbnailDetailsVisibility { get; set; } = Visibility.Visible;
+
+    public Visibility LargeListLayoutVisibility { get; set; } = Visibility.Collapsed;
+
+    public Visibility CompactListLayoutVisibility { get; set; } = Visibility.Visible;
+
     public double PreviewOpacity => IsNsfw ? 0.16 : 1;
 
     public Visibility NsfwOverlayVisibility => IsNsfw ? Visibility.Visible : Visibility.Collapsed;
@@ -67,6 +89,8 @@ public sealed class WallpaperItem
     public string SizeText => FormatSize(SizeBytes);
 
     public string TagsText => Tags.Count == 0 ? string.Empty : string.Join(", ", Tags);
+
+    public string HomeActionGlyph => IsSelected ? "\uE738" : "\uE710";
 
     public BitmapImage? PreviewImage => string.IsNullOrWhiteSpace(PreviewPath) || !File.Exists(PreviewPath)
         ? null

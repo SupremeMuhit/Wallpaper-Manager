@@ -16,12 +16,12 @@ namespace WallpaperManager;
 
 public sealed partial class MainWindow : Window
 {
+    private const string ContactWebhookKey = "DISCORD_CONTACT_WEBHOOK_URL";
     private const string PreviewColumn = "Preview";
     private const string LocalNameColumn = "LocalName";
     private const string IdColumn = "Id";
     private const string SizeColumn = "Size";
     private const string TagsColumn = "Tags";
-    private const string ContactWebhookUrl = "https://discord.com/api/webhooks/1498528742589337703/8FOXElQGUJwPr8sXAQWMV3492_PUMKIYRzfguzduF9lI3EFJZzCytwyxHfyr97GzuxHT";
 
     private static readonly HttpClient ContactHttpClient = new();
     private readonly AppSettingsStore _settingsStore = new();
@@ -527,6 +527,20 @@ public sealed partial class MainWindow : Window
         await SaveSettingsAsync();
     }
 
+    private async void ToggleHomeButton_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is not WallpaperItem wallpaper)
+        {
+            return;
+        }
+
+        wallpaper.IsSelected = !wallpaper.IsSelected;
+        RefreshVisibleWallpapers();
+        RefreshSelectedWallpapers();
+        RefreshHiddenWallpapers();
+        await SaveSettingsAsync();
+    }
+
     private async void ToggleNsfwMenuItem_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as MenuFlyoutItem)?.Tag is not WallpaperItem wallpaper)
@@ -624,6 +638,13 @@ public sealed partial class MainWindow : Window
 
         try
         {
+            var webhookUrl = GetContactWebhookUrl();
+            if (string.IsNullOrWhiteSpace(webhookUrl))
+            {
+                ShowContactStatus("Contact is not configured", "Add DISCORD_CONTACT_WEBHOOK_URL to the local .env file.", InfoBarSeverity.Error);
+                return;
+            }
+
             var content = BuildContactMessage(mail, discord, message);
             var payload = JsonSerializer.Serialize(new
             {
@@ -636,7 +657,7 @@ public sealed partial class MainWindow : Window
             });
 
             using var requestContent = new StringContent(payload, Encoding.UTF8, "application/json");
-            using var response = await ContactHttpClient.PostAsync(ContactWebhookUrl, requestContent);
+            using var response = await ContactHttpClient.PostAsync(webhookUrl, requestContent);
             if (!response.IsSuccessStatusCode)
             {
                 ShowContactStatus("Could not send", "Discord did not accept the message. Please try again later.", InfoBarSeverity.Error);
@@ -835,7 +856,7 @@ public sealed partial class MainWindow : Window
             wallpaper.IdColumnWidth = GetColumnWidth(hiddenColumns, IdColumn, new GridLength(140));
             wallpaper.SizeColumnWidth = GetColumnWidth(hiddenColumns, SizeColumn, new GridLength(110));
             wallpaper.TagsColumnWidth = GetColumnWidth(hiddenColumns, TagsColumn, new GridLength(180));
-            (wallpaper.CardWidth, wallpaper.CardPreviewHeight) = GetCardSize(CurrentSettings.CardSize);
+            ApplySizePresentation(wallpaper, hiddenColumns);
         }
 
         ApplyColumnVisibility();
@@ -1189,10 +1210,58 @@ public sealed partial class MainWindow : Window
     {
         return cardSize switch
         {
-            CardSizeOptions.Small => (210, 112),
-            CardSizeOptions.Large => (320, 180),
+            CardSizeOptions.Small => (180, 96),
+            CardSizeOptions.Large => (300, 170),
             _ => (250, 132)
         };
+    }
+
+    private void ApplySizePresentation(WallpaperItem wallpaper, IReadOnlySet<string> hiddenColumns)
+    {
+        (wallpaper.CardWidth, wallpaper.CardPreviewHeight) = GetCardSize(CurrentSettings.CardSize);
+
+        var previewAllowed = !hiddenColumns.Contains(PreviewColumn);
+        wallpaper.ListPreviewVisibility = CurrentSettings.CardSize == CardSizeOptions.Small || !previewAllowed
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+        wallpaper.DirectHomeActionVisibility = CurrentSettings.CardSize == CardSizeOptions.Small
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+        wallpaper.ListDetailsVisibility = Visibility.Visible;
+        wallpaper.ThumbnailDetailsVisibility = CurrentSettings.CardSize == CardSizeOptions.Small
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+        wallpaper.LargeListLayoutVisibility = CurrentSettings.CardSize == CardSizeOptions.Large
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+        wallpaper.CompactListLayoutVisibility = CurrentSettings.CardSize == CardSizeOptions.Large
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+
+        switch (CurrentSettings.CardSize)
+        {
+            case CardSizeOptions.Large:
+                wallpaper.ListPreviewWidth = 170;
+                wallpaper.ListPreviewHeight = 130;
+                wallpaper.ListRowMinHeight = 164;
+                wallpaper.ListTitleFontSize = 22;
+                wallpaper.ListRowPadding = new Thickness(20, 16, 16, 16);
+                break;
+            case CardSizeOptions.Small:
+                wallpaper.ListPreviewWidth = 0;
+                wallpaper.ListPreviewHeight = 0;
+                wallpaper.ListRowMinHeight = 48;
+                wallpaper.ListTitleFontSize = 15;
+                wallpaper.ListRowPadding = new Thickness(12, 6, 12, 6);
+                break;
+            default:
+                wallpaper.ListPreviewWidth = 96;
+                wallpaper.ListPreviewHeight = 56;
+                wallpaper.ListRowMinHeight = 82;
+                wallpaper.ListTitleFontSize = 18;
+                wallpaper.ListRowPadding = new Thickness(14, 10, 12, 10);
+                break;
+        }
     }
 
     private static string FormatHexColor(Color color)
@@ -1211,4 +1280,65 @@ public sealed partial class MainWindow : Window
     }
 
     private sealed record WallpaperTagAction(WallpaperItem Wallpaper, string TagName);
+
+    private static string GetContactWebhookUrl()
+    {
+        var environmentValue = Environment.GetEnvironmentVariable(ContactWebhookKey);
+        if (!string.IsNullOrWhiteSpace(environmentValue))
+        {
+            return environmentValue.Trim();
+        }
+
+        foreach (var directory in GetEnvSearchDirectories())
+        {
+            var envPath = Path.Combine(directory, ".env");
+            if (!File.Exists(envPath))
+            {
+                continue;
+            }
+
+            foreach (var line in File.ReadLines(envPath))
+            {
+                var trimmed = line.Trim();
+                if (trimmed.Length == 0 || trimmed.StartsWith('#'))
+                {
+                    continue;
+                }
+
+                var separatorIndex = trimmed.IndexOf('=');
+                if (separatorIndex <= 0)
+                {
+                    continue;
+                }
+
+                var key = trimmed[..separatorIndex].Trim();
+                if (!string.Equals(key, ContactWebhookKey, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                return trimmed[(separatorIndex + 1)..].Trim().Trim('"');
+            }
+        }
+
+        return string.Empty;
+    }
+
+    private static IEnumerable<string> GetEnvSearchDirectories()
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var start in new[] { Environment.CurrentDirectory, AppContext.BaseDirectory })
+        {
+            var directory = new DirectoryInfo(start);
+            while (directory is not null)
+            {
+                if (seen.Add(directory.FullName))
+                {
+                    yield return directory.FullName;
+                }
+
+                directory = directory.Parent;
+            }
+        }
+    }
 }
