@@ -16,6 +16,7 @@
                 <NavigationViewItem Content="Home" Icon="Home" Tag="Home" IsSelected="True" />
                 <NavigationViewItem Content="Library" Icon="Pictures" Tag="Library" />
                 <NavigationViewItem x:Name="HiddenNavigationItem" Content="Hidden Wallpapers" Icon="Library" Tag="Hidden" Visibility="Collapsed" />
+                <NavigationViewItem Content="Info" Icon="Help" Tag="Info" />
             </NavigationView.MenuItems>
 
             <Grid Padding="28">
@@ -336,6 +337,43 @@
                             </GridView>
                         </Grid>
                     </Grid>
+
+                    <ScrollViewer x:Name="InfoPage" Visibility="Collapsed">
+                        <StackPanel MaxWidth="820" Spacing="26" HorizontalAlignment="Left">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="Creator" Style="{StaticResource SubtitleTextBlockStyle}" />
+                                <TextBlock Text="Wallpaper Manager was created by SupremeMuhit." TextWrapping="Wrap" />
+                            </StackPanel>
+
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="Acknowledgments" Style="{StaticResource SubtitleTextBlockStyle}" />
+                                <TextBlock Text="Built with WinUI and the Windows App SDK. Thanks to Wallpaper Engine for the wallpaper ecosystem this app organizes." TextWrapping="Wrap" />
+                            </StackPanel>
+
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="App Changelog" Style="{StaticResource SubtitleTextBlockStyle}" />
+                                <TextBlock Text="Added hidden wallpaper protection, configurable library views, tags, row colors, NSFW overlays, and this info/contact page." TextWrapping="Wrap" />
+                            </StackPanel>
+
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="Contact" Style="{StaticResource SubtitleTextBlockStyle}" />
+                                <Grid ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="ContactMailTextBox" Header="Mail" PlaceholderText="name@example.com" />
+                                    <TextBox x:Name="ContactDiscordTextBox" Grid.Column="1" Header="Discord username" PlaceholderText="username" />
+                                </Grid>
+                                <TextBox x:Name="ContactMessageTextBox" Header="Message" PlaceholderText="Write your message" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="130" MaxLength="1500" />
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <Button x:Name="SendContactButton" Content="Send" Click="SendContact_Click" />
+                                    <ProgressRing x:Name="ContactProgressRing" Width="28" Height="28" IsActive="False" Visibility="Collapsed" />
+                                </StackPanel>
+                                <InfoBar x:Name="ContactInfoBar" IsOpen="False" />
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
 
                     <ScrollViewer x:Name="SettingsPage" Visibility="Collapsed">
                         <StackPanel MaxWidth="820" Spacing="26" HorizontalAlignment="Left">

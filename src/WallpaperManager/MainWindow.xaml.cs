@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
+using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -19,13 +21,14 @@ public sealed partial class MainWindow : Window
     private const string IdColumn = "Id";
     private const string SizeColumn = "Size";
     private const string TagsColumn = "Tags";
+    private const string ContactWebhookUrl = "https://discord.com/api/webhooks/1498528742589337703/8FOXElQGUJwPr8sXAQWMV3492_PUMKIYRzfguzduF9lI3EFJZzCytwyxHfyr97GzuxHT";
 
+    private static readonly HttpClient ContactHttpClient = new();
     private readonly AppSettingsStore _settingsStore = new();
     private readonly WallpaperEngineService _engineService = new();
     private readonly WallpaperScanner _wallpaperScanner = new();
     private readonly DispatcherTimer _engineStatusTimer = new();
     private bool _isLoadingSettings;
-    private bool _hiddenWallpapersUnlocked;
 
     public ObservableCollection<WallpaperLibraryRoot> LibraryRoots { get; } = [];
 
@@ -278,7 +281,6 @@ public sealed partial class MainWindow : Window
             }
 
             SetHiddenPassword(password);
-            _hiddenWallpapersUnlocked = true;
         }
 
         CurrentSettings.ShowHiddenWallpapersPage = ShowHiddenPageToggle.IsOn;
@@ -305,7 +307,6 @@ public sealed partial class MainWindow : Window
         }
 
         SetHiddenPassword(password);
-        _hiddenWallpapersUnlocked = true;
         await SaveSettingsAsync();
     }
 
@@ -598,6 +599,67 @@ public sealed partial class MainWindow : Window
         UpdateEngineStatus();
     }
 
+    private async void SendContact_Click(object sender, RoutedEventArgs e)
+    {
+        var mail = ContactMailTextBox.Text.Trim();
+        var discord = ContactDiscordTextBox.Text.Trim();
+        var message = ContactMessageTextBox.Text.Trim();
+
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            ShowContactStatus("Message required", "Please write a message before sending.", InfoBarSeverity.Warning);
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(mail) && string.IsNullOrWhiteSpace(discord))
+        {
+            ShowContactStatus("Contact required", "Add either a mail address or Discord username.", InfoBarSeverity.Warning);
+            return;
+        }
+
+        SendContactButton.IsEnabled = false;
+        ContactProgressRing.IsActive = true;
+        ContactProgressRing.Visibility = Visibility.Visible;
+        ContactInfoBar.IsOpen = false;
+
+        try
+        {
+            var content = BuildContactMessage(mail, discord, message);
+            var payload = JsonSerializer.Serialize(new
+            {
+                username = "Wallpaper Manager",
+                content,
+                allowed_mentions = new
+                {
+                    parse = Array.Empty<string>()
+                }
+            });
+
+            using var requestContent = new StringContent(payload, Encoding.UTF8, "application/json");
+            using var response = await ContactHttpClient.PostAsync(ContactWebhookUrl, requestContent);
+            if (!response.IsSuccessStatusCode)
+            {
+                ShowContactStatus("Could not send", "Discord did not accept the message. Please try again later.", InfoBarSeverity.Error);
+                return;
+            }
+
+            ContactMailTextBox.Text = string.Empty;
+            ContactDiscordTextBox.Text = string.Empty;
+            ContactMessageTextBox.Text = string.Empty;
+            ShowContactStatus("Sent", "Your message was sent.", InfoBarSeverity.Success);
+        }
+        catch (HttpRequestException)
+        {
+            ShowContactStatus("Could not send", "Check your internet connection and try again.", InfoBarSeverity.Error);
+        }
+        finally
+        {
+            SendContactButton.IsEnabled = true;
+            ContactProgressRing.IsActive = false;
+            ContactProgressRing.Visibility = Visibility.Collapsed;
+        }
+    }
+
     private async void ShowHiddenWallpapers_Click(object sender, RoutedEventArgs e)
     {
         var hiddenWallpapers = Wallpapers.Where(wallpaper => wallpaper.IsHidden).ToList();
@@ -855,6 +917,7 @@ public sealed partial class MainWindow : Window
         HomePage.Visibility = page == "Home" ? Visibility.Visible : Visibility.Collapsed;
         LibraryPage.Visibility = page == "Library" ? Visibility.Visible : Visibility.Collapsed;
         HiddenPage.Visibility = page == "Hidden" ? Visibility.Visible : Visibility.Collapsed;
+        InfoPage.Visibility = page == "Info" ? Visibility.Visible : Visibility.Collapsed;
         SettingsPage.Visibility = page == "Settings" ? Visibility.Visible : Visibility.Collapsed;
 
         PageTitle.Text = page;
@@ -862,6 +925,7 @@ public sealed partial class MainWindow : Window
         {
             "Library" => "All detected wallpapers within every configured directory.",
             "Hidden" => "Hidden wallpapers are kept out of Library and Home.",
+            "Info" => "Creator details, acknowledgments, changelog, and contact.",
             "Settings" => "Configure directories, Wallpaper Engine, tags, columns, and theme.",
             _ => "Selected wallpapers from your local Wallpaper Engine library."
         };
@@ -930,11 +994,6 @@ public sealed partial class MainWindow : Window
 
     private async Task<bool> EnsureHiddenWallpapersUnlockedAsync()
     {
-        if (_hiddenWallpapersUnlocked)
-        {
-            return true;
-        }
-
         if (!HasHiddenPassword())
         {
             var password = await PromptForNewHiddenPasswordAsync("Create Hidden Wallpapers password");
@@ -948,12 +1007,29 @@ public sealed partial class MainWindow : Window
             ShowHiddenPageToggle.IsOn = true;
             HiddenNavigationItem.Visibility = Visibility.Visible;
             await SaveSettingsAsync();
-            _hiddenWallpapersUnlocked = true;
             return true;
         }
 
-        _hiddenWallpapersUnlocked = await PromptAndVerifyHiddenPasswordAsync("Hidden Wallpapers password");
-        return _hiddenWallpapersUnlocked;
+        return await PromptAndVerifyHiddenPasswordAsync("Hidden Wallpapers password");
+    }
+
+    private void ShowContactStatus(string title, string message, InfoBarSeverity severity)
+    {
+        ContactInfoBar.Title = title;
+        ContactInfoBar.Message = message;
+        ContactInfoBar.Severity = severity;
+        ContactInfoBar.IsOpen = true;
+    }
+
+    private static string BuildContactMessage(string mail, string discord, string message)
+    {
+        var builder = new StringBuilder();
+        builder.AppendLine("**Wallpaper Manager contact**");
+        builder.AppendLine($"Mail: {(string.IsNullOrWhiteSpace(mail) ? "Not provided" : mail)}");
+        builder.AppendLine($"Discord: {(string.IsNullOrWhiteSpace(discord) ? "Not provided" : discord)}");
+        builder.AppendLine();
+        builder.AppendLine(message.Length > 1500 ? message[..1500] : message);
+        return builder.ToString();
     }
 
     private async Task<bool> PromptAndVerifyHiddenPasswordAsync(string title)
