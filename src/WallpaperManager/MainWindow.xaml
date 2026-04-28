@@ -1,4 +1,4 @@
-<Window
+﻿<Window
     x:Class="WallpaperManager.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -15,8 +15,7 @@
             <NavigationView.MenuItems>
                 <NavigationViewItem Content="Home" Icon="Home" Tag="Home" IsSelected="True" />
                 <NavigationViewItem Content="Library" Icon="Pictures" Tag="Library" />
-                <NavigationViewItem x:Name="HiddenNavigationItem" Content="Hidden Wallpapers" Icon="Library" Tag="Hidden" Visibility="Collapsed" />
-                <NavigationViewItem Content="Info" Icon="Help" Tag="Info" />
+                <NavigationViewItem Content="Guide" Icon="Help" Tag="Guide" />
             </NavigationView.MenuItems>
 
             <Grid Padding="28">
@@ -65,6 +64,22 @@
 
                         <Grid Grid.Row="2" Margin="0,14,0,0">
                             <ListView x:Name="HomeListView" ItemsSource="{x:Bind SelectedWallpapers, Mode=OneWay}" SelectionMode="None" Visibility="Collapsed">
+                                <ListView.Header>
+                                    <Grid x:Name="HomeCompactListHeader" Padding="12,0,12,8" ColumnSpacing="14" Visibility="Collapsed">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="150" />
+                                            <ColumnDefinition Width="90" />
+                                            <ColumnDefinition Width="180" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="1" Text="Local name" Style="{StaticResource CaptionTextBlockStyle}" />
+                                        <TextBlock Grid.Column="2" Text="ID" Style="{StaticResource CaptionTextBlockStyle}" />
+                                        <TextBlock Grid.Column="3" Text="Size" Style="{StaticResource CaptionTextBlockStyle}" />
+                                        <TextBlock Grid.Column="4" Text="Tags" Style="{StaticResource CaptionTextBlockStyle}" />
+                                    </Grid>
+                                </ListView.Header>
                                 <ListView.ItemTemplate>
                                     <DataTemplate x:DataType="models:WallpaperItem">
                                         <Border Background="{x:Bind RowBackground}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Margin="0,4" MinHeight="{x:Bind ListRowMinHeight}">
@@ -176,21 +191,6 @@
                                 </Button>
                                 <ComboBox x:Name="LibraryViewComboBox" Width="150" ItemsSource="{x:Bind LibraryViewChoices}" SelectionChanged="LibraryViewComboBox_SelectionChanged" />
                                 <ComboBox x:Name="CardSizeComboBox" Width="120" ItemsSource="{x:Bind CardSizeChoices}" SelectionChanged="CardSizeComboBox_SelectionChanged" />
-                                <Button x:Name="ColumnsButton" MinHeight="36">
-                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <FontIcon Glyph="&#xE8A9;" FontSize="15" />
-                                        <TextBlock Text="Columns" />
-                                    </StackPanel>
-                                    <Button.Flyout>
-                                        <MenuFlyout>
-                                            <ToggleMenuFlyoutItem x:Name="PreviewColumnToggle" Text="Preview" Tag="Preview" Click="ColumnToggle_Click" />
-                                            <ToggleMenuFlyoutItem x:Name="LocalNameColumnToggle" Text="Local name" Tag="LocalName" Click="ColumnToggle_Click" />
-                                            <ToggleMenuFlyoutItem x:Name="IdColumnToggle" Text="ID" Tag="Id" Click="ColumnToggle_Click" />
-                                            <ToggleMenuFlyoutItem x:Name="SizeColumnToggle" Text="Size" Tag="Size" Click="ColumnToggle_Click" />
-                                            <ToggleMenuFlyoutItem x:Name="TagsColumnToggle" Text="Tags" Tag="Tags" Click="ColumnToggle_Click" />
-                                        </MenuFlyout>
-                                    </Button.Flyout>
-                                </Button>
                             </StackPanel>
                         </Grid>
 
@@ -199,10 +199,10 @@
                         <Grid Grid.Row="2" Margin="0,14,0,0">
                             <Grid x:Name="LibraryListView">
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="0" />
+                                    <RowDefinition Height="Auto" />
                                     <RowDefinition Height="*" />
                                 </Grid.RowDefinitions>
-                                <Grid Padding="12,0,12,8" ColumnSpacing="14" Visibility="Collapsed">
+                                <Grid x:Name="LibraryCompactListHeader" Padding="12,0,12,8" ColumnSpacing="14" Visibility="Collapsed">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition x:Name="PreviewHeaderColumn" Width="104" />
                                         <ColumnDefinition x:Name="LocalNameHeaderColumn" Width="2*" />
@@ -286,18 +286,9 @@
                                                         </Border>
                                                     </Grid>
                                                     <TextBlock Grid.Column="1" Text="{x:Bind DisplayName}" FontSize="{x:Bind ListTitleFontSize}" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Visibility="{x:Bind LocalNameColumnVisibility}" />
-                                                    <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center" Visibility="{x:Bind IdColumnVisibility}">
-                                                        <TextBlock Text="ID" Style="{StaticResource CaptionTextBlockStyle}" />
-                                                        <TextBlock Text="{x:Bind IdText}" TextTrimming="CharacterEllipsis" />
-                                                    </StackPanel>
-                                                    <StackPanel Grid.Column="3" Spacing="2" VerticalAlignment="Center" Visibility="{x:Bind SizeColumnVisibility}">
-                                                        <TextBlock Text="Size" Style="{StaticResource CaptionTextBlockStyle}" />
-                                                        <TextBlock Text="{x:Bind SizeText}" />
-                                                    </StackPanel>
-                                                    <StackPanel Grid.Column="4" Spacing="2" VerticalAlignment="Center" Visibility="{x:Bind TagsColumnVisibility}">
-                                                        <TextBlock Text="Tags" Style="{StaticResource CaptionTextBlockStyle}" />
-                                                        <TextBlock Text="{x:Bind TagsText}" TextTrimming="CharacterEllipsis" />
-                                                    </StackPanel>
+                                                    <TextBlock Grid.Column="2" Text="{x:Bind IdText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Visibility="{x:Bind IdColumnVisibility}" />
+                                                    <TextBlock Grid.Column="3" Text="{x:Bind SizeText}" VerticalAlignment="Center" Visibility="{x:Bind SizeColumnVisibility}" />
+                                                    <TextBlock Grid.Column="4" Text="{x:Bind TagsText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Visibility="{x:Bind TagsColumnVisibility}" />
                                                     <Button Grid.Column="5" Click="ToggleHomeButton_Click" Visibility="{x:Bind DirectHomeActionVisibility}" VerticalAlignment="Center">
                                                         <FontIcon Glyph="{x:Bind HomeActionGlyph}" FontSize="16" />
                                                     </Button>
@@ -346,250 +337,228 @@
                             </GridView>
                         </Grid>
                     </Grid>
-
-                    <Grid x:Name="HiddenPage" Visibility="Collapsed">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
-                        </Grid.RowDefinitions>
-                        <Grid ColumnSpacing="16">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock x:Name="HiddenCountText" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
-                                <ComboBox x:Name="HiddenViewComboBox" Width="150" ItemsSource="{x:Bind LibraryViewChoices}" SelectionChanged="HiddenViewComboBox_SelectionChanged" />
-                                <ComboBox x:Name="HiddenCardSizeComboBox" Width="120" ItemsSource="{x:Bind CardSizeChoices}" SelectionChanged="CardSizeComboBox_SelectionChanged" />
+                    <ScrollViewer x:Name="GuidePage" Visibility="Collapsed">
+                        <StackPanel MaxWidth="900" Spacing="22" HorizontalAlignment="Left">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="Folder Syntax" Style="{StaticResource SubtitleTextBlockStyle}" />
+                                <TextBlock Text="Use [SteamId] Wallpaper Name when you want both an ID and a readable name, for example [23221422] Neon Skyline." TextWrapping="Wrap" />
+                                <TextBlock Text="Folders with only numbers are treated as Steam IDs. Other folder names are treated as local wallpaper names." Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                             </StackPanel>
-                        </Grid>
-                        <Grid Grid.Row="1" Margin="0,14,0,0">
-                            <ListView x:Name="HiddenListView" ItemsSource="{x:Bind HiddenWallpapers, Mode=OneWay}" SelectionMode="None">
-                                <ListView.ItemTemplate>
-                                        <DataTemplate x:DataType="models:WallpaperItem">
-                                            <Border Background="{x:Bind RowBackground}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Margin="0,4" MinHeight="{x:Bind ListRowMinHeight}">
-                                            <Grid>
-                                            <Grid Padding="{x:Bind ListRowPadding}" ColumnSpacing="16" Visibility="{x:Bind LargeListLayoutVisibility}">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto" />
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                </Grid.ColumnDefinitions>
-                                                <Grid Width="{x:Bind ListPreviewWidth}" Height="{x:Bind ListPreviewHeight}" Visibility="{x:Bind ListPreviewVisibility}">
-                                                    <Border Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="6">
-                                                        <Image Source="{x:Bind PreviewImage}" Stretch="UniformToFill" Opacity="{x:Bind PreviewOpacity}" />
-                                                    </Border>
-                                                    <Border Background="#99000000" CornerRadius="6" Visibility="{x:Bind NsfwOverlayVisibility}">
-                                                        <TextBlock Text="NSFW" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold" />
-                                                    </Border>
-                                                </Grid>
-                                                <StackPanel Grid.Column="1" Spacing="8" VerticalAlignment="Center">
-                                                    <TextBlock Text="{x:Bind DisplayName}" FontSize="{x:Bind ListTitleFontSize}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                                    <StackPanel Orientation="Horizontal" Spacing="22" Visibility="{x:Bind ListDetailsVisibility}">
-                                                        <TextBlock Text="{x:Bind IdText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
-                                                        <TextBlock Text="{x:Bind SizeText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                                        <TextBlock Text="{x:Bind TagsText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
-                                                    </StackPanel>
-                                                </StackPanel>
-                                                <Button Grid.Column="2" Content="USE" Click="RunWallpaper_Click" VerticalAlignment="Center" />
-                                                <Button Grid.Column="3" Content="Restore" Click="RestoreWallpaper_Click" VerticalAlignment="Center" />
-                                            </Grid>
-                                            <Grid Padding="{x:Bind ListRowPadding}" ColumnSpacing="14" Visibility="{x:Bind CompactListLayoutVisibility}">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto" />
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="150" />
-                                                    <ColumnDefinition Width="90" />
-                                                    <ColumnDefinition Width="180" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                </Grid.ColumnDefinitions>
-                                                <Grid Width="{x:Bind ListPreviewWidth}" Height="{x:Bind ListPreviewHeight}" Visibility="{x:Bind ListPreviewVisibility}">
-                                                    <Border Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="4">
-                                                        <Image Source="{x:Bind PreviewImage}" Stretch="UniformToFill" Opacity="{x:Bind PreviewOpacity}" />
-                                                    </Border>
-                                                    <Border Background="#99000000" CornerRadius="4" Visibility="{x:Bind NsfwOverlayVisibility}">
-                                                        <TextBlock Text="NSFW" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold" />
-                                                    </Border>
-                                                </Grid>
-                                                <TextBlock Grid.Column="1" Text="{x:Bind DisplayName}" FontSize="{x:Bind ListTitleFontSize}" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                                <TextBlock Grid.Column="2" Text="{x:Bind IdText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                                <TextBlock Grid.Column="3" Text="{x:Bind SizeText}" VerticalAlignment="Center" />
-                                                <TextBlock Grid.Column="4" Text="{x:Bind TagsText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                                <Button Grid.Column="5" Content="USE" Click="RunWallpaper_Click" VerticalAlignment="Center" />
-                                                <Button Grid.Column="6" Content="Restore" Click="RestoreWallpaper_Click" VerticalAlignment="Center" />
-                                            </Grid>
-                                            </Grid>
-                                        </Border>
-                                    </DataTemplate>
-                                </ListView.ItemTemplate>
-                            </ListView>
-                            <GridView x:Name="HiddenThumbnailView" ItemsSource="{x:Bind HiddenWallpapers, Mode=OneWay}" SelectionMode="None" Visibility="Collapsed">
-                                <GridView.ItemTemplate>
-                                    <DataTemplate x:DataType="models:WallpaperItem">
-                                        <Border Width="{x:Bind CardWidth}" Padding="12" Background="{x:Bind RowBackground}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
-                                            <StackPanel Spacing="10">
-                                                <Grid Height="{x:Bind CardPreviewHeight}">
-                                                    <Border Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="6">
-                                                        <Image Source="{x:Bind PreviewImage}" Stretch="UniformToFill" Opacity="{x:Bind PreviewOpacity}" />
-                                                    </Border>
-                                                    <Border Background="#99000000" CornerRadius="6" Visibility="{x:Bind NsfwOverlayVisibility}">
-                                                        <TextBlock Text="NSFW" HorizontalAlignment="Center" VerticalAlignment="Center" Style="{StaticResource BodyStrongTextBlockStyle}" />
-                                                    </Border>
-                                                </Grid>
-                                                <TextBlock Text="{x:Bind DisplayName}" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="Wrap" />
-                                                <Grid ColumnSpacing="8" Visibility="{x:Bind ThumbnailDetailsVisibility}">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*" />
-                                                        <ColumnDefinition Width="Auto" />
-                                                    </Grid.ColumnDefinitions>
-                                                    <TextBlock Text="{x:Bind IdText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
-                                                    <TextBlock Grid.Column="1" Text="{x:Bind SizeText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                                </Grid>
-                                                <Grid ColumnSpacing="8">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*" />
-                                                        <ColumnDefinition Width="*" />
-                                                    </Grid.ColumnDefinitions>
-                                                    <Button Content="USE" Click="RunWallpaper_Click" />
-                                                    <Button Grid.Column="1" Content="Restore" Click="RestoreWallpaper_Click" />
-                                                </Grid>
+
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="What Gets Scanned" Style="{StaticResource SubtitleTextBlockStyle}" />
+                                <TextBlock Text="A folder is detected when it contains Wallpaper Engine files such as project.json, meta.json, scene.pkg, index.html, or a preview image with a video file." TextWrapping="Wrap" />
+                                <TextBlock Text="Preview images should be named preview and use jpg, png, gif, webp, bmp, or jpeg." Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                            </StackPanel>
+
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="Library Workflow" Style="{StaticResource SubtitleTextBlockStyle}" />
+                                <TextBlock Text="Add library folders in Settings, scan the library, then use each wallpaper menu to add it to Home, mark NSFW, or assign tags." TextWrapping="Wrap" />
+                                <TextBlock Text="Large list view is a detailed preview row. Medium and Small list views use table headers for faster scanning." Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                                        <ScrollViewer x:Name="SettingsPage" Visibility="Collapsed">
+                        <Grid MaxWidth="1000" HorizontalAlignment="Left">
+                            <StackPanel x:Name="SettingsHomePanel" Spacing="22">
+                                <TextBlock Text="Settings" FontSize="28" FontWeight="SemiBold" />
+                                <Grid ColumnSpacing="18" Margin="0,4,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Border Width="120" Height="68" CornerRadius="6" BorderThickness="2" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" Background="{ThemeResource LayerFillColorDefaultBrush}">
+                                        <FontIcon Glyph="&#xE790;" FontSize="30" />
+                                    </Border>
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                        <TextBlock Text="Wallpaper Manager" FontSize="18" FontWeight="SemiBold" />
+                                        <TextBlock Text="Local Wallpaper Engine library" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="2" Margin="18,0">
+                                        <TextBlock Text="Library" FontWeight="SemiBold" />
+                                        <TextBlock Text="Directories and NSFW" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="3" VerticalAlignment="Center" Spacing="2" Margin="18,0">
+                                        <TextBlock Text="Guide" FontWeight="SemiBold" />
+                                        <TextBlock Text="Folder syntax" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                </Grid>
+
+                                <StackPanel Spacing="5">
+                                    <Button Tag="Appearance" Click="SettingsSection_Click" HorizontalContentAlignment="Stretch" Padding="0" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderThickness="0" CornerRadius="4">
+                                        <Grid Padding="18,14" ColumnSpacing="18">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="32" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <FontIcon Glyph="&#xE771;" FontSize="18" VerticalAlignment="Center" />
+                                            <StackPanel Grid.Column="1" Spacing="2">
+                                                <TextBlock Text="Appearance" FontSize="17" />
+                                                <TextBlock Text="Theme, list columns, view style" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                             </StackPanel>
-                                        </Border>
-                                    </DataTemplate>
-                                </GridView.ItemTemplate>
-                            </GridView>
-                        </Grid>
-                    </Grid>
+                                            <FontIcon Grid.Column="2" Glyph="&#xE974;" FontSize="14" VerticalAlignment="Center" />
+                                        </Grid>
+                                    </Button>
 
-                    <ScrollViewer x:Name="InfoPage" Visibility="Collapsed">
-                        <StackPanel MaxWidth="820" Spacing="26" HorizontalAlignment="Left">
-                            <StackPanel Spacing="8">
-                                <TextBlock Text="Creator" Style="{StaticResource SubtitleTextBlockStyle}" />
-                                <TextBlock Text="Wallpaper Manager was created by SupremeMuhit." TextWrapping="Wrap" />
-                            </StackPanel>
+                                    <Button Tag="Library" Click="SettingsSection_Click" HorizontalContentAlignment="Stretch" Padding="0" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderThickness="0" CornerRadius="4">
+                                        <Grid Padding="18,14" ColumnSpacing="18">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="32" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <FontIcon Glyph="&#xE8B7;" FontSize="18" VerticalAlignment="Center" />
+                                            <StackPanel Grid.Column="1" Spacing="2">
+                                                <TextBlock Text="Library" FontSize="17" />
+                                                <TextBlock Text="Directories, engine executable, scans, NSFW visibility" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                            </StackPanel>
+                                            <FontIcon Grid.Column="2" Glyph="&#xE974;" FontSize="14" VerticalAlignment="Center" />
+                                        </Grid>
+                                    </Button>
 
-                            <StackPanel Spacing="8">
-                                <TextBlock Text="Acknowledgments" Style="{StaticResource SubtitleTextBlockStyle}" />
-                                <TextBlock Text="Built with WinUI and the Windows App SDK. Thanks to Wallpaper Engine for the wallpaper ecosystem this app organizes." TextWrapping="Wrap" />
-                            </StackPanel>
+                                    <Button Tag="Tag" Click="SettingsSection_Click" HorizontalContentAlignment="Stretch" Padding="0" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderThickness="0" CornerRadius="4">
+                                        <Grid Padding="18,14" ColumnSpacing="18">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="32" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <FontIcon Glyph="&#xE8EC;" FontSize="18" VerticalAlignment="Center" />
+                                            <StackPanel Grid.Column="1" Spacing="2">
+                                                <TextBlock Text="Tag" FontSize="17" />
+                                                <TextBlock Text="Create tags, colors, and priority" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                            </StackPanel>
+                                            <FontIcon Grid.Column="2" Glyph="&#xE974;" FontSize="14" VerticalAlignment="Center" />
+                                        </Grid>
+                                    </Button>
 
-                            <StackPanel Spacing="8">
-                                <TextBlock Text="App Changelog" Style="{StaticResource SubtitleTextBlockStyle}" />
-                                <TextBlock Text="Added hidden wallpaper protection, configurable library views, tags, row colors, NSFW overlays, and this info/contact page." TextWrapping="Wrap" />
-                            </StackPanel>
-
-                            <StackPanel Spacing="12">
-                                <TextBlock Text="Contact" Style="{StaticResource SubtitleTextBlockStyle}" />
-                                <Grid ColumnSpacing="12">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBox x:Name="ContactMailTextBox" Header="Mail" PlaceholderText="name@example.com" />
-                                    <TextBox x:Name="ContactDiscordTextBox" Grid.Column="1" Header="Discord username" PlaceholderText="username" />
-                                </Grid>
-                                <TextBox x:Name="ContactMessageTextBox" Header="Message" PlaceholderText="Write your message" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="130" MaxLength="1500" />
-                                <StackPanel Orientation="Horizontal" Spacing="10">
-                                    <Button x:Name="SendContactButton" Content="Send" Click="SendContact_Click" />
-                                    <ProgressRing x:Name="ContactProgressRing" Width="28" Height="28" IsActive="False" Visibility="Collapsed" />
+                                    <Button Tag="About" Click="SettingsSection_Click" HorizontalContentAlignment="Stretch" Padding="0" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderThickness="0" CornerRadius="4">
+                                        <Grid Padding="18,14" ColumnSpacing="18">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="32" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <FontIcon Glyph="&#xE946;" FontSize="18" VerticalAlignment="Center" />
+                                            <StackPanel Grid.Column="1" Spacing="2">
+                                                <TextBlock Text="About" FontSize="17" />
+                                                <TextBlock Text="Creator, acknowledgments, changelog, contact" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                            </StackPanel>
+                                            <FontIcon Grid.Column="2" Glyph="&#xE974;" FontSize="14" VerticalAlignment="Center" />
+                                        </Grid>
+                                    </Button>
                                 </StackPanel>
-                                <InfoBar x:Name="ContactInfoBar" IsOpen="False" />
-                            </StackPanel>
-                        </StackPanel>
-                    </ScrollViewer>
-
-                    <ScrollViewer x:Name="SettingsPage" Visibility="Collapsed">
-                        <StackPanel MaxWidth="820" Spacing="26" HorizontalAlignment="Left">
-                            <StackPanel Spacing="10">
-                                <TextBlock Text="Wallpaper Directories" Style="{StaticResource SubtitleTextBlockStyle}" />
-                                <CommandBar DefaultLabelPosition="Right" Background="Transparent">
-                                    <AppBarButton Icon="Add" Label="Add directory" Click="AddDirectory_Click" />
-                                </CommandBar>
-                                <ListView ItemsSource="{x:Bind LibraryRoots, Mode=OneWay}" SelectionMode="None">
-                                    <ListView.ItemTemplate>
-                                        <DataTemplate x:DataType="models:WallpaperLibraryRoot">
-                                            <Grid Padding="0,8" ColumnSpacing="12">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto" />
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                </Grid.ColumnDefinitions>
-                                                <FontIcon Glyph="&#xE8B7;" />
-                                                <StackPanel Grid.Column="1" Spacing="2">
-                                                    <TextBlock Text="{x:Bind DisplayName}" Style="{StaticResource BodyStrongTextBlockStyle}" />
-                                                    <TextBlock Text="{x:Bind Path}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
-                                                </StackPanel>
-                                                <Button Grid.Column="2" Content="Remove" Tag="{x:Bind Path}" Click="RemoveDirectory_Click" />
-                                            </Grid>
-                                        </DataTemplate>
-                                    </ListView.ItemTemplate>
-                                </ListView>
                             </StackPanel>
 
-                            <StackPanel Spacing="10">
-                                <TextBlock Text="Engine Executable Location" Style="{StaticResource SubtitleTextBlockStyle}" />
-                                <Grid ColumnSpacing="12">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBox x:Name="EnginePathTextBox" PlaceholderText="wallpaper32.exe or wallpaper64.exe" TextChanged="EnginePathTextBox_TextChanged" />
-                                    <Button Grid.Column="1" Content="Browse" Click="BrowseEngineExecutable_Click" />
-                                </Grid>
+                            <StackPanel x:Name="AppearanceSettingsPanel" Visibility="Collapsed" Spacing="20">
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <Button Click="SettingsBack_Click" Padding="8"><FontIcon Glyph="&#xE72B;" FontSize="14" /></Button>
+                                    <TextBlock Text="Settings" FontSize="28" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock Text="›" FontSize="28" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock Text="Appearance" FontSize="28" FontWeight="SemiBold" />
+                                </StackPanel>
+                                <TextBlock Text="Theme &amp; columns" FontWeight="SemiBold" />
+                                <StackPanel Spacing="5">
+                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                        <FontIcon Glyph="&#xE771;" FontSize="18" VerticalAlignment="Center" />
+                                        <StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Theme" FontSize="17" /><TextBlock Text="Choose app theme" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel>
+                                        <ComboBox x:Name="ThemeComboBox" Grid.Column="2" Width="220" ItemsSource="{x:Bind ThemeChoices}" SelectionChanged="ThemeComboBox_SelectionChanged" />
+                                    </Grid>
+                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                        <FontIcon Glyph="&#xE8A9;" FontSize="18" VerticalAlignment="Center" />
+                                        <StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="List columns" FontSize="17" /><TextBlock Text="Choose visible columns in compact list view" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel>
+                                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6">
+                                            <ToggleButton x:Name="PreviewColumnToggle" Content="Preview" Tag="Preview" Click="ColumnToggle_Click" />
+                                            <ToggleButton x:Name="LocalNameColumnToggle" Content="Local name" Tag="LocalName" Click="ColumnToggle_Click" />
+                                            <ToggleButton x:Name="IdColumnToggle" Content="ID" Tag="Id" Click="ColumnToggle_Click" />
+                                            <ToggleButton x:Name="SizeColumnToggle" Content="Size" Tag="Size" Click="ColumnToggle_Click" />
+                                            <ToggleButton x:Name="TagsColumnToggle" Content="Tags" Tag="Tags" Click="ColumnToggle_Click" />
+                                        </StackPanel>
+                                    </Grid>
+                                </StackPanel>
                             </StackPanel>
 
-                            <StackPanel Spacing="10">
-                                <TextBlock Text="Theme" Style="{StaticResource SubtitleTextBlockStyle}" />
-                                <ComboBox x:Name="ThemeComboBox" Width="220" ItemsSource="{x:Bind ThemeChoices}" SelectionChanged="ThemeComboBox_SelectionChanged" />
+                            <StackPanel x:Name="LibrarySettingsPanel" Visibility="Collapsed" Spacing="20">
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <Button Click="SettingsBack_Click" Padding="8"><FontIcon Glyph="&#xE72B;" FontSize="14" /></Button>
+                                    <TextBlock Text="Settings" FontSize="28" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock Text="›" FontSize="28" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock Text="Library" FontSize="28" FontWeight="SemiBold" />
+                                </StackPanel>
+                                <TextBlock Text="Sources &amp; scanning" FontWeight="SemiBold" />
+                                <StackPanel Spacing="5">
+                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                        <FontIcon Glyph="&#xE8B7;" FontSize="18" VerticalAlignment="Center" />
+                                        <StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Wallpaper directories" FontSize="17" /><TextBlock Text="Folders scanned for wallpapers" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel>
+                                        <Button Grid.Column="2" Content="Add directory" Click="AddDirectory_Click" />
+                                    </Grid>
+                                    <ListView ItemsSource="{x:Bind LibraryRoots, Mode=OneWay}" SelectionMode="None">
+                                        <ListView.ItemTemplate>
+                                            <DataTemplate x:DataType="models:WallpaperLibraryRoot">
+                                                <Grid Padding="18,10" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="12">
+                                                    <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                                    <FontIcon Glyph="&#xE8B7;" />
+                                                    <StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="{x:Bind DisplayName}" /><TextBlock Text="{x:Bind Path}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" /></StackPanel>
+                                                    <Button Grid.Column="2" Content="Remove" Tag="{x:Bind Path}" Click="RemoveDirectory_Click" />
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ListView.ItemTemplate>
+                                    </ListView>
+                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                        <FontIcon Glyph="&#xE8FB;" FontSize="18" VerticalAlignment="Center" />
+                                        <StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Scan library" FontSize="17" /><TextBlock Text="Refresh detected wallpapers" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel>
+                                        <Button Grid.Column="2" Content="Scan now" Click="ScanLibrary_Click" />
+                                    </Grid>
+                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                        <FontIcon Glyph="&#xE756;" FontSize="18" VerticalAlignment="Center" />
+                                        <StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Engine executable" FontSize="17" /><TextBlock Text="wallpaper32.exe or wallpaper64.exe" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel>
+                                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8"><TextBox x:Name="EnginePathTextBox" Width="320" PlaceholderText="wallpaper32.exe or wallpaper64.exe" TextChanged="EnginePathTextBox_TextChanged" /><Button Content="Browse" Click="BrowseEngineExecutable_Click" /></StackPanel>
+                                    </Grid>
+                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                        <FontIcon Glyph="&#xE7BA;" FontSize="18" VerticalAlignment="Center" />
+                                        <StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Show NSFW wallpapers" FontSize="17" /><TextBlock Text="Controls visibility in Library and Home" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel>
+                                        <ToggleSwitch x:Name="ShowNsfwWallpapersToggle" Grid.Column="2" Toggled="ShowNsfwWallpapersToggle_Toggled" />
+                                    </Grid>
+                                </StackPanel>
                             </StackPanel>
 
-                            <StackPanel Spacing="10">
-                                <TextBlock Text="Hidden Wallpapers" Style="{StaticResource SubtitleTextBlockStyle}" />
-                                <ToggleSwitch x:Name="ShowHiddenPageToggle" Header="Show Hidden Wallpapers page" Toggled="ShowHiddenPageToggle_Toggled" />
-                                <Button Content="Change hidden page password" Click="ChangeHiddenPassword_Click" />
+                            <StackPanel x:Name="TagSettingsPanel" Visibility="Collapsed" Spacing="20">
+                                <StackPanel Orientation="Horizontal" Spacing="10"><Button Click="SettingsBack_Click" Padding="8"><FontIcon Glyph="&#xE72B;" FontSize="14" /></Button><TextBlock Text="Settings" FontSize="28" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /><TextBlock Text="›" FontSize="28" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /><TextBlock Text="Tag" FontSize="28" FontWeight="SemiBold" /></StackPanel>
+                                <TextBlock Text="Color &amp; priority" FontWeight="SemiBold" />
+                                <StackPanel Spacing="5">
+                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><FontIcon Glyph="&#xE790;" FontSize="18" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Color cards by highest priority tag" FontSize="17" /><TextBlock Text="Tags stay enabled; only the color effect changes" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel><ToggleSwitch x:Name="ColorRowsToggle" Grid.Column="2" Toggled="ColorRowsToggle_Toggled" /></Grid>
+                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><FontIcon Glyph="&#xE710;" FontSize="18" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Create tag" FontSize="17" /><TextBlock Text="New tags appear at the lowest priority" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel><StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8"><TextBox x:Name="NewTagNameTextBox" Width="240" PlaceholderText="Tag name" /><Button Content="Create" Click="CreateTag_Click" /></StackPanel></Grid>
+                                    <ListView x:Name="TagsListView" ItemsSource="{x:Bind Tags, Mode=OneWay}" SelectionMode="None" CanDragItems="True" CanReorderItems="True" AllowDrop="True" DragItemsCompleted="TagsListView_DragItemsCompleted">
+                                        <ListView.ItemTemplate><DataTemplate x:DataType="models:WallpaperTag"><Grid Padding="18,10" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="28" /><ColumnDefinition Width="28" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><FontIcon Glyph="&#xE700;" FontSize="14" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" /><Border Grid.Column="1" Width="18" Height="18" CornerRadius="4" Background="{x:Bind ColorBrush}" /><StackPanel Grid.Column="2" Spacing="2"><TextBlock Text="{x:Bind Name}" /><TextBlock Text="{x:Bind Color}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel><Button Grid.Column="3" Content="Up" Click="MoveTagUp_Click" /><Button Grid.Column="4" Content="Down" Click="MoveTagDown_Click" /><Button Grid.Column="5" Content="Color" Click="EditTagColor_Click" /><Button Grid.Column="6" Content="Remove" Click="RemoveTag_Click" /></Grid></DataTemplate></ListView.ItemTemplate>
+                                    </ListView>
+                                </StackPanel>
                             </StackPanel>
 
-                            <StackPanel Spacing="12">
-                                <TextBlock Text="Tags" Style="{StaticResource SubtitleTextBlockStyle}" />
-                                <ToggleSwitch x:Name="ColorRowsToggle" Header="Color wallpaper rows by highest priority tag" Toggled="ColorRowsToggle_Toggled" />
-                                <Grid ColumnSpacing="12">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="260" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBox x:Name="NewTagNameTextBox" PlaceholderText="Tag name" />
-                                    <Button Grid.Column="1" Content="Create" Click="CreateTag_Click" />
-                                </Grid>
-                                <ListView x:Name="TagsListView" ItemsSource="{x:Bind Tags, Mode=OneWay}" SelectionMode="None" CanDragItems="True" CanReorderItems="True" AllowDrop="True" DragItemsCompleted="TagsListView_DragItemsCompleted">
-                                    <ListView.ItemTemplate>
-                                        <DataTemplate x:DataType="models:WallpaperTag">
-                                            <Grid Padding="0,8" ColumnSpacing="12">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="28" />
-                                                    <ColumnDefinition Width="28" />
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                </Grid.ColumnDefinitions>
-                                                <TextBlock Text="⠿" FontSize="18" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
-                                                <Border Grid.Column="1" Width="18" Height="18" CornerRadius="4" Background="{x:Bind ColorBrush}" />
-                                                <StackPanel Grid.Column="2" Spacing="2">
-                                                    <TextBlock Text="{x:Bind Name}" Style="{StaticResource BodyStrongTextBlockStyle}" />
-                                                    <TextBlock Text="{x:Bind Color}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                                </StackPanel>
-                                                <Button Grid.Column="3" Content="Color" Click="EditTagColor_Click" />
-                                                <Button Grid.Column="4" Content="Remove" Click="RemoveTag_Click" />
-                                            </Grid>
-                                        </DataTemplate>
-                                    </ListView.ItemTemplate>
-                                </ListView>
+                            <StackPanel x:Name="AboutSettingsPanel" Visibility="Collapsed" Spacing="20">
+                                <StackPanel Orientation="Horizontal" Spacing="10"><Button Click="SettingsBack_Click" Padding="8"><FontIcon Glyph="&#xE72B;" FontSize="14" /></Button><TextBlock Text="Settings" FontSize="28" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /><TextBlock Text="›" FontSize="28" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /><TextBlock Text="About" FontSize="28" FontWeight="SemiBold" /></StackPanel>
+                                <StackPanel Spacing="5">
+                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><FontIcon Glyph="&#xE77B;" FontSize="18" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Creator" FontSize="17" /><TextBlock Text="Wallpaper Manager was created by SupremeMuhit." Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" /></StackPanel></Grid>
+                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><FontIcon Glyph="&#xE8F1;" FontSize="18" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Acknowledgments" FontSize="17" /><TextBlock Text="Built with WinUI and the Windows App SDK. Thanks to Wallpaper Engine for the wallpaper ecosystem this app organizes." Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" /></StackPanel></Grid>
+                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><FontIcon Glyph="&#xE823;" FontSize="18" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="App changelog" FontSize="17" /><TextBlock Text="Added library scanning, Home selections, NSFW marking, tag priority/coloring, Guide content, and Windows Settings-style Settings pages." Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" /></StackPanel></Grid>
+                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><FontIcon Glyph="&#xE715;" FontSize="18" VerticalAlignment="Top" Margin="0,6,0,0" /><StackPanel Grid.Column="1" Spacing="12"><TextBlock Text="Contact" FontSize="17" /><Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><TextBox x:Name="ContactMailTextBox" Header="Mail" PlaceholderText="name@example.com" /><TextBox x:Name="ContactDiscordTextBox" Grid.Column="1" Header="Discord username" PlaceholderText="username" /></Grid><TextBox x:Name="ContactMessageTextBox" Header="Message" PlaceholderText="Write your message" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="130" MaxLength="1500" /><StackPanel Orientation="Horizontal" Spacing="10"><Button x:Name="SendContactButton" Content="Send" Click="SendContact_Click" /><ProgressRing x:Name="ContactProgressRing" Width="28" Height="28" IsActive="False" Visibility="Collapsed" /></StackPanel><InfoBar x:Name="ContactInfoBar" IsOpen="False" /></StackPanel></Grid>
+                                </StackPanel>
                             </StackPanel>
-                        </StackPanel>
-                    </ScrollViewer>
-                </Grid>
+                        </Grid>
+                    </ScrollViewer></Grid>
             </Grid>
         </NavigationView>
     </Grid>
 </Window>
+
+
+
+

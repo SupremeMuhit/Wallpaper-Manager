@@ -1,10 +1,10 @@
 using System.Collections.ObjectModel;
 using System.Net.Http;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
 using WallpaperManager.Models;
 using WallpaperManager.Services;
@@ -37,8 +37,6 @@ public sealed partial class MainWindow : Window
     public ObservableCollection<WallpaperItem> VisibleWallpapers { get; } = [];
 
     public ObservableCollection<WallpaperItem> SelectedWallpapers { get; } = [];
-
-    public ObservableCollection<WallpaperItem> HiddenWallpapers { get; } = [];
 
     public ObservableCollection<WallpaperTag> Tags { get; } = [];
 
@@ -83,19 +81,15 @@ public sealed partial class MainWindow : Window
         EnginePathTextBox.Text = CurrentSettings.EngineExecutablePath;
         ThemeComboBox.SelectedItem = CurrentSettings.Theme;
         LibraryViewComboBox.SelectedItem = CurrentSettings.LibraryViewMode;
-        HiddenViewComboBox.SelectedItem = CurrentSettings.LibraryViewMode;
         HomeViewComboBox.SelectedItem = CurrentSettings.HomeViewMode;
         CardSizeComboBox.SelectedItem = CurrentSettings.CardSize;
         HomeCardSizeComboBox.SelectedItem = CurrentSettings.CardSize;
-        HiddenCardSizeComboBox.SelectedItem = CurrentSettings.CardSize;
         ColorRowsToggle.IsOn = CurrentSettings.ColorRowsByHighestPriorityTag;
-        ShowHiddenPageToggle.IsOn = CurrentSettings.ShowHiddenWallpapersPage;
-        HiddenNavigationItem.Visibility = CurrentSettings.ShowHiddenWallpapersPage ? Visibility.Visible : Visibility.Collapsed;
+        ShowNsfwWallpapersToggle.IsOn = CurrentSettings.ShowNsfwWallpapers;
 
         ApplyTheme(CurrentSettings.Theme);
         ApplyColumnToggleState();
         ApplyLibraryViewMode(CurrentSettings.LibraryViewMode);
-        ApplyHiddenViewMode(CurrentSettings.LibraryViewMode);
         ApplyHomeViewMode(CurrentSettings.HomeViewMode);
         UpdateEngineStatus();
         _isLoadingSettings = false;
@@ -200,23 +194,7 @@ public sealed partial class MainWindow : Window
         }
 
         CurrentSettings.LibraryViewMode = viewMode;
-        HiddenViewComboBox.SelectedItem = viewMode;
         ApplyLibraryViewMode(viewMode);
-        ApplyHiddenViewMode(viewMode);
-        await SaveSettingsAsync();
-    }
-
-    private async void HiddenViewComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (_isLoadingSettings || HiddenViewComboBox.SelectedItem is not string viewMode)
-        {
-            return;
-        }
-
-        CurrentSettings.LibraryViewMode = viewMode;
-        LibraryViewComboBox.SelectedItem = viewMode;
-        ApplyLibraryViewMode(viewMode);
-        ApplyHiddenViewMode(viewMode);
         await SaveSettingsAsync();
     }
 
@@ -244,7 +222,6 @@ public sealed partial class MainWindow : Window
         ApplyWallpaperPresentation();
         RefreshVisibleWallpapers();
         RefreshSelectedWallpapers();
-        RefreshHiddenWallpapers();
         await SaveSettingsAsync();
     }
 
@@ -262,63 +239,29 @@ public sealed partial class MainWindow : Window
         await SaveSettingsAsync();
     }
 
-    private async void ShowHiddenPageToggle_Toggled(object sender, RoutedEventArgs e)
+    private async void ShowNsfwWallpapersToggle_Toggled(object sender, RoutedEventArgs e)
     {
         if (_isLoadingSettings)
         {
             return;
         }
 
-        if (ShowHiddenPageToggle.IsOn && !HasHiddenPassword())
-        {
-            var password = await PromptForNewHiddenPasswordAsync("Create Hidden Wallpapers password");
-            if (string.IsNullOrEmpty(password))
-            {
-                _isLoadingSettings = true;
-                ShowHiddenPageToggle.IsOn = false;
-                _isLoadingSettings = false;
-                return;
-            }
-
-            SetHiddenPassword(password);
-        }
-
-        CurrentSettings.ShowHiddenWallpapersPage = ShowHiddenPageToggle.IsOn;
-        HiddenNavigationItem.Visibility = CurrentSettings.ShowHiddenWallpapersPage ? Visibility.Visible : Visibility.Collapsed;
-        if (!CurrentSettings.ShowHiddenWallpapersPage && IsPageSelected("Hidden"))
-        {
-            ShowPage("Home");
-        }
-
-        await SaveSettingsAsync();
-    }
-
-    private async void ChangeHiddenPassword_Click(object sender, RoutedEventArgs e)
-    {
-        if (HasHiddenPassword() && !await PromptAndVerifyHiddenPasswordAsync("Current hidden password"))
-        {
-            return;
-        }
-
-        var password = await PromptForNewHiddenPasswordAsync("New Hidden Wallpapers password");
-        if (string.IsNullOrEmpty(password))
-        {
-            return;
-        }
-
-        SetHiddenPassword(password);
+        CurrentSettings.ShowNsfwWallpapers = ShowNsfwWallpapersToggle.IsOn;
+        RefreshVisibleWallpapers();
+        RefreshSelectedWallpapers();
         await SaveSettingsAsync();
     }
 
     private async void ColumnToggle_Click(object sender, RoutedEventArgs e)
     {
-        if ((sender as ToggleMenuFlyoutItem)?.Tag is not string column)
+        var toggle = sender as ToggleButton;
+        if (toggle?.Tag is not string column)
         {
             return;
         }
 
         var hiddenColumns = CurrentSettings.HiddenLibraryColumns;
-        if ((sender as ToggleMenuFlyoutItem)?.IsChecked == true)
+        if (toggle.IsChecked == true)
         {
             hiddenColumns.RemoveAll(item => string.Equals(item, column, StringComparison.OrdinalIgnoreCase));
         }
@@ -485,14 +428,6 @@ public sealed partial class MainWindow : Window
         nsfwItem.Click += ToggleNsfwMenuItem_Click;
         flyout.Items.Add(nsfwItem);
 
-        var hideItem = new MenuFlyoutItem
-        {
-            Text = "Hide This",
-            Tag = wallpaper
-        };
-        hideItem.Click += HideWallpaperMenuItem_Click;
-        flyout.Items.Add(hideItem);
-
         if (Tags.Count > 0)
         {
             flyout.Items.Add(new MenuFlyoutSeparator());
@@ -537,7 +472,6 @@ public sealed partial class MainWindow : Window
         wallpaper.IsSelected = !wallpaper.IsSelected;
         RefreshVisibleWallpapers();
         RefreshSelectedWallpapers();
-        RefreshHiddenWallpapers();
         await SaveSettingsAsync();
     }
 
@@ -553,35 +487,6 @@ public sealed partial class MainWindow : Window
         ApplyWallpaperPresentation();
         RefreshVisibleWallpapers();
         RefreshSelectedWallpapers();
-        await SaveSettingsAsync();
-    }
-
-    private async void HideWallpaperMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        if ((sender as MenuFlyoutItem)?.Tag is not WallpaperItem wallpaper)
-        {
-            return;
-        }
-
-        wallpaper.IsHidden = true;
-        wallpaper.IsSelected = false;
-        RefreshVisibleWallpapers();
-        RefreshSelectedWallpapers();
-        RefreshHiddenWallpapers();
-        await SaveSettingsAsync();
-    }
-
-    private async void RestoreWallpaper_Click(object sender, RoutedEventArgs e)
-    {
-        if ((sender as FrameworkElement)?.DataContext is not WallpaperItem wallpaper)
-        {
-            return;
-        }
-
-        wallpaper.IsHidden = false;
-        RefreshVisibleWallpapers();
-        RefreshSelectedWallpapers();
-        RefreshHiddenWallpapers();
         await SaveSettingsAsync();
     }
 
@@ -611,6 +516,21 @@ public sealed partial class MainWindow : Window
     {
         _engineService.StartEngine(CurrentSettings.EngineExecutablePath);
         UpdateEngineStatus();
+    }
+
+    private void SettingsSection_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is not string section)
+        {
+            return;
+        }
+
+        ShowSettingsSection(section);
+    }
+
+    private void SettingsBack_Click(object sender, RoutedEventArgs e)
+    {
+        ShowSettingsSection(null);
     }
 
     private async void SendContact_Click(object sender, RoutedEventArgs e)
@@ -681,70 +601,6 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    private async void ShowHiddenWallpapers_Click(object sender, RoutedEventArgs e)
-    {
-        var hiddenWallpapers = Wallpapers.Where(wallpaper => wallpaper.IsHidden).ToList();
-        var panel = new StackPanel { Spacing = 8 };
-
-        if (hiddenWallpapers.Count == 0)
-        {
-            panel.Children.Add(new TextBlock { Text = "No hidden wallpapers." });
-        }
-
-        foreach (var wallpaper in hiddenWallpapers)
-        {
-            var row = new Grid { ColumnSpacing = 12, Padding = new Thickness(0, 6, 0, 6) };
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-
-            var title = new StackPanel { Spacing = 2 };
-            title.Children.Add(new TextBlock
-            {
-                Text = string.IsNullOrWhiteSpace(wallpaper.DisplayName) ? wallpaper.IdText : wallpaper.DisplayName,
-                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold
-            });
-            title.Children.Add(new TextBlock
-            {
-                Text = wallpaper.IdText,
-                Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"]
-            });
-
-            var restoreButton = new Button { Content = "Restore", Tag = wallpaper };
-            restoreButton.Click += async (_, _) =>
-            {
-                wallpaper.IsHidden = false;
-                RefreshVisibleWallpapers();
-                RefreshSelectedWallpapers();
-                await SaveSettingsAsync();
-                panel.Children.Remove(row);
-                if (!Wallpapers.Any(item => item.IsHidden))
-                {
-                    panel.Children.Add(new TextBlock { Text = "No hidden wallpapers." });
-                }
-            };
-
-            Grid.SetColumn(title, 0);
-            Grid.SetColumn(restoreButton, 1);
-            row.Children.Add(title);
-            row.Children.Add(restoreButton);
-            panel.Children.Add(row);
-        }
-
-        var dialog = new ContentDialog
-        {
-            Title = "Hidden wallpapers",
-            Content = new ScrollViewer
-            {
-                MaxHeight = 420,
-                Content = panel
-            },
-            CloseButtonText = "Done",
-            XamlRoot = RootGrid.XamlRoot
-        };
-
-        await dialog.ShowAsync();
-    }
-
     private void RunWallpaper_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as FrameworkElement)?.DataContext is not WallpaperItem wallpaper)
@@ -767,13 +623,6 @@ public sealed partial class MainWindow : Window
             ? "Settings"
             : (args.SelectedItem as NavigationViewItem)?.Tag as string ?? "Home";
 
-        if (page == "Hidden" && !await EnsureHiddenWallpapersUnlockedAsync())
-        {
-            SelectNavigationPage("Home");
-            ShowPage("Home");
-            return;
-        }
-
         ShowPage(page);
     }
 
@@ -784,7 +633,6 @@ public sealed partial class MainWindow : Window
         var scannedWallpapers = await _wallpaperScanner.ScanAsync(
             LibraryRoots,
             CurrentSettings.SelectedWallpaperKeys.ToHashSet(StringComparer.OrdinalIgnoreCase),
-            CurrentSettings.HiddenWallpaperKeys.ToHashSet(StringComparer.OrdinalIgnoreCase),
             CurrentSettings.NsfwWallpaperKeys.ToHashSet(StringComparer.OrdinalIgnoreCase),
             CurrentSettings.WallpaperTags);
 
@@ -797,14 +645,13 @@ public sealed partial class MainWindow : Window
         ApplyWallpaperPresentation();
         RefreshVisibleWallpapers();
         RefreshSelectedWallpapers();
-        RefreshHiddenWallpapers();
         UpdateEmptyStates();
     }
 
     private void RefreshVisibleWallpapers()
     {
         VisibleWallpapers.Clear();
-        foreach (var wallpaper in Wallpapers.Where(item => !item.IsHidden))
+        foreach (var wallpaper in Wallpapers.Where(ShouldShowWallpaper))
         {
             VisibleWallpapers.Add(wallpaper);
         }
@@ -815,26 +662,16 @@ public sealed partial class MainWindow : Window
     private void RefreshSelectedWallpapers()
     {
         SelectedWallpapers.Clear();
-        foreach (var wallpaper in Wallpapers.Where(item => item.IsSelected && !item.IsHidden))
+        foreach (var wallpaper in Wallpapers.Where(item => item.IsSelected && ShouldShowWallpaper(item)))
         {
             SelectedWallpapers.Add(wallpaper);
         }
 
-        CurrentSettings.SelectedWallpaperKeys = SelectedWallpapers
+        CurrentSettings.SelectedWallpaperKeys = Wallpapers
+            .Where(wallpaper => wallpaper.IsSelected)
             .Select(wallpaper => wallpaper.Key)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
-
-        UpdateEmptyStates();
-    }
-
-    private void RefreshHiddenWallpapers()
-    {
-        HiddenWallpapers.Clear();
-        foreach (var wallpaper in Wallpapers.Where(item => item.IsHidden))
-        {
-            HiddenWallpapers.Add(wallpaper);
-        }
 
         UpdateEmptyStates();
     }
@@ -860,6 +697,7 @@ public sealed partial class MainWindow : Window
         }
 
         ApplyColumnVisibility();
+        ApplyCompactHeaderVisibility();
     }
 
     private void ApplyColumnVisibility()
@@ -876,6 +714,15 @@ public sealed partial class MainWindow : Window
         IdHeaderColumn.Width = GetColumnWidth(hiddenColumns, IdColumn, new GridLength(140));
         SizeHeaderColumn.Width = GetColumnWidth(hiddenColumns, SizeColumn, new GridLength(110));
         TagsHeaderColumn.Width = GetColumnWidth(hiddenColumns, TagsColumn, new GridLength(180));
+    }
+
+    private void ApplyCompactHeaderVisibility()
+    {
+        var visible = CurrentSettings.CardSize == CardSizeOptions.Large
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+        HomeCompactListHeader.Visibility = visible;
+        LibraryCompactListHeader.Visibility = visible;
     }
 
     private void ApplyColumnToggleState()
@@ -895,7 +742,6 @@ public sealed partial class MainWindow : Window
         var isThumbnail = viewMode == LibraryViewModes.Thumbnail;
         LibraryListView.Visibility = isThumbnail ? Visibility.Collapsed : Visibility.Visible;
         LibraryThumbnailView.Visibility = isThumbnail ? Visibility.Visible : Visibility.Collapsed;
-        ColumnsButton.Visibility = isThumbnail ? Visibility.Collapsed : Visibility.Visible;
     }
 
     private void ApplyHomeViewMode(string viewMode)
@@ -903,13 +749,6 @@ public sealed partial class MainWindow : Window
         var isThumbnail = viewMode == LibraryViewModes.Thumbnail;
         HomeListView.Visibility = isThumbnail ? Visibility.Collapsed : Visibility.Visible;
         HomeThumbnailView.Visibility = isThumbnail ? Visibility.Visible : Visibility.Collapsed;
-    }
-
-    private void ApplyHiddenViewMode(string viewMode)
-    {
-        var isThumbnail = viewMode == LibraryViewModes.Thumbnail;
-        HiddenListView.Visibility = isThumbnail ? Visibility.Collapsed : Visibility.Visible;
-        HiddenThumbnailView.Visibility = isThumbnail ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private Brush GetWallpaperRowBrush(WallpaperItem wallpaper)
@@ -937,19 +776,30 @@ public sealed partial class MainWindow : Window
     {
         HomePage.Visibility = page == "Home" ? Visibility.Visible : Visibility.Collapsed;
         LibraryPage.Visibility = page == "Library" ? Visibility.Visible : Visibility.Collapsed;
-        HiddenPage.Visibility = page == "Hidden" ? Visibility.Visible : Visibility.Collapsed;
-        InfoPage.Visibility = page == "Info" ? Visibility.Visible : Visibility.Collapsed;
+        GuidePage.Visibility = page == "Guide" ? Visibility.Visible : Visibility.Collapsed;
         SettingsPage.Visibility = page == "Settings" ? Visibility.Visible : Visibility.Collapsed;
+        if (page == "Settings")
+        {
+            ShowSettingsSection(null);
+        }
 
         PageTitle.Text = page;
         PageSubtitle.Text = page switch
         {
             "Library" => "All detected wallpapers within every configured directory.",
-            "Hidden" => "Hidden wallpapers are kept out of Library and Home.",
-            "Info" => "Creator details, acknowledgments, changelog, and contact.",
-            "Settings" => "Configure directories, Wallpaper Engine, tags, columns, and theme.",
+            "Guide" => "Folder naming, scanning rules, and practical usage notes.",
+            "Settings" => "Appearance, library, tag, and about settings.",
             _ => "Selected wallpapers from your local Wallpaper Engine library."
         };
+    }
+
+    private void ShowSettingsSection(string? section)
+    {
+        SettingsHomePanel.Visibility = string.IsNullOrWhiteSpace(section) ? Visibility.Visible : Visibility.Collapsed;
+        AppearanceSettingsPanel.Visibility = section == "Appearance" ? Visibility.Visible : Visibility.Collapsed;
+        LibrarySettingsPanel.Visibility = section == "Library" ? Visibility.Visible : Visibility.Collapsed;
+        TagSettingsPanel.Visibility = section == "Tag" ? Visibility.Visible : Visibility.Collapsed;
+        AboutSettingsPanel.Visibility = section == "About" ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private async Task SaveSettingsAsync()
@@ -966,10 +816,9 @@ public sealed partial class MainWindow : Window
         CurrentSettings.LibraryViewMode = LibraryViewComboBox.SelectedItem as string ?? LibraryViewModes.List;
         CurrentSettings.HomeViewMode = HomeViewComboBox.SelectedItem as string ?? LibraryViewModes.Thumbnail;
         CurrentSettings.CardSize = CardSizeComboBox.SelectedItem as string ?? CardSizeOptions.Medium;
-        CurrentSettings.ShowHiddenWallpapersPage = ShowHiddenPageToggle.IsOn;
         CurrentSettings.ColorRowsByHighestPriorityTag = ColorRowsToggle.IsOn;
+        CurrentSettings.ShowNsfwWallpapers = ShowNsfwWallpapersToggle.IsOn;
         CurrentSettings.Tags = Tags.ToList();
-        CurrentSettings.HiddenWallpaperKeys = Wallpapers.Where(wallpaper => wallpaper.IsHidden).Select(wallpaper => wallpaper.Key).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         CurrentSettings.NsfwWallpaperKeys = Wallpapers.Where(wallpaper => wallpaper.IsNsfw).Select(wallpaper => wallpaper.Key).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         CurrentSettings.WallpaperTags = Wallpapers
             .Where(wallpaper => wallpaper.Tags.Count > 0)
@@ -982,7 +831,11 @@ public sealed partial class MainWindow : Window
         EmptyLibraryInfo.IsOpen = VisibleWallpapers.Count == 0;
         HomeCountText.Text = $"{SelectedWallpapers.Count} selected";
         LibraryCountText.Text = $"{VisibleWallpapers.Count} wallpapers";
-        HiddenCountText.Text = $"{HiddenWallpapers.Count} hidden";
+    }
+
+    private bool ShouldShowWallpaper(WallpaperItem wallpaper)
+    {
+        return CurrentSettings.ShowNsfwWallpapers || !wallpaper.IsNsfw;
     }
 
     private void UpdateEngineStatus()
@@ -1013,27 +866,6 @@ public sealed partial class MainWindow : Window
         WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
     }
 
-    private async Task<bool> EnsureHiddenWallpapersUnlockedAsync()
-    {
-        if (!HasHiddenPassword())
-        {
-            var password = await PromptForNewHiddenPasswordAsync("Create Hidden Wallpapers password");
-            if (string.IsNullOrEmpty(password))
-            {
-                return false;
-            }
-
-            SetHiddenPassword(password);
-            CurrentSettings.ShowHiddenWallpapersPage = true;
-            ShowHiddenPageToggle.IsOn = true;
-            HiddenNavigationItem.Visibility = Visibility.Visible;
-            await SaveSettingsAsync();
-            return true;
-        }
-
-        return await PromptAndVerifyHiddenPasswordAsync("Hidden Wallpapers password");
-    }
-
     private void ShowContactStatus(string title, string message, InfoBarSeverity severity)
     {
         ContactInfoBar.Title = title;
@@ -1051,86 +883,6 @@ public sealed partial class MainWindow : Window
         builder.AppendLine();
         builder.AppendLine(message.Length > 1500 ? message[..1500] : message);
         return builder.ToString();
-    }
-
-    private async Task<bool> PromptAndVerifyHiddenPasswordAsync(string title)
-    {
-        var passwordBox = new PasswordBox { PlaceholderText = "Password" };
-        var dialog = new ContentDialog
-        {
-            Title = title,
-            Content = passwordBox,
-            PrimaryButtonText = "Unlock",
-            CloseButtonText = "Cancel",
-            XamlRoot = RootGrid.XamlRoot
-        };
-
-        return await dialog.ShowAsync() == ContentDialogResult.Primary && VerifyHiddenPassword(passwordBox.Password);
-    }
-
-    private async Task<string?> PromptForNewHiddenPasswordAsync(string title)
-    {
-        var passwordBox = new PasswordBox { PlaceholderText = "Password" };
-        var confirmBox = new PasswordBox { PlaceholderText = "Confirm password" };
-        var panel = new StackPanel { Spacing = 10 };
-        panel.Children.Add(new TextBlock
-        {
-            Text = "No recovery is available if this password is lost.",
-            Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
-            TextWrapping = TextWrapping.Wrap
-        });
-        panel.Children.Add(passwordBox);
-        panel.Children.Add(confirmBox);
-
-        var dialog = new ContentDialog
-        {
-            Title = title,
-            Content = panel,
-            PrimaryButtonText = "Save",
-            CloseButtonText = "Cancel",
-            XamlRoot = RootGrid.XamlRoot
-        };
-
-        if (await dialog.ShowAsync() != ContentDialogResult.Primary
-            || string.IsNullOrWhiteSpace(passwordBox.Password)
-            || passwordBox.Password != confirmBox.Password)
-        {
-            return null;
-        }
-
-        return passwordBox.Password;
-    }
-
-    private bool HasHiddenPassword()
-    {
-        return !string.IsNullOrWhiteSpace(CurrentSettings.HiddenWallpapersPasswordSalt)
-            && !string.IsNullOrWhiteSpace(CurrentSettings.HiddenWallpapersPasswordHash);
-    }
-
-    private void SetHiddenPassword(string password)
-    {
-        var salt = RandomNumberGenerator.GetBytes(16);
-        var hash = HashPassword(password, salt);
-        CurrentSettings.HiddenWallpapersPasswordSalt = Convert.ToBase64String(salt);
-        CurrentSettings.HiddenWallpapersPasswordHash = Convert.ToBase64String(hash);
-    }
-
-    private bool VerifyHiddenPassword(string password)
-    {
-        if (!HasHiddenPassword())
-        {
-            return false;
-        }
-
-        var salt = Convert.FromBase64String(CurrentSettings.HiddenWallpapersPasswordSalt);
-        var expectedHash = Convert.FromBase64String(CurrentSettings.HiddenWallpapersPasswordHash);
-        var actualHash = HashPassword(password, salt);
-        return CryptographicOperations.FixedTimeEquals(actualHash, expectedHash);
-    }
-
-    private static byte[] HashPassword(string password, byte[] salt)
-    {
-        return Rfc2898DeriveBytes.Pbkdf2(password, salt, 100_000, HashAlgorithmName.SHA256, 32);
     }
 
     private bool IsPageSelected(string page)
@@ -1162,10 +914,6 @@ public sealed partial class MainWindow : Window
             HomeCardSizeComboBox.SelectedItem = cardSize;
         }
 
-        if (HiddenCardSizeComboBox.SelectedItem as string != cardSize)
-        {
-            HiddenCardSizeComboBox.SelectedItem = cardSize;
-        }
     }
 
     private static Visibility GetColumnVisibility(IReadOnlySet<string> hiddenColumns, string column)

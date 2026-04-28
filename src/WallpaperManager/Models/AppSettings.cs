@@ -10,8 +10,6 @@ public sealed class AppSettings
 
     public List<string> SelectedWallpaperKeys { get; set; } = [];
 
-    public List<string> HiddenWallpaperKeys { get; set; } = [];
-
     public List<string> NsfwWallpaperKeys { get; set; } = [];
 
     public Dictionary<string, List<string>> WallpaperTags { get; set; } = [];
@@ -23,6 +21,8 @@ public sealed class AppSettings
 
     public bool ColorRowsByHighestPriorityTag { get; set; } = true;
 
+    public bool ShowNsfwWallpapers { get; set; } = true;
+
     public List<string> HiddenLibraryColumns { get; set; } = [];
 
     public string LibraryViewMode { get; set; } = LibraryViewModes.List;
@@ -30,10 +30,4 @@ public sealed class AppSettings
     public string HomeViewMode { get; set; } = LibraryViewModes.Thumbnail;
 
     public string CardSize { get; set; } = CardSizeOptions.Medium;
-
-    public bool ShowHiddenWallpapersPage { get; set; }
-
-    public string HiddenWallpapersPasswordSalt { get; set; } = string.Empty;
-
-    public string HiddenWallpapersPasswordHash { get; set; } = string.Empty;
 }

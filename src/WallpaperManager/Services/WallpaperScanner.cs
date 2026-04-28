@@ -18,7 +18,6 @@ public sealed partial class WallpaperScanner
     public Task<IReadOnlyList<WallpaperItem>> ScanAsync(
         IEnumerable<WallpaperLibraryRoot> roots,
         IReadOnlySet<string> selectedKeys,
-        IReadOnlySet<string> hiddenKeys,
         IReadOnlySet<string> nsfwKeys,
         IReadOnlyDictionary<string, List<string>> wallpaperTags)
     {
@@ -43,7 +42,6 @@ public sealed partial class WallpaperScanner
 
                     var item = CreateWallpaperItem(directory);
                     item.IsSelected = selectedKeys.Contains(item.Key);
-                    item.IsHidden = hiddenKeys.Contains(item.Key);
                     item.IsNsfw = nsfwKeys.Contains(item.Key);
                     item.Tags = wallpaperTags.TryGetValue(item.Key, out var tags) ? [.. tags] : [];
                     wallpapers.Add(item);

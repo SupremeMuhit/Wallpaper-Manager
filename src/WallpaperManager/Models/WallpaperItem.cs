@@ -24,8 +24,6 @@ public sealed class WallpaperItem
 
     public bool IsSelected { get; set; }
 
-    public bool IsHidden { get; set; }
-
     public bool IsNsfw { get; set; }
 
     public List<string> Tags { get; set; } = [];
