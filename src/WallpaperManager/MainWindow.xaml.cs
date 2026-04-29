@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
+using Microsoft.UI.Composition.SystemBackdrops;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
@@ -11,6 +12,7 @@ using WallpaperManager.Services;
 using Windows.Storage.Pickers;
 using Microsoft.UI;
 using Windows.UI;
+using System.Diagnostics;
 
 namespace WallpaperManager;
 
@@ -28,6 +30,7 @@ public sealed partial class MainWindow : Window
     private readonly WallpaperEngineService _engineService = new();
     private readonly WallpaperScanner _wallpaperScanner = new();
     private readonly DispatcherTimer _engineStatusTimer = new();
+    private MicaBackdrop? _micaBackdrop;
     private bool _isLoadingSettings;
 
     public ObservableCollection<WallpaperLibraryRoot> LibraryRoots { get; } = [];
@@ -39,6 +42,8 @@ public sealed partial class MainWindow : Window
     public ObservableCollection<WallpaperItem> SelectedWallpapers { get; } = [];
 
     public ObservableCollection<WallpaperTag> Tags { get; } = [];
+
+    public ObservableCollection<WallpaperTag> VisibleTags { get; } = [];
 
     public IReadOnlyList<string> ThemeChoices { get; } = ThemeOptions.All;
 
@@ -61,6 +66,29 @@ public sealed partial class MainWindow : Window
         LoadSettings();
     }
 
+    private void ApplyBackdrop(bool useMica)
+    {
+        try
+        {
+            if (!useMica)
+            {
+                SystemBackdrop = null;
+                _micaBackdrop = null;
+                return;
+            }
+
+            _micaBackdrop = new MicaBackdrop();
+            SystemBackdrop = _micaBackdrop;
+            ApplyThemeColor(CurrentSettings.ThemeColor);
+        }
+        catch
+        {
+            // Keep default app background if Mica is unavailable.
+            SystemBackdrop = null;
+            _micaBackdrop = null;
+        }
+    }
+
     private async void LoadSettings()
     {
         _isLoadingSettings = true;
@@ -79,18 +107,31 @@ public sealed partial class MainWindow : Window
         }
 
         EnginePathTextBox.Text = CurrentSettings.EngineExecutablePath;
-        ThemeComboBox.SelectedItem = CurrentSettings.Theme;
+        ThemeComboBox.SelectedItem = ToThemeMode(CurrentSettings.Theme);
+        ThemeColorTextBox.Text = CurrentSettings.ThemeColor;
+        ThemeColorPresetComboBox.SelectedItem = ToThemeColorPreset(CurrentSettings.ThemeColor);
         LibraryViewComboBox.SelectedItem = CurrentSettings.LibraryViewMode;
         HomeViewComboBox.SelectedItem = CurrentSettings.HomeViewMode;
         CardSizeComboBox.SelectedItem = CurrentSettings.CardSize;
         HomeCardSizeComboBox.SelectedItem = CurrentSettings.CardSize;
         ColorRowsToggle.IsOn = CurrentSettings.ColorRowsByHighestPriorityTag;
-        ShowNsfwWallpapersToggle.IsOn = CurrentSettings.ShowNsfwWallpapers;
+        HideNsfwToggle.IsOn = !CurrentSettings.ShowNsfwWallpapers;
+        RunOnStartupToggle.IsOn = CurrentSettings.RunOnStartup;
+        MemoryUsageComboBox.SelectedItem = CurrentSettings.MemoryUsageProfile;
+        PrioritizeLocalNameToggle.IsOn = CurrentSettings.PrioritizeLocalName;
+        AutoMarkNsfwToggle.IsOn = CurrentSettings.AutoMarkNsfwFromWorkshop;
+        BlurNsfwToggle.IsOn = CurrentSettings.BlurNsfw;
+        BlurMatureToggle.IsOn = CurrentSettings.BlurMature;
+        AddTagsFromWorkshopToggle.IsOn = CurrentSettings.AddTagsFromWorkshop;
 
         ApplyTheme(CurrentSettings.Theme);
+        CurrentSettings.UseMicaBackdrop = true;
+        ApplyBackdrop(true);
+        ApplyThemeColor(CurrentSettings.ThemeColor);
         ApplyColumnToggleState();
         ApplyLibraryViewMode(CurrentSettings.LibraryViewMode);
         ApplyHomeViewMode(CurrentSettings.HomeViewMode);
+        RefreshVisibleTags();
         UpdateEngineStatus();
         _isLoadingSettings = false;
 
@@ -176,13 +217,13 @@ public sealed partial class MainWindow : Window
 
     private async void ThemeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (_isLoadingSettings || ThemeComboBox.SelectedItem is not string theme)
+        if (_isLoadingSettings || ThemeComboBox.SelectedItem is not string themeMode)
         {
             return;
         }
 
-        CurrentSettings.Theme = theme;
-        ApplyTheme(theme);
+        CurrentSettings.Theme = FromThemeMode(themeMode);
+        ApplyTheme(CurrentSettings.Theme);
         await SaveSettingsAsync();
     }
 
@@ -239,16 +280,159 @@ public sealed partial class MainWindow : Window
         await SaveSettingsAsync();
     }
 
-    private async void ShowNsfwWallpapersToggle_Toggled(object sender, RoutedEventArgs e)
+    private async void HideNsfwToggle_Toggled(object sender, RoutedEventArgs e)
     {
         if (_isLoadingSettings)
         {
             return;
         }
 
-        CurrentSettings.ShowNsfwWallpapers = ShowNsfwWallpapersToggle.IsOn;
+        CurrentSettings.ShowNsfwWallpapers = !HideNsfwToggle.IsOn;
         RefreshVisibleWallpapers();
         RefreshSelectedWallpapers();
+        await SaveSettingsAsync();
+    }
+
+    private async void RunOnStartupToggle_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (_isLoadingSettings)
+        {
+            return;
+        }
+
+        CurrentSettings.RunOnStartup = RunOnStartupToggle.IsOn;
+        await SaveSettingsAsync();
+    }
+
+    private async void MemoryUsageComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isLoadingSettings || MemoryUsageComboBox.SelectedItem is not string memoryProfile)
+        {
+            return;
+        }
+
+        CurrentSettings.MemoryUsageProfile = memoryProfile;
+        await SaveSettingsAsync();
+    }
+
+    private async void ThemeColorPresetComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isLoadingSettings || ThemeColorPresetComboBox.SelectedItem is not string preset)
+        {
+            return;
+        }
+
+        if (preset != "Custom")
+        {
+            CurrentSettings.ThemeColor = PresetToHex(preset);
+            ThemeColorTextBox.Text = CurrentSettings.ThemeColor;
+            ApplyThemeColor(CurrentSettings.ThemeColor);
+        }
+
+        await SaveSettingsAsync();
+    }
+
+    private async void ThemeColorTextBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_isLoadingSettings)
+        {
+            return;
+        }
+
+        if (!TryNormalizeHexColor(ThemeColorTextBox.Text, out var normalized))
+        {
+            return;
+        }
+
+        CurrentSettings.ThemeColor = normalized;
+        ThemeColorPresetComboBox.SelectedItem = ToThemeColorPreset(normalized);
+        ApplyThemeColor(normalized);
+        await SaveSettingsAsync();
+    }
+
+    private async void PickThemeColor_Click(object sender, RoutedEventArgs e)
+    {
+        var picker = new ColorPicker
+        {
+            Color = ParseHexColor(CurrentSettings.ThemeColor),
+            IsAlphaEnabled = false,
+            IsAlphaSliderVisible = false,
+            IsAlphaTextInputVisible = false
+        };
+
+        var dialog = new ContentDialog
+        {
+            Title = "Select theme color",
+            Content = picker,
+            PrimaryButtonText = "Save",
+            CloseButtonText = "Cancel",
+            XamlRoot = RootGrid.XamlRoot
+        };
+
+        if (await dialog.ShowAsync() != ContentDialogResult.Primary)
+        {
+            return;
+        }
+
+        CurrentSettings.ThemeColor = FormatHexColor(picker.Color);
+        ThemeColorTextBox.Text = CurrentSettings.ThemeColor;
+        ThemeColorPresetComboBox.SelectedItem = ToThemeColorPreset(CurrentSettings.ThemeColor);
+        ApplyThemeColor(CurrentSettings.ThemeColor);
+        await SaveSettingsAsync();
+    }
+
+    private async void PrioritizeLocalNameToggle_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (_isLoadingSettings)
+        {
+            return;
+        }
+
+        CurrentSettings.PrioritizeLocalName = PrioritizeLocalNameToggle.IsOn;
+        await SaveSettingsAsync();
+    }
+
+    private async void AutoMarkNsfwToggle_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (_isLoadingSettings)
+        {
+            return;
+        }
+
+        CurrentSettings.AutoMarkNsfwFromWorkshop = AutoMarkNsfwToggle.IsOn;
+        await SaveSettingsAsync();
+    }
+
+    private async void BlurNsfwToggle_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (_isLoadingSettings)
+        {
+            return;
+        }
+
+        CurrentSettings.BlurNsfw = BlurNsfwToggle.IsOn;
+        await SaveSettingsAsync();
+    }
+
+    private async void BlurMatureToggle_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (_isLoadingSettings)
+        {
+            return;
+        }
+
+        CurrentSettings.BlurMature = BlurMatureToggle.IsOn;
+        await SaveSettingsAsync();
+    }
+
+    private async void AddTagsFromWorkshopToggle_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (_isLoadingSettings)
+        {
+            return;
+        }
+
+        CurrentSettings.AddTagsFromWorkshop = AddTagsFromWorkshopToggle.IsOn;
         await SaveSettingsAsync();
     }
 
@@ -278,20 +462,22 @@ public sealed partial class MainWindow : Window
 
     private async void CreateTag_Click(object sender, RoutedEventArgs e)
     {
-        var name = NewTagNameTextBox.Text.Trim();
-        if (string.IsNullOrWhiteSpace(name) || Tags.Any(tag => string.Equals(tag.Name, name, StringComparison.OrdinalIgnoreCase)))
+        await OpenTagEditorAsync(null);
+    }
+
+    private async void EditTagButton_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is not WallpaperTag tag)
         {
             return;
         }
 
-        Tags.Add(new WallpaperTag
-        {
-            Name = name,
-            Color = "#3A7AFE"
-        });
+        await OpenTagEditorAsync(tag);
+    }
 
-        NewTagNameTextBox.Text = string.Empty;
-        await SaveSettingsAsync();
+    private void TagSearchTextBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        RefreshVisibleTags();
     }
 
     private async void EditTagColor_Click(object sender, RoutedEventArgs e)
@@ -325,6 +511,7 @@ public sealed partial class MainWindow : Window
 
         tag.Color = FormatHexColor(picker.Color);
         RefreshTagRow(tag);
+        RefreshVisibleTags();
         ApplyWallpaperPresentation();
         RefreshVisibleWallpapers();
         RefreshSelectedWallpapers();
@@ -345,6 +532,7 @@ public sealed partial class MainWindow : Window
         }
 
         Tags.Move(index, index - 1);
+        RefreshVisibleTags();
         await SaveSettingsAsync();
         ApplyWallpaperPresentation();
         RefreshVisibleWallpapers();
@@ -353,6 +541,17 @@ public sealed partial class MainWindow : Window
 
     private async void TagsListView_DragItemsCompleted(ListViewBase sender, DragItemsCompletedEventArgs args)
     {
+        if (!string.IsNullOrWhiteSpace(TagSearchTextBox.Text))
+        {
+            return;
+        }
+
+        Tags.Clear();
+        foreach (var tag in VisibleTags)
+        {
+            Tags.Add(tag);
+        }
+
         await SaveSettingsAsync();
         ApplyWallpaperPresentation();
         RefreshVisibleWallpapers();
@@ -373,6 +572,7 @@ public sealed partial class MainWindow : Window
         }
 
         Tags.Move(index, index + 1);
+        RefreshVisibleTags();
         await SaveSettingsAsync();
         ApplyWallpaperPresentation();
         RefreshVisibleWallpapers();
@@ -387,6 +587,7 @@ public sealed partial class MainWindow : Window
         }
 
         Tags.Remove(tag);
+        RefreshVisibleTags();
         foreach (var wallpaper in Wallpapers)
         {
             wallpaper.Tags.RemoveAll(item => string.Equals(item, tag.Name, StringComparison.OrdinalIgnoreCase));
@@ -617,6 +818,20 @@ public sealed partial class MainWindow : Window
         UpdateEngineStatus();
     }
 
+    private void OpenExternalLink_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is not string url || string.IsNullOrWhiteSpace(url))
+        {
+            return;
+        }
+
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = url,
+            UseShellExecute = true
+        });
+    }
+
     private async void Navigation_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
     {
         var page = args.IsSettingsSelected
@@ -788,7 +1003,7 @@ public sealed partial class MainWindow : Window
         {
             "Library" => "All detected wallpapers within every configured directory.",
             "Guide" => "Folder naming, scanning rules, and practical usage notes.",
-            "Settings" => "Appearance, library, tag, and about settings.",
+            "Settings" => "Engine and wallpaper, appearance, library, and tags.",
             _ => "Selected wallpapers from your local Wallpaper Engine library."
         };
     }
@@ -796,10 +1011,12 @@ public sealed partial class MainWindow : Window
     private void ShowSettingsSection(string? section)
     {
         SettingsHomePanel.Visibility = string.IsNullOrWhiteSpace(section) ? Visibility.Visible : Visibility.Collapsed;
+        EngineWallpaperSettingsPanel.Visibility = section == "EngineWallpaper" ? Visibility.Visible : Visibility.Collapsed;
         AppearanceSettingsPanel.Visibility = section == "Appearance" ? Visibility.Visible : Visibility.Collapsed;
         LibrarySettingsPanel.Visibility = section == "Library" ? Visibility.Visible : Visibility.Collapsed;
-        TagSettingsPanel.Visibility = section == "Tag" ? Visibility.Visible : Visibility.Collapsed;
+        TagSettingsPanel.Visibility = section == "Tags" ? Visibility.Visible : Visibility.Collapsed;
         AboutSettingsPanel.Visibility = section == "About" ? Visibility.Visible : Visibility.Collapsed;
+        ContactSettingsPanel.Visibility = section == "Contact" ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private async Task SaveSettingsAsync()
@@ -812,12 +1029,21 @@ public sealed partial class MainWindow : Window
     {
         CurrentSettings.WallpaperDirectories = LibraryRoots.ToList();
         CurrentSettings.EngineExecutablePath = EnginePathTextBox.Text;
-        CurrentSettings.Theme = ThemeComboBox.SelectedItem as string ?? ThemeOptions.System;
+        CurrentSettings.Theme = FromThemeMode(ThemeComboBox.SelectedItem as string ?? "Auto");
+        CurrentSettings.ThemeColor = NormalizeHexColor(ThemeColorTextBox.Text);
         CurrentSettings.LibraryViewMode = LibraryViewComboBox.SelectedItem as string ?? LibraryViewModes.List;
         CurrentSettings.HomeViewMode = HomeViewComboBox.SelectedItem as string ?? LibraryViewModes.Thumbnail;
         CurrentSettings.CardSize = CardSizeComboBox.SelectedItem as string ?? CardSizeOptions.Medium;
         CurrentSettings.ColorRowsByHighestPriorityTag = ColorRowsToggle.IsOn;
-        CurrentSettings.ShowNsfwWallpapers = ShowNsfwWallpapersToggle.IsOn;
+        CurrentSettings.ShowNsfwWallpapers = !HideNsfwToggle.IsOn;
+        CurrentSettings.UseMicaBackdrop = true;
+        CurrentSettings.RunOnStartup = RunOnStartupToggle.IsOn;
+        CurrentSettings.MemoryUsageProfile = MemoryUsageComboBox.SelectedItem as string ?? "Balanced";
+        CurrentSettings.PrioritizeLocalName = PrioritizeLocalNameToggle.IsOn;
+        CurrentSettings.AutoMarkNsfwFromWorkshop = AutoMarkNsfwToggle.IsOn;
+        CurrentSettings.BlurNsfw = BlurNsfwToggle.IsOn;
+        CurrentSettings.BlurMature = BlurMatureToggle.IsOn;
+        CurrentSettings.AddTagsFromWorkshop = AddTagsFromWorkshopToggle.IsOn;
         CurrentSettings.Tags = Tags.ToList();
         CurrentSettings.NsfwWallpaperKeys = Wallpapers.Where(wallpaper => wallpaper.IsNsfw).Select(wallpaper => wallpaper.Key).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         CurrentSettings.WallpaperTags = Wallpapers
@@ -858,6 +1084,31 @@ public sealed partial class MainWindow : Window
             ThemeOptions.Dark => ElementTheme.Dark,
             _ => ElementTheme.Default
         };
+    }
+
+    private void ApplyThemeColor(string colorHex)
+    {
+        var color = ParseHexColor(colorHex);
+        var accentBrush = new SolidColorBrush(color);
+        Navigation.Resources["SystemAccentColor"] = color;
+        Navigation.Resources["SystemAccentColorLight1"] = color;
+        Navigation.Resources["SystemAccentColorLight2"] = color;
+        Navigation.Resources["SystemAccentColorLight3"] = color;
+        Navigation.Resources["SystemAccentColorDark1"] = color;
+        Navigation.Resources["SystemAccentColorDark2"] = color;
+        Navigation.Resources["SystemAccentColorDark3"] = color;
+        Navigation.Resources["SystemAccentColorBrush"] = accentBrush;
+        RootGrid.Resources["SystemAccentColor"] = color;
+        RootGrid.Resources["SystemAccentColorBrush"] = accentBrush;
+
+        MicaTintOverlay.Background = new SolidColorBrush(Color.FromArgb(36, color.R, color.G, color.B));
+    }
+
+    private void ThumbnailView_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        ApplyWallpaperPresentation();
+        RefreshVisibleWallpapers();
+        RefreshSelectedWallpapers();
     }
 
     private void InitializePicker(object picker)
@@ -926,20 +1177,330 @@ public sealed partial class MainWindow : Window
         return hiddenColumns.Contains(column) ? new GridLength(0) : visibleWidth;
     }
 
+    private static string ToThemeMode(string theme)
+    {
+        return theme switch
+        {
+            ThemeOptions.Light => "Light",
+            ThemeOptions.Dark => "Dark",
+            _ => "Auto"
+        };
+    }
+
+    private static string FromThemeMode(string themeMode)
+    {
+        return themeMode switch
+        {
+            "Light" => ThemeOptions.Light,
+            "Dark" => ThemeOptions.Dark,
+            _ => ThemeOptions.System
+        };
+    }
+
+    private static string PresetToHex(string preset)
+    {
+        return preset switch
+        {
+            "Red" => "#C43B3B",
+            "Green" => "#2E9F62",
+            "Yellow" => "#CC9A1F",
+            "Purple" => "#6A5ACD",
+            "Blue" => "#3A7AFE",
+            _ => "#3A7AFE"
+        };
+    }
+
+    private static string ToThemeColorPreset(string color)
+    {
+        var normalized = NormalizeHexColor(color);
+        return normalized switch
+        {
+            "#C43B3B" => "Red",
+            "#2E9F62" => "Green",
+            "#CC9A1F" => "Yellow",
+            "#6A5ACD" => "Purple",
+            "#3A7AFE" => "Blue",
+            _ => "Custom"
+        };
+    }
+
+    private static bool TryNormalizeHexColor(string value, out string normalized)
+    {
+        normalized = value.Trim();
+        if (normalized.Length == 0)
+        {
+            return false;
+        }
+
+        if (!normalized.StartsWith('#'))
+        {
+            normalized = $"#{normalized}";
+        }
+
+        if (normalized.Length != 7)
+        {
+            return false;
+        }
+
+        var hex = normalized[1..];
+        if (!hex.All(Uri.IsHexDigit))
+        {
+            return false;
+        }
+
+        normalized = normalized.ToUpperInvariant();
+        return true;
+    }
+
     private static string NormalizeHexColor(string value)
     {
+        if (TryNormalizeHexColor(value, out var normalized))
+        {
+            return normalized;
+        }
+
         if (string.IsNullOrWhiteSpace(value))
         {
             return "#3A7AFE";
         }
 
-        value = value.Trim();
-        if (!value.StartsWith('#'))
+        return "#3A7AFE";
+    }
+
+    private void RefreshVisibleTags()
+    {
+        var search = TagSearchTextBox.Text.Trim();
+        IEnumerable<WallpaperTag> filteredTags = string.IsNullOrWhiteSpace(search)
+            ? Tags
+            : Tags.Where(tag => tag.Name.Contains(search, StringComparison.OrdinalIgnoreCase));
+
+        VisibleTags.Clear();
+        foreach (var tag in filteredTags)
         {
-            value = $"#{value}";
+            VisibleTags.Add(tag);
         }
 
-        return value.Length == 7 ? value : "#3A7AFE";
+        var canReorder = string.IsNullOrWhiteSpace(search);
+        TagsListView.CanDragItems = canReorder;
+        TagsListView.CanReorderItems = canReorder;
+    }
+
+    private async Task OpenTagEditorAsync(WallpaperTag? tag)
+    {
+        var editingExisting = tag is not null;
+        var nameBox = new TextBox
+        {
+            Header = editingExisting ? "Change tag name" : "New tag name",
+            Text = tag?.Name ?? string.Empty
+        };
+
+        var colorBox = new TextBox
+        {
+            Header = editingExisting ? "Change tag color" : "New tag color",
+            Text = tag?.Color ?? "#3A7AFE"
+        };
+
+        var colorPicker = new ColorPicker
+        {
+            Color = ParseHexColor(colorBox.Text),
+            IsAlphaEnabled = false,
+            IsAlphaSliderVisible = false,
+            IsAlphaTextInputVisible = false,
+            MinWidth = 220,
+            Height = 260
+        };
+
+        var previewCards = new StackPanel { Spacing = 8 };
+        var previewSamples = Wallpapers
+            .OrderBy(_ => Guid.NewGuid())
+            .Take(3)
+            .ToList();
+        while (previewSamples.Count < 3)
+        {
+            previewSamples.Add(new WallpaperItem
+            {
+                LocalName = "Preview wallpaper",
+                SteamId = "Local",
+                SizeBytes = 0
+            });
+        }
+        foreach (var sample in previewSamples)
+        {
+            var row = new Border
+            {
+                MinHeight = 168,
+                CornerRadius = new CornerRadius(6),
+                BorderThickness = new Thickness(1),
+                BorderBrush = new SolidColorBrush(Color.FromArgb(80, 160, 160, 160)),
+                Padding = new Thickness(16, 12, 16, 12)
+            };
+
+            var rowGrid = new Grid { ColumnSpacing = 12 };
+            rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+            var previewBox = new Grid { Width = 240, Height = 132 };
+            previewBox.Children.Add(new Border
+            {
+                CornerRadius = new CornerRadius(4),
+                Background = new SolidColorBrush(Color.FromArgb(44, 120, 120, 120))
+            });
+            if (sample.PreviewImage is not null)
+            {
+                previewBox.Children.Add(new Image
+                {
+                    Source = sample.PreviewImage,
+                    Stretch = Stretch.UniformToFill
+                });
+            }
+
+            var details = new StackPanel { Spacing = 6, VerticalAlignment = VerticalAlignment.Center };
+            details.Children.Add(new TextBlock
+            {
+                Text = sample.DisplayName,
+                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                FontSize = 26,
+                TextTrimming = TextTrimming.CharacterEllipsis
+            });
+            details.Children.Add(new TextBlock
+            {
+                Text = $"ID: {sample.IdText}",
+                FontSize = 20,
+                Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"]
+            });
+            details.Children.Add(new TextBlock
+            {
+                Text = $"Size: {sample.SizeText}",
+                FontSize = 20,
+                Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"]
+            });
+
+            rowGrid.Children.Add(previewBox);
+            Grid.SetColumn(details, 1);
+            rowGrid.Children.Add(details);
+            row.Child = rowGrid;
+            previewCards.Children.Add(row);
+        }
+
+        void UpdatePreview()
+        {
+            var color = ParseHexColor(colorBox.Text);
+            var brush = new SolidColorBrush(Color.FromArgb(40, color.R, color.G, color.B));
+            foreach (var child in previewCards.Children.OfType<Border>())
+            {
+                child.Background = brush;
+            }
+            colorPicker.Color = color;
+        }
+
+        colorBox.TextChanged += (_, _) =>
+        {
+            if (TryNormalizeHexColor(colorBox.Text, out _))
+            {
+                UpdatePreview();
+            }
+        };
+        colorPicker.ColorChanged += (_, args) =>
+        {
+            colorBox.Text = FormatHexColor(args.NewColor);
+            UpdatePreview();
+        };
+
+        var editorLayout = new Grid
+        {
+            ColumnSpacing = 22,
+            Width = 1200,
+            Height = 760
+        };
+        editorLayout.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(0.46, GridUnitType.Star) });
+        editorLayout.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(0.54, GridUnitType.Star) });
+
+        var leftPanel = new StackPanel
+        {
+            Spacing = 14,
+            HorizontalAlignment = HorizontalAlignment.Stretch
+        };
+        leftPanel.Children.Add(nameBox);
+        leftPanel.Children.Add(colorBox);
+        leftPanel.Children.Add(colorPicker);
+
+        var rightPanel = new StackPanel { Spacing = 12, HorizontalAlignment = HorizontalAlignment.Stretch };
+        rightPanel.Children.Add(new TextBlock { Text = "Preview", FontSize = 28, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold });
+        rightPanel.Children.Add(previewCards);
+
+        editorLayout.Children.Add(leftPanel);
+        Grid.SetColumn(rightPanel, 1);
+        editorLayout.Children.Add(rightPanel);
+        UpdatePreview();
+
+        var dialog = new ContentDialog
+        {
+            Title = editingExisting ? "Modify tag" : "New tag",
+            Content = editorLayout,
+            PrimaryButtonText = "Save",
+            CloseButtonText = "Cancel",
+            DefaultButton = ContentDialogButton.Primary,
+            FullSizeDesired = true,
+            XamlRoot = RootGrid.XamlRoot
+        };
+
+        if (await dialog.ShowAsync() != ContentDialogResult.Primary)
+        {
+            return;
+        }
+
+        var newName = nameBox.Text.Trim();
+        if (string.IsNullOrWhiteSpace(newName))
+        {
+            return;
+        }
+
+        var newColor = NormalizeHexColor(colorBox.Text);
+        if (editingExisting && tag is not null)
+        {
+            var oldName = tag.Name;
+            if (!string.Equals(oldName, newName, StringComparison.OrdinalIgnoreCase)
+                && Tags.Any(item => !ReferenceEquals(item, tag) && string.Equals(item.Name, newName, StringComparison.OrdinalIgnoreCase)))
+            {
+                return;
+            }
+
+            tag.Name = newName;
+            tag.Color = newColor;
+            RefreshTagRow(tag);
+            if (!string.Equals(oldName, newName, StringComparison.OrdinalIgnoreCase))
+            {
+                foreach (var wallpaper in Wallpapers)
+                {
+                    for (var index = 0; index < wallpaper.Tags.Count; index++)
+                    {
+                        if (string.Equals(wallpaper.Tags[index], oldName, StringComparison.OrdinalIgnoreCase))
+                        {
+                            wallpaper.Tags[index] = newName;
+                        }
+                    }
+                }
+            }
+        }
+        else
+        {
+            if (Tags.Any(item => string.Equals(item.Name, newName, StringComparison.OrdinalIgnoreCase)))
+            {
+                return;
+            }
+
+            Tags.Add(new WallpaperTag
+            {
+                Name = newName,
+                Color = newColor
+            });
+        }
+
+        RefreshVisibleTags();
+        ApplyWallpaperPresentation();
+        RefreshVisibleWallpapers();
+        RefreshSelectedWallpapers();
+        await SaveSettingsAsync();
     }
 
     private void RefreshTagRow(WallpaperTag tag)
@@ -967,6 +1528,17 @@ public sealed partial class MainWindow : Window
     private void ApplySizePresentation(WallpaperItem wallpaper, IReadOnlySet<string> hiddenColumns)
     {
         (wallpaper.CardWidth, wallpaper.CardPreviewHeight) = GetCardSize(CurrentSettings.CardSize);
+        if (CurrentSettings.CardSize == CardSizeOptions.Large)
+        {
+            var availableWidth = Math.Max(LibraryThumbnailView.ActualWidth, HomeThumbnailView.ActualWidth);
+            if (availableWidth > 900)
+            {
+                const double cardGap = 12;
+                var columns = Math.Max(3, (int)Math.Floor((availableWidth + cardGap) / (wallpaper.CardWidth + cardGap)));
+                var targetWidth = Math.Floor((availableWidth - ((columns + 1) * cardGap)) / columns);
+                wallpaper.CardWidth = Math.Clamp(targetWidth, 260, 360);
+            }
+        }
 
         var previewAllowed = !hiddenColumns.Contains(PreviewColumn);
         wallpaper.ListPreviewVisibility = CurrentSettings.CardSize == CardSizeOptions.Small || !previewAllowed

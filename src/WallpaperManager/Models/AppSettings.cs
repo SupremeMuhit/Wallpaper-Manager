@@ -8,6 +8,8 @@ public sealed class AppSettings
 
     public string Theme { get; set; } = ThemeOptions.System;
 
+    public string ThemeColor { get; set; } = "#3A7AFE";
+
     public List<string> SelectedWallpaperKeys { get; set; } = [];
 
     public List<string> NsfwWallpaperKeys { get; set; } = [];
@@ -22,6 +24,22 @@ public sealed class AppSettings
     public bool ColorRowsByHighestPriorityTag { get; set; } = true;
 
     public bool ShowNsfwWallpapers { get; set; } = true;
+
+    public bool UseMicaBackdrop { get; set; } = true;
+
+    public bool RunOnStartup { get; set; }
+
+    public string MemoryUsageProfile { get; set; } = "Balanced";
+
+    public bool PrioritizeLocalName { get; set; } = true;
+
+    public bool AutoMarkNsfwFromWorkshop { get; set; } = true;
+
+    public bool BlurNsfw { get; set; } = true;
+
+    public bool BlurMature { get; set; }
+
+    public bool AddTagsFromWorkshop { get; set; }
 
     public List<string> HiddenLibraryColumns { get; set; } = [];
 
