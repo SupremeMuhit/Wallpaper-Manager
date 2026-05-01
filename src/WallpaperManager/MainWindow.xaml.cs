@@ -13,6 +13,7 @@ using Windows.Storage.Pickers;
 using Microsoft.UI;
 using Windows.UI;
 using System.Diagnostics;
+using Microsoft.UI.Xaml.Media.Imaging;
 
 namespace WallpaperManager;
 
@@ -56,6 +57,9 @@ public sealed partial class MainWindow : Window
 
     public WallpaperItem NsfwPreviewItem { get; } = new() { IsNsfw = true, LocalName = "NSFW Preview" };
     public WallpaperItem MaturePreviewItem { get; } = new() { IsMature = true, LocalName = "Mature Preview" };
+
+    public IReadOnlyList<string> LibrarySortChoices { get; } = ["Name", "Date Added", "Workshop Updated"];
+    public IReadOnlyList<string> HomeSortChoices { get; } = ["Free Movement", "Name", "Date Added", "Workshop Updated"];
 
     public MainWindow()
     {
@@ -116,6 +120,8 @@ public sealed partial class MainWindow : Window
         ThemeColorPresetComboBox.SelectedItem = ToThemeColorPreset(CurrentSettings.ThemeColor);
         LibraryViewComboBox.SelectedItem = CurrentSettings.LibraryViewMode;
         HomeViewComboBox.SelectedItem = CurrentSettings.HomeViewMode;
+        LibrarySortComboBox.SelectedItem = CurrentSettings.LibrarySortMode;
+        HomeSortComboBox.SelectedItem = CurrentSettings.HomeSortMode;
         CardSizeComboBox.SelectedItem = CurrentSettings.CardSize;
         HomeCardSizeComboBox.SelectedItem = CurrentSettings.CardSize;
         ColorRowsToggle.IsOn = CurrentSettings.ColorRowsByHighestPriorityTag;
@@ -136,6 +142,7 @@ public sealed partial class MainWindow : Window
         ApplyColumnToggleState();
         ApplyLibraryViewMode(CurrentSettings.LibraryViewMode);
         ApplyHomeViewMode(CurrentSettings.HomeViewMode);
+        ApplyHomeSortMode();
         RefreshVisibleTags();
         UpdateEngineStatus();
         _isLoadingSettings = false;
@@ -693,6 +700,8 @@ public sealed partial class MainWindow : Window
         await SaveSettingsAsync();
     }
 
+
+
     private async void ToggleNsfwMenuItem_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as MenuFlyoutItem)?.Tag is not WallpaperItem wallpaper)
@@ -926,7 +935,8 @@ public sealed partial class MainWindow : Window
     private void RefreshVisibleWallpapers()
     {
         VisibleWallpapers.Clear();
-        foreach (var wallpaper in Wallpapers.Where(ShouldShowWallpaper))
+        var sorted = SortWallpapers(Wallpapers.Where(ShouldShowWallpaper), CurrentSettings.LibrarySortMode);
+        foreach (var wallpaper in sorted)
         {
             VisibleWallpapers.Add(wallpaper);
         }
@@ -937,18 +947,48 @@ public sealed partial class MainWindow : Window
     private void RefreshSelectedWallpapers()
     {
         SelectedWallpapers.Clear();
-        foreach (var wallpaper in Wallpapers.Where(item => item.IsSelected && ShouldShowWallpaper(item)))
+        var selected = Wallpapers.Where(item => item.IsSelected && ShouldShowWallpaper(item));
+        
+        if (CurrentSettings.HomeSortMode == "Free Movement")
+        {
+            // Preserve the order defined in SelectedWallpaperKeys
+            var keyOrder = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            for (int i = 0; i < CurrentSettings.SelectedWallpaperKeys.Count; i++)
+            {
+                var k = CurrentSettings.SelectedWallpaperKeys[i];
+                if (!keyOrder.ContainsKey(k))
+                    keyOrder[k] = i;
+            }
+
+            selected = selected.OrderBy(w => keyOrder.TryGetValue(w.Key, out var idx) ? idx : int.MaxValue);
+        }
+        else
+        {
+            selected = SortWallpapers(selected, CurrentSettings.HomeSortMode);
+            
+            // Sync the keys when a specific sort is active so the order persists
+            CurrentSettings.SelectedWallpaperKeys = selected
+                .Select(wallpaper => wallpaper.Key)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        foreach (var wallpaper in selected)
         {
             SelectedWallpapers.Add(wallpaper);
         }
 
-        CurrentSettings.SelectedWallpaperKeys = Wallpapers
-            .Where(wallpaper => wallpaper.IsSelected)
-            .Select(wallpaper => wallpaper.Key)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
         UpdateEmptyStates();
+    }
+
+    private IEnumerable<WallpaperItem> SortWallpapers(IEnumerable<WallpaperItem> items, string mode)
+    {
+        return mode switch
+        {
+            "Date Added" => items.OrderByDescending(w => w.DateModified).ThenBy(w => w.DisplayName),
+            "Workshop Updated" => items.OrderByDescending(w => w.WorkshopMetadata?.TimeUpdated ?? DateTime.MinValue).ThenBy(w => w.DisplayName),
+            _ => items.OrderBy(w => w.DisplayName, StringComparer.CurrentCultureIgnoreCase)
+        };
     }
 
     private void ApplyWallpaperPresentation()
@@ -1062,6 +1102,20 @@ public sealed partial class MainWindow : Window
         HomeThumbnailView.Visibility = isThumbnail ? Visibility.Visible : Visibility.Collapsed;
     }
 
+    private void ApplyHomeSortMode()
+    {
+        if (HomeListView == null || HomeThumbnailView == null) return;
+
+        var canReorder = CurrentSettings.HomeSortMode == "Free Movement";
+        HomeListView.CanDragItems = canReorder;
+        HomeListView.CanReorderItems = canReorder;
+        HomeListView.AllowDrop = canReorder;
+        
+        HomeThumbnailView.CanDragItems = canReorder;
+        HomeThumbnailView.CanReorderItems = canReorder;
+        HomeThumbnailView.AllowDrop = canReorder;
+    }
+
     private Brush GetWallpaperRowBrush(WallpaperItem wallpaper)
     {
         if (!CurrentSettings.ColorRowsByHighestPriorityTag)
@@ -1129,6 +1183,8 @@ public sealed partial class MainWindow : Window
         CurrentSettings.ThemeColor = NormalizeHexColor(ThemeColorTextBox.Text);
         CurrentSettings.LibraryViewMode = LibraryViewComboBox.SelectedItem as string ?? LibraryViewModes.List;
         CurrentSettings.HomeViewMode = HomeViewComboBox.SelectedItem as string ?? LibraryViewModes.Thumbnail;
+        CurrentSettings.LibrarySortMode = LibrarySortComboBox.SelectedItem as string ?? "Name";
+        CurrentSettings.HomeSortMode = HomeSortComboBox.SelectedItem as string ?? "Free Movement";
         CurrentSettings.CardSize = CardSizeComboBox.SelectedItem as string ?? CardSizeOptions.Medium;
         CurrentSettings.ColorRowsByHighestPriorityTag = ColorRowsToggle.IsOn;
         CurrentSettings.ShowNsfwWallpapers = !HideNsfwToggle.IsOn;
@@ -1777,29 +1833,69 @@ public sealed partial class MainWindow : Window
 
     private async void WallpaperDetails_Click(object sender, RoutedEventArgs e)
     {
-        if ((sender as MenuFlyoutItem)?.Tag is not WallpaperItem wallpaper)
+        if ((sender as FrameworkElement)?.Tag is not WallpaperItem wallpaper)
         {
             return;
         }
 
-        var meta = wallpaper.WorkshopMetadata;
-        var stack = new StackPanel { Spacing = 12, MinWidth = 400 };
+        if (wallpaper.WorkshopMetadata == null && !string.IsNullOrWhiteSpace(wallpaper.SteamId))
+        {
+            var fetchedMeta = await _workshopService.FetchAsync(wallpaper.SteamId);
+            if (fetchedMeta != null)
+            {
+                wallpaper.WorkshopMetadata = fetchedMeta;
+            }
+        }
 
-        // Basic info card
+        var meta = wallpaper.WorkshopMetadata;
+        
+        var rootGrid = new Grid 
+        { 
+            ColumnSpacing = 24, 
+            MinWidth = 800, 
+            MinHeight = 450,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment = VerticalAlignment.Stretch
+        };
+        rootGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(400) });
+        rootGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+ 
+        // Left Side: Image + Basic Info
+        var leftStack = new StackPanel { Spacing = 12 };
+        
+        var previewCard = new Border
+        {
+            CornerRadius = new CornerRadius(8),
+            Background = (Brush)Application.Current.Resources["LayerFillColorDefaultBrush"],
+            Height = 225,
+            Clip = new RectangleGeometry { Rect = new Windows.Foundation.Rect(0, 0, 400, 225) }
+        };
+        
+        var previewUri = string.IsNullOrWhiteSpace(wallpaper.PreviewPath) 
+            ? new Uri("ms-appx:///Assets/StoreLogo.png")
+            : new Uri("file:///" + wallpaper.PreviewPath.Replace("\\", "/"));
+
+        previewCard.Child = new Image
+        {
+            Source = new BitmapImage(previewUri),
+            Stretch = Stretch.UniformToFill
+        };
+        leftStack.Children.Add(previewCard);
+
         var infoCard = new Border
         {
             Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"],
             CornerRadius = new CornerRadius(8),
             Padding = new Thickness(16)
         };
-
         var infoInner = new StackPanel { Spacing = 8 };
         infoInner.Children.Add(new TextBlock
         {
             Text = wallpaper.DisplayName,
-            Style = (Style)Application.Current.Resources["SubtitleTextBlockStyle"]
+            Style = (Style)Application.Current.Resources["SubtitleTextBlockStyle"],
+            TextWrapping = TextWrapping.Wrap
         });
-
+        
         var detailsGrid = new Grid { ColumnSpacing = 16 };
         detailsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         detailsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -1814,14 +1910,19 @@ public sealed partial class MainWindow : Window
         if (wallpaper.Tags.Count > 0) rightDetails.Children.Add(new TextBlock { Text = $"Tags: {wallpaper.TagsText}", Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"], TextWrapping = TextWrapping.Wrap });
 
         detailsGrid.Children.Add(leftDetails);
-        Grid.SetColumn(rightDetails, 1);
+        Grid.SetColumn(leftDetails, 0);
         detailsGrid.Children.Add(rightDetails);
+        Grid.SetColumn(rightDetails, 1);
 
         infoInner.Children.Add(detailsGrid);
         infoCard.Child = infoInner;
-        stack.Children.Add(infoCard);
+        leftStack.Children.Add(infoCard);
+        
+        rootGrid.Children.Add(leftStack);
+        Grid.SetColumn(leftStack, 0);
 
-        // Workshop metadata
+        // Right Side: Workshop Metadata
+        var rightStack = new StackPanel { Spacing = 12 };
         if (meta != null)
         {
             var statsCard = new Border
@@ -1831,35 +1932,54 @@ public sealed partial class MainWindow : Window
                 Padding = new Thickness(16)
             };
 
-            var statsInner = new StackPanel { Spacing = 8 };
-            statsInner.Children.Add(new TextBlock
+            var statsGrid = new Grid { RowSpacing = 8, ColumnSpacing = 16 };
+            statsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            statsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            statsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            statsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+            var titleBlock = new TextBlock
             {
                 Text = "Workshop Info",
                 Style = (Style)Application.Current.Resources["CaptionTextBlockStyle"],
-                Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"]
-            });
-
-            if (!string.IsNullOrWhiteSpace(meta.Title))
-                statsInner.Children.Add(new TextBlock { Text = $"Title: {meta.Title}" });
-            statsInner.Children.Add(new TextBlock { Text = $"Subscribers: {meta.SubscriptionCount:N0}" });
-            statsInner.Children.Add(new TextBlock { Text = $"Favorites: {meta.FavoriteCount:N0}" });
-            statsInner.Children.Add(new TextBlock { Text = $"Views: {meta.ViewCount:N0}" });
-            if (meta.Tags.Count > 0)
-                statsInner.Children.Add(new TextBlock { Text = $"Tags: {string.Join(", ", meta.Tags)}", TextWrapping = TextWrapping.Wrap });
+                Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+                Margin = new Thickness(0, 0, 0, 8)
+            };
+            
+            var s1 = new StackPanel { Spacing = 4 };
+            s1.Children.Add(new TextBlock { Text = $"Subscribers: {meta.SubscriptionCount:N0}" });
+            s1.Children.Add(new TextBlock { Text = $"Favorites: {meta.FavoriteCount:N0}" });
+            
+            var s2 = new StackPanel { Spacing = 4 };
+            s2.Children.Add(new TextBlock { Text = $"Views: {meta.ViewCount:N0}" });
             if (!string.IsNullOrWhiteSpace(meta.ContentRating))
-                statsInner.Children.Add(new TextBlock { Text = $"Rating: {meta.ContentRating}" });
+                s2.Children.Add(new TextBlock { Text = $"Rating: {meta.ContentRating}" });
 
-            statsCard.Child = statsInner;
-            stack.Children.Add(statsCard);
+            statsGrid.Children.Add(s1);
+            Grid.SetColumn(s2, 1);
+            statsGrid.Children.Add(s2);
+            Grid.SetRow(s1, 1);
+            Grid.SetRow(s2, 1);
 
-            // Description
+            var statsOuter = new StackPanel();
+            statsOuter.Children.Add(titleBlock);
+            if (!string.IsNullOrWhiteSpace(meta.Title))
+                statsOuter.Children.Add(new TextBlock { Text = $"Title: {meta.Title}", Margin = new Thickness(0, 0, 0, 8), TextWrapping = TextWrapping.Wrap });
+            statsOuter.Children.Add(statsGrid);
+            if (meta.Tags.Count > 0)
+                statsOuter.Children.Add(new TextBlock { Text = $"Tags: {string.Join(", ", meta.Tags)}", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 0) });
+            
+            statsCard.Child = statsOuter;
+            rightStack.Children.Add(statsCard);
+
             if (meta.Description is { Length: > 0 } desc)
             {
                 var descCard = new Border
                 {
                     Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"],
                     CornerRadius = new CornerRadius(8),
-                    Padding = new Thickness(16)
+                    Padding = new Thickness(16),
+                    VerticalAlignment = VerticalAlignment.Stretch
                 };
 
                 var descInner = new StackPanel { Spacing = 8 };
@@ -1870,7 +1990,7 @@ public sealed partial class MainWindow : Window
                     Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"]
                 });
 
-                var truncated = desc.Length > 800 ? desc[..800] + "…" : desc;
+                var truncated = desc.Length > 1000 ? desc[..1000] + "…" : desc;
                 descInner.Children.Add(new TextBlock
                 {
                     Text = truncated,
@@ -1879,14 +1999,12 @@ public sealed partial class MainWindow : Window
                 });
 
                 descCard.Child = descInner;
-                stack.Children.Add(descCard);
+                rightStack.Children.Add(descCard);
             }
         }
-
-        // No metadata notice
-        if (meta is null && !string.IsNullOrWhiteSpace(wallpaper.SteamId))
+        else if (!string.IsNullOrWhiteSpace(wallpaper.SteamId))
         {
-            stack.Children.Add(new InfoBar
+            rightStack.Children.Add(new InfoBar
             {
                 IsOpen = true,
                 Severity = InfoBarSeverity.Warning,
@@ -1895,13 +2013,26 @@ public sealed partial class MainWindow : Window
             });
         }
 
+        Grid.SetColumn(rightStack, 1);
+        rootGrid.Children.Add(rightStack);
+
+
         var dialog = new ContentDialog
         {
             Title = "Wallpaper Details",
-            Content = new ScrollViewer { Content = stack, MaxHeight = 500 },
+            Content = new ScrollViewer 
+            { 
+                Content = rootGrid, 
+                MaxHeight = 600,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
+            },
             CloseButtonText = "Close",
             XamlRoot = RootGrid.XamlRoot
         };
+
+        // WinUI 3 ContentDialog has a built-in max width of 548px via theme resource.
+        // The only way to widen it is to override this resource on the dialog instance.
+        dialog.Resources["ContentDialogMaxWidth"] = 900.0;
 
         await dialog.ShowAsync();
     }
@@ -1931,5 +2062,40 @@ public sealed partial class MainWindow : Window
             RefreshSelectedWallpapers();
             RefreshVisibleWallpapers();
         }
+    }
+
+    private async void HomeSortComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isLoadingSettings || sender is not ComboBox comboBox || comboBox.SelectedItem is not string sortMode)
+            return;
+
+        CurrentSettings.HomeSortMode = sortMode;
+        ApplyHomeSortMode();
+        RefreshSelectedWallpapers();
+        await SaveSettingsAsync();
+    }
+
+    private async void LibrarySortComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isLoadingSettings || sender is not ComboBox comboBox || comboBox.SelectedItem is not string sortMode)
+            return;
+
+        CurrentSettings.LibrarySortMode = sortMode;
+        RefreshVisibleWallpapers();
+        await SaveSettingsAsync();
+    }
+
+    private async void HomeView_DragItemsCompleted(ListViewBase sender, DragItemsCompletedEventArgs args)
+    {
+        if (CurrentSettings.HomeSortMode != "Free Movement")
+            return;
+
+        // Save the new order
+        CurrentSettings.SelectedWallpaperKeys = SelectedWallpapers
+            .Select(wallpaper => wallpaper.Key)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        await SaveSettingsAsync();
     }
 }

@@ -59,4 +59,8 @@ public sealed class AppSettings
     public string HomeViewMode { get; set; } = LibraryViewModes.Thumbnail;
 
     public string CardSize { get; set; } = CardSizeOptions.Medium;
+
+    public string LibrarySortMode { get; set; } = "Name";
+
+    public string HomeSortMode { get; set; } = "Free Movement";
 }

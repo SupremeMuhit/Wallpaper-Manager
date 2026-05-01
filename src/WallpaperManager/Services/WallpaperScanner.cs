@@ -111,6 +111,7 @@ public sealed partial class WallpaperScanner
             PreviewPath = files.FirstOrDefault(file => string.Equals(Path.GetFileNameWithoutExtension(file), "preview", StringComparison.OrdinalIgnoreCase)
                 && PreviewExtensions.Contains(Path.GetExtension(file))) ?? string.Empty,
             LaunchPath = GetLaunchPath(directory, files),
+            DateModified = Directory.GetCreationTimeUtc(directory),
             LocalName = localName,
             SteamId = steamId,
             SizeBytes = GetDirectorySize(directory)

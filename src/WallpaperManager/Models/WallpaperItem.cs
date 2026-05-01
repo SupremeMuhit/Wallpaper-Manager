@@ -25,6 +25,8 @@ public sealed class WallpaperItem : INotifyPropertyChanged
 
     public string LaunchPath { get; set; } = string.Empty;
 
+    public DateTime DateModified { get; set; }
+
     public string LocalName { get; set; } = string.Empty;
 
     public string SteamId { get; set; } = string.Empty;
@@ -189,7 +191,7 @@ public sealed class WallpaperItem : INotifyPropertyChanged
 
     public BitmapImage? PreviewImage => string.IsNullOrWhiteSpace(PreviewPath) || !File.Exists(PreviewPath)
         ? null
-        : new BitmapImage(new Uri(PreviewPath));
+        : new BitmapImage(new Uri("file:///" + PreviewPath.Replace("\\", "/")));
 
     private static string FormatSize(long bytes)
     {
