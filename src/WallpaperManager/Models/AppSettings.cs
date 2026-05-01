@@ -1,5 +1,12 @@
 namespace WallpaperManager.Models;
 
+public enum CensorshipMode
+{
+    Off,
+    Blur,
+    Overlay
+}
+
 public sealed class AppSettings
 {
     public List<WallpaperLibraryRoot> WallpaperDirectories { get; set; } = [];
@@ -13,6 +20,8 @@ public sealed class AppSettings
     public List<string> SelectedWallpaperKeys { get; set; } = [];
 
     public List<string> NsfwWallpaperKeys { get; set; } = [];
+
+    public List<string> MatureWallpaperKeys { get; set; } = [];
 
     public Dictionary<string, List<string>> WallpaperTags { get; set; } = [];
 
@@ -31,15 +40,17 @@ public sealed class AppSettings
 
     public string MemoryUsageProfile { get; set; } = "Balanced";
 
-    public bool PrioritizeLocalName { get; set; } = true;
+    public bool PrioritizeWorkshopName { get; set; }
 
     public bool AutoMarkNsfwFromWorkshop { get; set; } = true;
 
-    public bool BlurNsfw { get; set; } = true;
+    public CensorshipMode NsfwMode { get; set; } = CensorshipMode.Blur;
 
-    public bool BlurMature { get; set; }
+    public CensorshipMode MatureMode { get; set; } = CensorshipMode.Overlay;
 
-    public bool AddTagsFromWorkshop { get; set; }
+    public double CensorshipIntensity { get; set; } = 0.5;
+
+    public bool UseWorkshopTags { get; set; }
 
     public List<string> HiddenLibraryColumns { get; set; } = [];
 

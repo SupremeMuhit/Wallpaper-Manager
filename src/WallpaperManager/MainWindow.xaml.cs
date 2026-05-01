@@ -29,6 +29,7 @@ public sealed partial class MainWindow : Window
     private readonly AppSettingsStore _settingsStore = new();
     private readonly WallpaperEngineService _engineService = new();
     private readonly WallpaperScanner _wallpaperScanner = new();
+    private readonly SteamWorkshopService _workshopService = new();
     private readonly DispatcherTimer _engineStatusTimer = new();
     private MicaBackdrop? _micaBackdrop;
     private bool _isLoadingSettings;
@@ -52,6 +53,9 @@ public sealed partial class MainWindow : Window
     public IReadOnlyList<string> CardSizeChoices { get; } = CardSizeOptions.All;
 
     public AppSettings CurrentSettings { get; private set; } = new();
+
+    public WallpaperItem NsfwPreviewItem { get; } = new() { IsNsfw = true, LocalName = "NSFW Preview" };
+    public WallpaperItem MaturePreviewItem { get; } = new() { IsMature = true, LocalName = "Mature Preview" };
 
     public MainWindow()
     {
@@ -118,11 +122,12 @@ public sealed partial class MainWindow : Window
         HideNsfwToggle.IsOn = !CurrentSettings.ShowNsfwWallpapers;
         RunOnStartupToggle.IsOn = CurrentSettings.RunOnStartup;
         MemoryUsageComboBox.SelectedItem = CurrentSettings.MemoryUsageProfile;
-        PrioritizeLocalNameToggle.IsOn = CurrentSettings.PrioritizeLocalName;
+        PrioritizeWorkshopNameToggle.IsOn = CurrentSettings.PrioritizeWorkshopName;
         AutoMarkNsfwToggle.IsOn = CurrentSettings.AutoMarkNsfwFromWorkshop;
-        BlurNsfwToggle.IsOn = CurrentSettings.BlurNsfw;
-        BlurMatureToggle.IsOn = CurrentSettings.BlurMature;
-        AddTagsFromWorkshopToggle.IsOn = CurrentSettings.AddTagsFromWorkshop;
+        NsfwModeComboBox.SelectedIndex = (int)CurrentSettings.NsfwMode;
+        MatureModeComboBox.SelectedIndex = (int)CurrentSettings.MatureMode;
+        CensorshipIntensitySlider.Value = CurrentSettings.CensorshipIntensity;
+        UseWorkshopTagsToggle.IsOn = CurrentSettings.UseWorkshopTags;
 
         ApplyTheme(CurrentSettings.Theme);
         CurrentSettings.UseMicaBackdrop = true;
@@ -381,58 +386,52 @@ public sealed partial class MainWindow : Window
         await SaveSettingsAsync();
     }
 
-    private async void PrioritizeLocalNameToggle_Toggled(object sender, RoutedEventArgs e)
+    private async void PrioritizeWorkshopNameToggle_Toggled(object sender, RoutedEventArgs e)
     {
-        if (_isLoadingSettings)
-        {
-            return;
-        }
-
-        CurrentSettings.PrioritizeLocalName = PrioritizeLocalNameToggle.IsOn;
+        if (_isLoadingSettings) return;
+        CurrentSettings.PrioritizeWorkshopName = PrioritizeWorkshopNameToggle.IsOn;
+        ApplyWallpaperPresentation();
+        RefreshVisibleWallpapers();
         await SaveSettingsAsync();
     }
 
     private async void AutoMarkNsfwToggle_Toggled(object sender, RoutedEventArgs e)
     {
-        if (_isLoadingSettings)
-        {
-            return;
-        }
-
+        if (_isLoadingSettings) return;
         CurrentSettings.AutoMarkNsfwFromWorkshop = AutoMarkNsfwToggle.IsOn;
         await SaveSettingsAsync();
     }
 
-    private async void BlurNsfwToggle_Toggled(object sender, RoutedEventArgs e)
+    private async void NsfwModeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (_isLoadingSettings)
-        {
-            return;
-        }
-
-        CurrentSettings.BlurNsfw = BlurNsfwToggle.IsOn;
+        if (_isLoadingSettings) return;
+        CurrentSettings.NsfwMode = (CensorshipMode)NsfwModeComboBox.SelectedIndex;
+        ApplyWallpaperPresentation();
         await SaveSettingsAsync();
     }
 
-    private async void BlurMatureToggle_Toggled(object sender, RoutedEventArgs e)
+    private async void MatureModeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (_isLoadingSettings)
-        {
-            return;
-        }
-
-        CurrentSettings.BlurMature = BlurMatureToggle.IsOn;
+        if (_isLoadingSettings) return;
+        CurrentSettings.MatureMode = (CensorshipMode)MatureModeComboBox.SelectedIndex;
+        ApplyWallpaperPresentation();
         await SaveSettingsAsync();
     }
 
-    private async void AddTagsFromWorkshopToggle_Toggled(object sender, RoutedEventArgs e)
+    private async void CensorshipIntensitySlider_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
     {
-        if (_isLoadingSettings)
-        {
-            return;
-        }
+        if (_isLoadingSettings) return;
+        CurrentSettings.CensorshipIntensity = CensorshipIntensitySlider.Value;
+        ApplyWallpaperPresentation();
+        await SaveSettingsAsync();
+    }
 
-        CurrentSettings.AddTagsFromWorkshop = AddTagsFromWorkshopToggle.IsOn;
+    private async void UseWorkshopTagsToggle_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (_isLoadingSettings) return;
+        CurrentSettings.UseWorkshopTags = UseWorkshopTagsToggle.IsOn;
+        ApplyWallpaperPresentation();
+        RefreshVisibleWallpapers();
         await SaveSettingsAsync();
     }
 
@@ -629,6 +628,24 @@ public sealed partial class MainWindow : Window
         nsfwItem.Click += ToggleNsfwMenuItem_Click;
         flyout.Items.Add(nsfwItem);
 
+        var matureItem = new MenuFlyoutItem
+        {
+            Text = wallpaper.IsMature ? "Unmark Mature" : "Mark as Mature",
+            Tag = wallpaper
+        };
+        matureItem.Click += ToggleMatureMenuItem_Click;
+        flyout.Items.Add(matureItem);
+
+        flyout.Items.Add(new MenuFlyoutSeparator());
+
+        var detailsItem = new MenuFlyoutItem
+        {
+            Text = "Wallpaper Details",
+            Tag = wallpaper
+        };
+        detailsItem.Click += WallpaperDetails_Click;
+        flyout.Items.Add(detailsItem);
+
         if (Tags.Count > 0)
         {
             flyout.Items.Add(new MenuFlyoutSeparator());
@@ -769,7 +786,7 @@ public sealed partial class MainWindow : Window
             var content = BuildContactMessage(mail, discord, message);
             var payload = JsonSerializer.Serialize(new
             {
-                username = "Wallpaper Manager",
+                username = "Carbon Wallpaper",
                 content,
                 allowed_mentions = new
                 {
@@ -832,7 +849,7 @@ public sealed partial class MainWindow : Window
         });
     }
 
-    private async void Navigation_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
+    private void Navigation_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
     {
         var page = args.IsSettingsSelected
             ? "Settings"
@@ -849,6 +866,7 @@ public sealed partial class MainWindow : Window
             LibraryRoots,
             CurrentSettings.SelectedWallpaperKeys.ToHashSet(StringComparer.OrdinalIgnoreCase),
             CurrentSettings.NsfwWallpaperKeys.ToHashSet(StringComparer.OrdinalIgnoreCase),
+            CurrentSettings.MatureWallpaperKeys.ToHashSet(StringComparer.OrdinalIgnoreCase),
             CurrentSettings.WallpaperTags);
 
         Wallpapers.Clear();
@@ -861,6 +879,48 @@ public sealed partial class MainWindow : Window
         RefreshVisibleWallpapers();
         RefreshSelectedWallpapers();
         UpdateEmptyStates();
+
+        _ = FetchWorkshopMetadataAsync();
+    }
+
+    private async Task FetchWorkshopMetadataAsync()
+    {
+        var workshopWallpapers = Wallpapers.Where(w => !string.IsNullOrWhiteSpace(w.SteamId)).ToList();
+        if (workshopWallpapers.Count == 0) return;
+
+        var ids = workshopWallpapers.Select(w => w.SteamId).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        var metadataMap = await _workshopService.FetchBatchAsync(ids);
+
+        var needsSave = false;
+        foreach (var wallpaper in workshopWallpapers)
+        {
+            if (!metadataMap.TryGetValue(wallpaper.SteamId, out var meta)) continue;
+
+            wallpaper.WorkshopMetadata = meta;
+
+            if (CurrentSettings.AutoMarkNsfwFromWorkshop)
+            {
+                if (meta.IsMature && !wallpaper.IsMature)
+                {
+                    wallpaper.IsMature = true;
+                    needsSave = true;
+                }
+                if (meta.IsAdult && !wallpaper.IsNsfw)
+                {
+                    wallpaper.IsNsfw = true;
+                    needsSave = true;
+                }
+            }
+        }
+
+        ApplyWallpaperPresentation();
+        RefreshVisibleWallpapers();
+        RefreshSelectedWallpapers();
+
+        if (needsSave)
+        {
+            await SaveSettingsAsync();
+        }
     }
 
     private void RefreshVisibleWallpapers()
@@ -908,11 +968,47 @@ public sealed partial class MainWindow : Window
             wallpaper.IdColumnWidth = GetColumnWidth(hiddenColumns, IdColumn, new GridLength(140));
             wallpaper.SizeColumnWidth = GetColumnWidth(hiddenColumns, SizeColumn, new GridLength(110));
             wallpaper.TagsColumnWidth = GetColumnWidth(hiddenColumns, TagsColumn, new GridLength(180));
+
+            wallpaper.PrioritizeWorkshopName = CurrentSettings.PrioritizeWorkshopName;
+            wallpaper.UseWorkshopTags = CurrentSettings.UseWorkshopTags;
+
+            ApplyCensorship(wallpaper);
             ApplySizePresentation(wallpaper, hiddenColumns);
         }
 
+        ApplyCensorship(NsfwPreviewItem);
+        ApplyCensorship(MaturePreviewItem);
+
         ApplyColumnVisibility();
         ApplyCompactHeaderVisibility();
+    }
+
+    private void ApplyCensorship(WallpaperItem item)
+    {
+        var mode = item.IsNsfw ? CurrentSettings.NsfwMode : (item.IsMature ? CurrentSettings.MatureMode : CensorshipMode.Off);
+        var intensity = CurrentSettings.CensorshipIntensity;
+
+        switch (mode)
+        {
+            case CensorshipMode.Off:
+                item.BlurOpacity = 1.0;
+                item.CensorshipOverlayOpacity = 0;
+                item.NsfwOverlayVisibility = Visibility.Collapsed;
+                item.MatureOverlayVisibility = Visibility.Collapsed;
+                break;
+            case CensorshipMode.Blur:
+                item.BlurOpacity = 0.5 * (1.0 - intensity) + 0.01 * intensity;
+                item.CensorshipOverlayOpacity = 0;
+                item.NsfwOverlayVisibility = Visibility.Collapsed;
+                item.MatureOverlayVisibility = Visibility.Collapsed;
+                break;
+            case CensorshipMode.Overlay:
+                item.BlurOpacity = 1.0;
+                item.CensorshipOverlayOpacity = 0.3 + (0.7 * intensity);
+                item.NsfwOverlayVisibility = item.IsNsfw ? Visibility.Visible : Visibility.Collapsed;
+                item.MatureOverlayVisibility = (item.IsMature && !item.IsNsfw) ? Visibility.Visible : Visibility.Collapsed;
+                break;
+        }
     }
 
     private void ApplyColumnVisibility()
@@ -1039,13 +1135,15 @@ public sealed partial class MainWindow : Window
         CurrentSettings.UseMicaBackdrop = true;
         CurrentSettings.RunOnStartup = RunOnStartupToggle.IsOn;
         CurrentSettings.MemoryUsageProfile = MemoryUsageComboBox.SelectedItem as string ?? "Balanced";
-        CurrentSettings.PrioritizeLocalName = PrioritizeLocalNameToggle.IsOn;
+        CurrentSettings.PrioritizeWorkshopName = PrioritizeWorkshopNameToggle.IsOn;
         CurrentSettings.AutoMarkNsfwFromWorkshop = AutoMarkNsfwToggle.IsOn;
-        CurrentSettings.BlurNsfw = BlurNsfwToggle.IsOn;
-        CurrentSettings.BlurMature = BlurMatureToggle.IsOn;
-        CurrentSettings.AddTagsFromWorkshop = AddTagsFromWorkshopToggle.IsOn;
+        CurrentSettings.NsfwMode = (CensorshipMode)NsfwModeComboBox.SelectedIndex;
+        CurrentSettings.MatureMode = (CensorshipMode)MatureModeComboBox.SelectedIndex;
+        CurrentSettings.CensorshipIntensity = CensorshipIntensitySlider.Value;
+        CurrentSettings.UseWorkshopTags = UseWorkshopTagsToggle.IsOn;
         CurrentSettings.Tags = Tags.ToList();
         CurrentSettings.NsfwWallpaperKeys = Wallpapers.Where(wallpaper => wallpaper.IsNsfw).Select(wallpaper => wallpaper.Key).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        CurrentSettings.MatureWallpaperKeys = Wallpapers.Where(wallpaper => wallpaper.IsMature).Select(wallpaper => wallpaper.Key).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         CurrentSettings.WallpaperTags = Wallpapers
             .Where(wallpaper => wallpaper.Tags.Count > 0)
             .ToDictionary(wallpaper => wallpaper.Key, wallpaper => wallpaper.Tags.Distinct(StringComparer.OrdinalIgnoreCase).ToList(), StringComparer.OrdinalIgnoreCase);
@@ -1659,6 +1757,179 @@ public sealed partial class MainWindow : Window
 
                 directory = directory.Parent;
             }
+        }
+    }
+
+    private async void ToggleMatureMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as MenuFlyoutItem)?.Tag is not WallpaperItem wallpaper)
+        {
+            return;
+        }
+
+        wallpaper.IsMature = !wallpaper.IsMature;
+
+        ApplyWallpaperPresentation();
+        RefreshVisibleWallpapers();
+        RefreshSelectedWallpapers();
+        await SaveSettingsAsync();
+    }
+
+    private async void WallpaperDetails_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as MenuFlyoutItem)?.Tag is not WallpaperItem wallpaper)
+        {
+            return;
+        }
+
+        var meta = wallpaper.WorkshopMetadata;
+        var stack = new StackPanel { Spacing = 12, MinWidth = 400 };
+
+        // Basic info card
+        var infoCard = new Border
+        {
+            Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"],
+            CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(16)
+        };
+
+        var infoInner = new StackPanel { Spacing = 8 };
+        infoInner.Children.Add(new TextBlock
+        {
+            Text = wallpaper.DisplayName,
+            Style = (Style)Application.Current.Resources["SubtitleTextBlockStyle"]
+        });
+
+        var detailsGrid = new Grid { ColumnSpacing = 16 };
+        detailsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        detailsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+        var leftDetails = new StackPanel { Spacing = 4 };
+        leftDetails.Children.Add(new TextBlock { Text = $"ID: {wallpaper.IdText}", Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"] });
+        leftDetails.Children.Add(new TextBlock { Text = $"Size: {wallpaper.SizeText}", Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"] });
+
+        var rightDetails = new StackPanel { Spacing = 4 };
+        if (wallpaper.IsNsfw) rightDetails.Children.Add(new TextBlock { Text = "NSFW", Foreground = new SolidColorBrush(Microsoft.UI.Colors.Red) });
+        if (wallpaper.IsMature) rightDetails.Children.Add(new TextBlock { Text = "Mature", Foreground = new SolidColorBrush(Microsoft.UI.Colors.Orange) });
+        if (wallpaper.Tags.Count > 0) rightDetails.Children.Add(new TextBlock { Text = $"Tags: {wallpaper.TagsText}", Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"], TextWrapping = TextWrapping.Wrap });
+
+        detailsGrid.Children.Add(leftDetails);
+        Grid.SetColumn(rightDetails, 1);
+        detailsGrid.Children.Add(rightDetails);
+
+        infoInner.Children.Add(detailsGrid);
+        infoCard.Child = infoInner;
+        stack.Children.Add(infoCard);
+
+        // Workshop metadata
+        if (meta != null)
+        {
+            var statsCard = new Border
+            {
+                Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"],
+                CornerRadius = new CornerRadius(8),
+                Padding = new Thickness(16)
+            };
+
+            var statsInner = new StackPanel { Spacing = 8 };
+            statsInner.Children.Add(new TextBlock
+            {
+                Text = "Workshop Info",
+                Style = (Style)Application.Current.Resources["CaptionTextBlockStyle"],
+                Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"]
+            });
+
+            if (!string.IsNullOrWhiteSpace(meta.Title))
+                statsInner.Children.Add(new TextBlock { Text = $"Title: {meta.Title}" });
+            statsInner.Children.Add(new TextBlock { Text = $"Subscribers: {meta.SubscriptionCount:N0}" });
+            statsInner.Children.Add(new TextBlock { Text = $"Favorites: {meta.FavoriteCount:N0}" });
+            statsInner.Children.Add(new TextBlock { Text = $"Views: {meta.ViewCount:N0}" });
+            if (meta.Tags.Count > 0)
+                statsInner.Children.Add(new TextBlock { Text = $"Tags: {string.Join(", ", meta.Tags)}", TextWrapping = TextWrapping.Wrap });
+            if (!string.IsNullOrWhiteSpace(meta.ContentRating))
+                statsInner.Children.Add(new TextBlock { Text = $"Rating: {meta.ContentRating}" });
+
+            statsCard.Child = statsInner;
+            stack.Children.Add(statsCard);
+
+            // Description
+            if (meta.Description is { Length: > 0 } desc)
+            {
+                var descCard = new Border
+                {
+                    Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"],
+                    CornerRadius = new CornerRadius(8),
+                    Padding = new Thickness(16)
+                };
+
+                var descInner = new StackPanel { Spacing = 8 };
+                descInner.Children.Add(new TextBlock
+                {
+                    Text = "Description",
+                    Style = (Style)Application.Current.Resources["CaptionTextBlockStyle"],
+                    Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"]
+                });
+
+                var truncated = desc.Length > 800 ? desc[..800] + "…" : desc;
+                descInner.Children.Add(new TextBlock
+                {
+                    Text = truncated,
+                    TextWrapping = TextWrapping.Wrap,
+                    FontSize = 13
+                });
+
+                descCard.Child = descInner;
+                stack.Children.Add(descCard);
+            }
+        }
+
+        // No metadata notice
+        if (meta is null && !string.IsNullOrWhiteSpace(wallpaper.SteamId))
+        {
+            stack.Children.Add(new InfoBar
+            {
+                IsOpen = true,
+                Severity = InfoBarSeverity.Warning,
+                Title = "Workshop metadata unavailable",
+                Message = "Could not fetch details from Steam. The item might be private, deleted, or you might be offline."
+            });
+        }
+
+        var dialog = new ContentDialog
+        {
+            Title = "Wallpaper Details",
+            Content = new ScrollViewer { Content = stack, MaxHeight = 500 },
+            CloseButtonText = "Close",
+            XamlRoot = RootGrid.XamlRoot
+        };
+
+        await dialog.ShowAsync();
+    }
+
+    private async void RemoveHomeCard_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { DataContext: WallpaperItem wallpaper })
+        {
+            return;
+        }
+
+        var dialog = new ContentDialog
+        {
+            Title = "Remove Wallpaper",
+            Content = $"Are you sure you want to remove '{wallpaper.DisplayName}' from your home page?",
+            PrimaryButtonText = "Remove",
+            CloseButtonText = "Cancel",
+            DefaultButton = ContentDialogButton.Close,
+            XamlRoot = RootGrid.XamlRoot
+        };
+
+        if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+        {
+            CurrentSettings.SelectedWallpaperKeys.Remove(wallpaper.Key);
+            wallpaper.IsSelected = false;
+            await SaveSettingsAsync();
+            RefreshSelectedWallpapers();
+            RefreshVisibleWallpapers();
         }
     }
 }

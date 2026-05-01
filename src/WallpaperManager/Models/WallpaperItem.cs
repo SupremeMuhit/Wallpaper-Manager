@@ -1,11 +1,20 @@
-using Microsoft.UI.Xaml.Media.Imaging;
-using Microsoft.UI.Xaml.Media;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Imaging;
 
 namespace WallpaperManager.Models;
 
-public sealed class WallpaperItem
+public sealed class WallpaperItem : INotifyPropertyChanged
 {
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+
     public string Key => !string.IsNullOrWhiteSpace(SteamId)
         ? SteamId
         : DirectoryPath;
@@ -22,11 +31,58 @@ public sealed class WallpaperItem
 
     public long SizeBytes { get; set; }
 
-    public bool IsSelected { get; set; }
+    private bool _isSelected;
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set { if (_isSelected != value) { _isSelected = value; OnPropertyChanged(); } }
+    }
 
-    public bool IsNsfw { get; set; }
+    private bool _isNsfw;
+    public bool IsNsfw
+    {
+        get => _isNsfw;
+        set { if (_isNsfw != value) { _isNsfw = value; OnPropertyChanged(); } }
+    }
+
+    private bool _isMature;
+    public bool IsMature
+    {
+        get => _isMature;
+        set { if (_isMature != value) { _isMature = value; OnPropertyChanged(); } }
+    }
+
+    private WorkshopMetadata? _workshopMetadata;
+    public WorkshopMetadata? WorkshopMetadata
+    {
+        get => _workshopMetadata;
+        set
+        {
+            if (_workshopMetadata != value)
+            {
+                _workshopMetadata = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(DisplayName));
+                OnPropertyChanged(nameof(TagsText));
+            }
+        }
+    }
 
     public List<string> Tags { get; set; } = [];
+
+    private bool _prioritizeWorkshopName;
+    public bool PrioritizeWorkshopName
+    {
+        get => _prioritizeWorkshopName;
+        set { if (_prioritizeWorkshopName != value) { _prioritizeWorkshopName = value; OnPropertyChanged(); OnPropertyChanged(nameof(DisplayName)); } }
+    }
+
+    private bool _useWorkshopTags;
+    public bool UseWorkshopTags
+    {
+        get => _useWorkshopTags;
+        set { if (_useWorkshopTags != value) { _useWorkshopTags = value; OnPropertyChanged(); OnPropertyChanged(nameof(TagsText)); } }
+    }
 
     public Brush? RowBackground { get; set; }
 
@@ -56,9 +112,36 @@ public sealed class WallpaperItem
 
     public Visibility CompactListLayoutVisibility { get; set; } = Visibility.Visible;
 
-    public double PreviewOpacity => IsNsfw ? 0.16 : 1;
+    private double _blurOpacity = 1.0;
+    /// <summary>Opacity applied to the preview image (controlled by censorship settings).</summary>
+    public double BlurOpacity
+    {
+        get => _blurOpacity;
+        set { if (_blurOpacity != value) { _blurOpacity = value; OnPropertyChanged(); } }
+    }
 
-    public Visibility NsfwOverlayVisibility => IsNsfw ? Visibility.Visible : Visibility.Collapsed;
+    private double _censorshipOverlayOpacity = 0.6;
+    public double CensorshipOverlayOpacity
+    {
+        get => _censorshipOverlayOpacity;
+        set { if (_censorshipOverlayOpacity != value) { _censorshipOverlayOpacity = value; OnPropertyChanged(); } }
+    }
+
+    private Visibility _nsfwOverlayVisibility = Visibility.Collapsed;
+    /// <summary>Overlay badge visibility for NSFW wallpapers.</summary>
+    public Visibility NsfwOverlayVisibility
+    {
+        get => _nsfwOverlayVisibility;
+        set { if (_nsfwOverlayVisibility != value) { _nsfwOverlayVisibility = value; OnPropertyChanged(); } }
+    }
+
+    private Visibility _matureOverlayVisibility = Visibility.Collapsed;
+    /// <summary>Overlay badge visibility for Mature wallpapers (not NSFW).</summary>
+    public Visibility MatureOverlayVisibility
+    {
+        get => _matureOverlayVisibility;
+        set { if (_matureOverlayVisibility != value) { _matureOverlayVisibility = value; OnPropertyChanged(); } }
+    }
 
     public Visibility PreviewColumnVisibility { get; set; } = Visibility.Visible;
 
@@ -80,13 +163,27 @@ public sealed class WallpaperItem
 
     public GridLength TagsColumnWidth { get; set; } = new(160);
 
-    public string DisplayName => LocalName;
+    public string DisplayName => PrioritizeWorkshopName && WorkshopMetadata != null && !string.IsNullOrWhiteSpace(WorkshopMetadata.Title)
+        ? WorkshopMetadata.Title
+        : LocalName;
 
     public string IdText => string.IsNullOrWhiteSpace(SteamId) ? "Local" : SteamId;
 
     public string SizeText => FormatSize(SizeBytes);
 
-    public string TagsText => Tags.Count == 0 ? string.Empty : string.Join(", ", Tags);
+    public string TagsText
+    {
+        get
+        {
+            var displayTags = new List<string>(Tags);
+            if (UseWorkshopTags && WorkshopMetadata != null)
+            {
+                displayTags.AddRange(WorkshopMetadata.Tags);
+                displayTags = displayTags.Distinct().ToList();
+            }
+            return displayTags.Count == 0 ? string.Empty : string.Join(", ", displayTags);
+        }
+    }
 
     public string HomeActionGlyph => IsSelected ? "\uE738" : "\uE710";
 
