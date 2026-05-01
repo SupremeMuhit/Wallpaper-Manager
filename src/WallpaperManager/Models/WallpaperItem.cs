@@ -54,6 +54,13 @@ public sealed class WallpaperItem : INotifyPropertyChanged
         set { if (_isMature != value) { _isMature = value; OnPropertyChanged(); } }
     }
 
+    private bool _isHovered;
+    public bool IsHovered
+    {
+        get => _isHovered;
+        set { if (_isHovered != value) { _isHovered = value; OnPropertyChanged(); } }
+    }
+
     private WorkshopMetadata? _workshopMetadata;
     public WorkshopMetadata? WorkshopMetadata
     {
@@ -143,6 +150,14 @@ public sealed class WallpaperItem : INotifyPropertyChanged
     {
         get => _matureOverlayVisibility;
         set { if (_matureOverlayVisibility != value) { _matureOverlayVisibility = value; OnPropertyChanged(); } }
+    }
+
+    private Visibility _blurOverlayVisibility = Visibility.Collapsed;
+    /// <summary>Visibility for the blur overlay.</summary>
+    public Visibility BlurOverlayVisibility
+    {
+        get => _blurOverlayVisibility;
+        set { if (_blurOverlayVisibility != value) { _blurOverlayVisibility = value; OnPropertyChanged(); } }
     }
 
     public Visibility PreviewColumnVisibility { get; set; } = Visibility.Visible;

@@ -32,7 +32,7 @@ public sealed class AppSettings
 
     public bool ColorRowsByHighestPriorityTag { get; set; } = true;
 
-    public bool ShowNsfwWallpapers { get; set; } = true;
+    public NsfwTabMode NsfwTabMode { get; set; } = NsfwTabMode.Off;
 
     public bool UseMicaBackdrop { get; set; } = true;
 
@@ -50,6 +50,8 @@ public sealed class AppSettings
 
     public double CensorshipIntensity { get; set; } = 0.5;
 
+    public bool RemoveCensorOnHover { get; set; } = true;
+
     public bool UseWorkshopTags { get; set; }
 
     public List<string> HiddenLibraryColumns { get; set; } = [];
@@ -63,4 +65,11 @@ public sealed class AppSettings
     public string LibrarySortMode { get; set; } = "Name";
 
     public string HomeSortMode { get; set; } = "Free Movement";
+}
+
+public enum NsfwTabMode
+{
+    Off,
+    OnlyNsfw,
+    NsfwAndMature
 }

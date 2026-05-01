@@ -17,6 +17,13 @@ using Microsoft.UI.Xaml.Media.Imaging;
 
 namespace WallpaperManager;
 
+public class SettingsCategory
+{
+    public string Tag { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string Icon { get; set; } = string.Empty;
+}
+
 public sealed partial class MainWindow : Window
 {
     private const string ContactWebhookKey = "DISCORD_CONTACT_WEBHOOK_URL";
@@ -60,6 +67,19 @@ public sealed partial class MainWindow : Window
 
     public IReadOnlyList<string> LibrarySortChoices { get; } = ["Name", "Date Added", "Workshop Updated"];
     public IReadOnlyList<string> HomeSortChoices { get; } = ["Free Movement", "Name", "Date Added", "Workshop Updated"];
+
+    public IReadOnlyList<string> NsfwTabChoices { get; } = ["Off", "Only NSFW", "NSFW and Mature"];
+
+    public ObservableCollection<SettingsCategory> SettingsCategories { get; } =
+    [
+        new() { Tag = "EngineWallpaper", Title = "Engine and Wallpaper", Icon = "\uE8A7" },
+        new() { Tag = "Appearance", Title = "Appearance", Icon = "\uE771" },
+        new() { Tag = "Library", Title = "Library", Icon = "\uE8B7" },
+        new() { Tag = "NsfwMature", Title = "NSFW / Mature", Icon = "\uE8D4" },
+        new() { Tag = "Tags", Title = "Tags", Icon = "\uE8EC" },
+        new() { Tag = "About", Title = "About", Icon = "\uE946" },
+        new() { Tag = "Contact", Title = "Contact", Icon = "\uE715" }
+    ];
 
     public MainWindow()
     {
@@ -125,11 +145,12 @@ public sealed partial class MainWindow : Window
         CardSizeComboBox.SelectedItem = CurrentSettings.CardSize;
         HomeCardSizeComboBox.SelectedItem = CurrentSettings.CardSize;
         ColorRowsToggle.IsOn = CurrentSettings.ColorRowsByHighestPriorityTag;
-        HideNsfwToggle.IsOn = !CurrentSettings.ShowNsfwWallpapers;
+        NsfwTabComboBox.SelectedIndex = (int)CurrentSettings.NsfwTabMode;
         RunOnStartupToggle.IsOn = CurrentSettings.RunOnStartup;
         MemoryUsageComboBox.SelectedItem = CurrentSettings.MemoryUsageProfile;
         PrioritizeWorkshopNameToggle.IsOn = CurrentSettings.PrioritizeWorkshopName;
         AutoMarkNsfwToggle.IsOn = CurrentSettings.AutoMarkNsfwFromWorkshop;
+        RemoveCensorOnHoverToggle.IsOn = CurrentSettings.RemoveCensorOnHover;
         NsfwModeComboBox.SelectedIndex = (int)CurrentSettings.NsfwMode;
         MatureModeComboBox.SelectedIndex = (int)CurrentSettings.MatureMode;
         CensorshipIntensitySlider.Value = CurrentSettings.CensorshipIntensity;
@@ -292,16 +313,16 @@ public sealed partial class MainWindow : Window
         await SaveSettingsAsync();
     }
 
-    private async void HideNsfwToggle_Toggled(object sender, RoutedEventArgs e)
+    private async void NsfwTabComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_isLoadingSettings)
         {
             return;
         }
 
-        CurrentSettings.ShowNsfwWallpapers = !HideNsfwToggle.IsOn;
+        CurrentSettings.NsfwTabMode = (NsfwTabMode)NsfwTabComboBox.SelectedIndex;
+        NsfwNavTab.Visibility = CurrentSettings.NsfwTabMode != NsfwTabMode.Off ? Visibility.Visible : Visibility.Collapsed;
         RefreshVisibleWallpapers();
-        RefreshSelectedWallpapers();
         await SaveSettingsAsync();
     }
 
@@ -406,6 +427,14 @@ public sealed partial class MainWindow : Window
     {
         if (_isLoadingSettings) return;
         CurrentSettings.AutoMarkNsfwFromWorkshop = AutoMarkNsfwToggle.IsOn;
+        await SaveSettingsAsync();
+    }
+
+    private async void RemoveCensorOnHoverToggle_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (_isLoadingSettings) return;
+        CurrentSettings.RemoveCensorOnHover = RemoveCensorOnHoverToggle.IsOn;
+        ApplyWallpaperPresentation();
         await SaveSettingsAsync();
     }
 
@@ -745,19 +774,12 @@ public sealed partial class MainWindow : Window
         UpdateEngineStatus();
     }
 
-    private void SettingsSection_Click(object sender, RoutedEventArgs e)
+    private void SettingsNavigationList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if ((sender as FrameworkElement)?.Tag is not string section)
+        if (SettingsNavigationList.SelectedItem is SettingsCategory category)
         {
-            return;
+            ShowSettingsSection(category.Tag);
         }
-
-        ShowSettingsSection(section);
-    }
-
-    private void SettingsBack_Click(object sender, RoutedEventArgs e)
-    {
-        ShowSettingsSection(null);
     }
 
     private async void SendContact_Click(object sender, RoutedEventArgs e)
@@ -864,8 +886,21 @@ public sealed partial class MainWindow : Window
             ? "Settings"
             : (args.SelectedItem as NavigationViewItem)?.Tag as string ?? "Home";
 
+        if (page == "NsfwTab")
+        {
+            page = "Library";
+            _showingNsfwTab = true;
+        }
+        else
+        {
+            _showingNsfwTab = false;
+        }
+
         ShowPage(page);
+        RefreshVisibleWallpapers();
     }
+
+    private bool _showingNsfwTab = false;
 
     private async Task ScanLibraryAsync()
     {
@@ -1028,6 +1063,16 @@ public sealed partial class MainWindow : Window
         var mode = item.IsNsfw ? CurrentSettings.NsfwMode : (item.IsMature ? CurrentSettings.MatureMode : CensorshipMode.Off);
         var intensity = CurrentSettings.CensorshipIntensity;
 
+        if (CurrentSettings.RemoveCensorOnHover && item.IsHovered)
+        {
+            item.BlurOpacity = 1.0;
+            item.CensorshipOverlayOpacity = 0;
+            item.NsfwOverlayVisibility = Visibility.Collapsed;
+            item.MatureOverlayVisibility = Visibility.Collapsed;
+            item.BlurOverlayVisibility = Visibility.Collapsed;
+            return;
+        }
+
         switch (mode)
         {
             case CensorshipMode.Off:
@@ -1035,19 +1080,40 @@ public sealed partial class MainWindow : Window
                 item.CensorshipOverlayOpacity = 0;
                 item.NsfwOverlayVisibility = Visibility.Collapsed;
                 item.MatureOverlayVisibility = Visibility.Collapsed;
+                item.BlurOverlayVisibility = Visibility.Collapsed;
                 break;
             case CensorshipMode.Blur:
-                item.BlurOpacity = 0.5 * (1.0 - intensity) + 0.01 * intensity;
-                item.CensorshipOverlayOpacity = 0;
+                item.BlurOpacity = 1.0;
+                item.CensorshipOverlayOpacity = 0.3 + (0.7 * intensity);
                 item.NsfwOverlayVisibility = Visibility.Collapsed;
                 item.MatureOverlayVisibility = Visibility.Collapsed;
+                item.BlurOverlayVisibility = Visibility.Visible;
                 break;
             case CensorshipMode.Overlay:
                 item.BlurOpacity = 1.0;
                 item.CensorshipOverlayOpacity = 0.3 + (0.7 * intensity);
                 item.NsfwOverlayVisibility = item.IsNsfw ? Visibility.Visible : Visibility.Collapsed;
                 item.MatureOverlayVisibility = (item.IsMature && !item.IsNsfw) ? Visibility.Visible : Visibility.Collapsed;
+                item.BlurOverlayVisibility = Visibility.Collapsed;
                 break;
+        }
+    }
+
+    private void PreviewImage_PointerEntered(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is WallpaperItem item)
+        {
+            item.IsHovered = true;
+            ApplyCensorship(item);
+        }
+    }
+
+    private void PreviewImage_PointerExited(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is WallpaperItem item)
+        {
+            item.IsHovered = false;
+            ApplyCensorship(item);
         }
     }
 
@@ -1145,13 +1211,16 @@ public sealed partial class MainWindow : Window
         SettingsPage.Visibility = page == "Settings" ? Visibility.Visible : Visibility.Collapsed;
         if (page == "Settings")
         {
-            ShowSettingsSection(null);
+            if (SettingsNavigationList.SelectedItem == null && SettingsCategories.Count > 0)
+            {
+                SettingsNavigationList.SelectedIndex = 0;
+            }
         }
 
-        PageTitle.Text = page;
+        PageTitle.Text = _showingNsfwTab ? "NSFW / Mature" : page;
         PageSubtitle.Text = page switch
         {
-            "Library" => "All detected wallpapers within every configured directory.",
+            "Library" => _showingNsfwTab ? "Your adult and mature wallpapers." : "All detected wallpapers within every configured directory.",
             "Guide" => "Folder naming, scanning rules, and practical usage notes.",
             "Settings" => "Engine and wallpaper, appearance, library, and tags.",
             _ => "Selected wallpapers from your local Wallpaper Engine library."
@@ -1160,10 +1229,10 @@ public sealed partial class MainWindow : Window
 
     private void ShowSettingsSection(string? section)
     {
-        SettingsHomePanel.Visibility = string.IsNullOrWhiteSpace(section) ? Visibility.Visible : Visibility.Collapsed;
         EngineWallpaperSettingsPanel.Visibility = section == "EngineWallpaper" ? Visibility.Visible : Visibility.Collapsed;
         AppearanceSettingsPanel.Visibility = section == "Appearance" ? Visibility.Visible : Visibility.Collapsed;
         LibrarySettingsPanel.Visibility = section == "Library" ? Visibility.Visible : Visibility.Collapsed;
+        NsfwMatureSettingsPanel.Visibility = section == "NsfwMature" ? Visibility.Visible : Visibility.Collapsed;
         TagSettingsPanel.Visibility = section == "Tags" ? Visibility.Visible : Visibility.Collapsed;
         AboutSettingsPanel.Visibility = section == "About" ? Visibility.Visible : Visibility.Collapsed;
         ContactSettingsPanel.Visibility = section == "Contact" ? Visibility.Visible : Visibility.Collapsed;
@@ -1187,7 +1256,7 @@ public sealed partial class MainWindow : Window
         CurrentSettings.HomeSortMode = HomeSortComboBox.SelectedItem as string ?? "Free Movement";
         CurrentSettings.CardSize = CardSizeComboBox.SelectedItem as string ?? CardSizeOptions.Medium;
         CurrentSettings.ColorRowsByHighestPriorityTag = ColorRowsToggle.IsOn;
-        CurrentSettings.ShowNsfwWallpapers = !HideNsfwToggle.IsOn;
+        CurrentSettings.NsfwTabMode = (NsfwTabMode)NsfwTabComboBox.SelectedIndex;
         CurrentSettings.UseMicaBackdrop = true;
         CurrentSettings.RunOnStartup = RunOnStartupToggle.IsOn;
         CurrentSettings.MemoryUsageProfile = MemoryUsageComboBox.SelectedItem as string ?? "Balanced";
@@ -1215,7 +1284,18 @@ public sealed partial class MainWindow : Window
 
     private bool ShouldShowWallpaper(WallpaperItem wallpaper)
     {
-        return CurrentSettings.ShowNsfwWallpapers || !wallpaper.IsNsfw;
+        if (_showingNsfwTab)
+        {
+            if (CurrentSettings.NsfwTabMode == NsfwTabMode.OnlyNsfw && wallpaper.IsNsfw && !wallpaper.IsMature) return true;
+            if (CurrentSettings.NsfwTabMode == NsfwTabMode.NsfwAndMature && (wallpaper.IsNsfw || wallpaper.IsMature)) return true;
+            return false;
+        }
+        else
+        {
+            if (CurrentSettings.NsfwTabMode == NsfwTabMode.OnlyNsfw && wallpaper.IsNsfw && !wallpaper.IsMature) return false;
+            if (CurrentSettings.NsfwTabMode == NsfwTabMode.NsfwAndMature && (wallpaper.IsNsfw || wallpaper.IsMature)) return false;
+            return true;
+        }
     }
 
     private void UpdateEngineStatus()
