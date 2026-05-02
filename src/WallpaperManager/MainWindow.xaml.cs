@@ -196,7 +196,7 @@ public sealed partial class MainWindow : Window
         }
 
         LibraryRoots.Add(WallpaperLibraryRoot.FromPath(folder.Path));
-        SaveSettingsAsync();
+        TriggerSaveSettings();
         await ScanLibraryAsync();
     }
 
@@ -214,7 +214,7 @@ public sealed partial class MainWindow : Window
         }
 
         LibraryRoots.Remove(root);
-        SaveSettingsAsync();
+        TriggerSaveSettings();
         await ScanLibraryAsync();
     }
 
@@ -235,11 +235,11 @@ public sealed partial class MainWindow : Window
         }
 
         EnginePathTextBox.Text = file.Path;
-        SaveSettingsAsync();
+        TriggerSaveSettings();
         UpdateEngineStatus();
     }
 
-    private async void EnginePathTextBox_TextChanged(object sender, TextChangedEventArgs e)
+    private void EnginePathTextBox_TextChanged(object sender, TextChangedEventArgs e)
     {
         if (_isLoadingSettings)
         {
@@ -247,11 +247,11 @@ public sealed partial class MainWindow : Window
         }
 
         CurrentSettings.EngineExecutablePath = EnginePathTextBox.Text;
-        SaveSettingsAsync();
+        TriggerSaveSettings();
         UpdateEngineStatus();
     }
 
-    private async void ThemeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private void ThemeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_isLoadingSettings || ThemeComboBox.SelectedItem is not string themeMode)
         {
@@ -260,10 +260,10 @@ public sealed partial class MainWindow : Window
 
         CurrentSettings.Theme = FromThemeMode(themeMode);
         ApplyTheme(CurrentSettings.Theme);
-        SaveSettingsAsync();
+        TriggerSaveSettings();
     }
 
-    private async void LibraryViewComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private void LibraryViewComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_isLoadingSettings || LibraryViewComboBox.SelectedItem is not string viewMode)
         {
@@ -272,10 +272,10 @@ public sealed partial class MainWindow : Window
 
         CurrentSettings.LibraryViewMode = viewMode;
         ApplyLibraryViewMode(viewMode);
-        SaveSettingsAsync();
+        TriggerSaveSettings();
     }
 
-    private async void HomeViewComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private void HomeViewComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_isLoadingSettings || HomeViewComboBox.SelectedItem is not string viewMode)
         {
@@ -284,10 +284,10 @@ public sealed partial class MainWindow : Window
 
         CurrentSettings.HomeViewMode = viewMode;
         ApplyHomeViewMode(viewMode);
-        SaveSettingsAsync();
+        TriggerSaveSettings();
     }
 
-    private async void CardSizeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private void CardSizeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_isLoadingSettings || (sender as ComboBox)?.SelectedItem is not string cardSize)
         {
@@ -299,10 +299,10 @@ public sealed partial class MainWindow : Window
         ApplyWallpaperPresentation();
         RefreshVisibleWallpapers();
         RefreshSelectedWallpapers();
-        SaveSettingsAsync();
+        TriggerSaveSettings();
     }
 
-    private async void ColorRowsToggle_Toggled(object sender, RoutedEventArgs e)
+    private void ColorRowsToggle_Toggled(object sender, RoutedEventArgs e)
     {
         if (_isLoadingSettings)
         {
@@ -313,10 +313,10 @@ public sealed partial class MainWindow : Window
         ApplyWallpaperPresentation();
         RefreshVisibleWallpapers();
         RefreshSelectedWallpapers();
-        SaveSettingsAsync();
+        TriggerSaveSettings();
     }
 
-    private async void NsfwTabComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private void NsfwTabComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_isLoadingSettings)
         {
@@ -326,10 +326,10 @@ public sealed partial class MainWindow : Window
         CurrentSettings.NsfwTabMode = (NsfwTabMode)NsfwTabComboBox.SelectedIndex;
         NsfwNavTab.Visibility = CurrentSettings.NsfwTabMode != NsfwTabMode.Off ? Visibility.Visible : Visibility.Collapsed;
         RefreshVisibleWallpapers();
-        SaveSettingsAsync();
+        TriggerSaveSettings();
     }
 
-    private async void RunOnStartupToggle_Toggled(object sender, RoutedEventArgs e)
+    private void RunOnStartupToggle_Toggled(object sender, RoutedEventArgs e)
     {
         if (_isLoadingSettings)
         {
@@ -337,10 +337,10 @@ public sealed partial class MainWindow : Window
         }
 
         CurrentSettings.RunOnStartup = RunOnStartupToggle.IsOn;
-        SaveSettingsAsync();
+        TriggerSaveSettings();
     }
 
-    private async void MemoryUsageComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private void MemoryUsageComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_isLoadingSettings || MemoryUsageComboBox.SelectedItem is not string memoryProfile)
         {
@@ -348,10 +348,10 @@ public sealed partial class MainWindow : Window
         }
 
         CurrentSettings.MemoryUsageProfile = memoryProfile;
-        SaveSettingsAsync();
+        TriggerSaveSettings();
     }
 
-    private async void ThemeColorPresetComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private void ThemeColorPresetComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_isLoadingSettings || ThemeColorPresetComboBox.SelectedItem is not string preset)
         {
@@ -365,10 +365,10 @@ public sealed partial class MainWindow : Window
             ApplyThemeColor(CurrentSettings.ThemeColor);
         }
 
-        SaveSettingsAsync();
+        TriggerSaveSettings();
     }
 
-    private async void ThemeColorTextBox_TextChanged(object sender, TextChangedEventArgs e)
+    private void ThemeColorTextBox_TextChanged(object sender, TextChangedEventArgs e)
     {
         if (_isLoadingSettings)
         {
@@ -383,7 +383,7 @@ public sealed partial class MainWindow : Window
         CurrentSettings.ThemeColor = normalized;
         ThemeColorPresetComboBox.SelectedItem = ToThemeColorPreset(normalized);
         ApplyThemeColor(normalized);
-        SaveSettingsAsync();
+        TriggerSaveSettings();
     }
 
     private async void PickThemeColor_Click(object sender, RoutedEventArgs e)
@@ -414,19 +414,19 @@ public sealed partial class MainWindow : Window
         ThemeColorTextBox.Text = CurrentSettings.ThemeColor;
         ThemeColorPresetComboBox.SelectedItem = ToThemeColorPreset(CurrentSettings.ThemeColor);
         ApplyThemeColor(CurrentSettings.ThemeColor);
-        SaveSettingsAsync();
+        TriggerSaveSettings();
     }
 
-    private async void PrioritizeWorkshopNameToggle_Toggled(object sender, RoutedEventArgs e)
+    private void PrioritizeWorkshopNameToggle_Toggled(object sender, RoutedEventArgs e)
     {
         if (_isLoadingSettings) return;
         CurrentSettings.PrioritizeWorkshopName = PrioritizeWorkshopNameToggle.IsOn;
         ApplyWallpaperPresentation();
         RefreshVisibleWallpapers();
-        SaveSettingsAsync();
+        TriggerSaveSettings();
     }
 
-    private async void LibraryHideComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private void LibraryHideComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_isLoadingSettings || LibraryHideComboBox.SelectedItem is not string selection) return;
         
@@ -438,46 +438,46 @@ public sealed partial class MainWindow : Window
         };
         
         RefreshVisibleWallpapers();
-        SaveSettingsAsync();
+        TriggerSaveSettings();
     }
 
-    private async void AutoMarkNsfwToggle_Toggled(object sender, RoutedEventArgs e)
+    private void AutoMarkNsfwToggle_Toggled(object sender, RoutedEventArgs e)
     {
         if (_isLoadingSettings) return;
         CurrentSettings.AutoMarkNsfwFromWorkshop = AutoMarkNsfwToggle.IsOn;
-        SaveSettingsAsync();
+        TriggerSaveSettings();
     }
 
-    private async void RemoveCensorOnHoverToggle_Toggled(object sender, RoutedEventArgs e)
+    private void RemoveCensorOnHoverToggle_Toggled(object sender, RoutedEventArgs e)
     {
         if (_isLoadingSettings) return;
         CurrentSettings.RemoveCensorOnHover = RemoveCensorOnHoverToggle.IsOn;
         ApplyWallpaperPresentation();
-        SaveSettingsAsync();
+        TriggerSaveSettings();
     }
 
-    private async void NsfwModeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private void NsfwModeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_isLoadingSettings) return;
         CurrentSettings.NsfwMode = (CensorshipMode)NsfwModeComboBox.SelectedIndex;
         ApplyWallpaperPresentation();
-        SaveSettingsAsync();
+        TriggerSaveSettings();
     }
 
-    private async void MatureModeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private void MatureModeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_isLoadingSettings) return;
         CurrentSettings.MatureMode = (CensorshipMode)MatureModeComboBox.SelectedIndex;
         ApplyWallpaperPresentation();
-        SaveSettingsAsync();
+        TriggerSaveSettings();
     }
 
-    private async void BlurIntensitySlider_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
+    private void BlurIntensitySlider_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
     {
         if (_isLoadingSettings) return;
         CurrentSettings.BlurIntensity = BlurIntensitySlider.Value;
         ApplyWallpaperPresentation();
-        SaveSettingsAsync();
+        TriggerSaveSettings();
     }
 
     private void UpdatePreviewWallpapers()
@@ -519,24 +519,24 @@ public sealed partial class MainWindow : Window
         MaturePreviewItem.OnPropertyChanged(nameof(WallpaperItem.PreviewImage));
     }
 
-    private async void OverlayOpacitySlider_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
+    private void OverlayOpacitySlider_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
     {
         if (_isLoadingSettings) return;
         CurrentSettings.OverlayOpacity = OverlayOpacitySlider.Value;
         ApplyWallpaperPresentation();
-        SaveSettingsAsync();
+        TriggerSaveSettings();
     }
 
-    private async void UseWorkshopTagsToggle_Toggled(object sender, RoutedEventArgs e)
+    private void UseWorkshopTagsToggle_Toggled(object sender, RoutedEventArgs e)
     {
         if (_isLoadingSettings) return;
         CurrentSettings.UseWorkshopTags = UseWorkshopTagsToggle.IsOn;
         ApplyWallpaperPresentation();
         RefreshVisibleWallpapers();
-        SaveSettingsAsync();
+        TriggerSaveSettings();
     }
 
-    private async void ColumnToggle_Click(object sender, RoutedEventArgs e)
+    private void ColumnToggle_Click(object sender, RoutedEventArgs e)
     {
         var toggle = sender as ToggleButton;
         if (toggle?.Tag is not string column)
@@ -557,7 +557,7 @@ public sealed partial class MainWindow : Window
         ApplyColumnVisibility();
         ApplyWallpaperPresentation();
         RefreshVisibleWallpapers();
-        SaveSettingsAsync();
+        TriggerSaveSettings();
     }
 
     private async void CreateTag_Click(object sender, RoutedEventArgs e)
@@ -615,10 +615,10 @@ public sealed partial class MainWindow : Window
         ApplyWallpaperPresentation();
         RefreshVisibleWallpapers();
         RefreshSelectedWallpapers();
-        SaveSettingsAsync();
+        TriggerSaveSettings();
     }
 
-    private async void MoveTagUp_Click(object sender, RoutedEventArgs e)
+    private void MoveTagUp_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as FrameworkElement)?.DataContext is not WallpaperTag tag)
         {
@@ -633,13 +633,13 @@ public sealed partial class MainWindow : Window
 
         Tags.Move(index, index - 1);
         RefreshVisibleTags();
-        SaveSettingsAsync();
+        TriggerSaveSettings();
         ApplyWallpaperPresentation();
         RefreshVisibleWallpapers();
         RefreshSelectedWallpapers();
     }
 
-    private async void TagsListView_DragItemsCompleted(ListViewBase sender, DragItemsCompletedEventArgs args)
+    private void TagsListView_DragItemsCompleted(ListViewBase sender, DragItemsCompletedEventArgs args)
     {
         if (!string.IsNullOrWhiteSpace(TagSearchTextBox.Text))
         {
@@ -652,13 +652,13 @@ public sealed partial class MainWindow : Window
             Tags.Add(tag);
         }
 
-        SaveSettingsAsync();
+        TriggerSaveSettings();
         ApplyWallpaperPresentation();
         RefreshVisibleWallpapers();
         RefreshSelectedWallpapers();
     }
 
-    private async void MoveTagDown_Click(object sender, RoutedEventArgs e)
+    private void MoveTagDown_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as FrameworkElement)?.DataContext is not WallpaperTag tag)
         {
@@ -673,13 +673,13 @@ public sealed partial class MainWindow : Window
 
         Tags.Move(index, index + 1);
         RefreshVisibleTags();
-        SaveSettingsAsync();
+        TriggerSaveSettings();
         ApplyWallpaperPresentation();
         RefreshVisibleWallpapers();
         RefreshSelectedWallpapers();
     }
 
-    private async void RemoveTag_Click(object sender, RoutedEventArgs e)
+    private void RemoveTag_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as FrameworkElement)?.DataContext is not WallpaperTag tag)
         {
@@ -693,7 +693,7 @@ public sealed partial class MainWindow : Window
             wallpaper.Tags.RemoveAll(item => string.Equals(item, tag.Name, StringComparison.OrdinalIgnoreCase));
         }
 
-        SaveSettingsAsync();
+        TriggerSaveSettings();
         ApplyWallpaperPresentation();
         RefreshVisibleWallpapers();
         RefreshSelectedWallpapers();
@@ -769,7 +769,7 @@ public sealed partial class MainWindow : Window
         flyout.ShowAt(anchor);
     }
 
-    private async void ToggleHomeMenuItem_Click(object sender, RoutedEventArgs e)
+    private void ToggleHomeMenuItem_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as MenuFlyoutItem)?.Tag is not WallpaperItem wallpaper)
         {
@@ -778,10 +778,10 @@ public sealed partial class MainWindow : Window
 
         wallpaper.IsSelected = !wallpaper.IsSelected;
         RefreshSelectedWallpapers();
-        SaveSettingsAsync();
+        TriggerSaveSettings();
     }
 
-    private async void ToggleHomeButton_Click(object sender, RoutedEventArgs e)
+    private void ToggleHomeButton_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as FrameworkElement)?.DataContext is not WallpaperItem wallpaper)
         {
@@ -791,12 +791,12 @@ public sealed partial class MainWindow : Window
         wallpaper.IsSelected = !wallpaper.IsSelected;
         // RefreshVisibleWallpapers(); // REMOVED: This causes the list to jump to top
         RefreshSelectedWallpapers();
-        SaveSettingsAsync();
+        TriggerSaveSettings();
     }
 
 
 
-    private async void ToggleNsfwMenuItem_Click(object sender, RoutedEventArgs e)
+    private void ToggleNsfwMenuItem_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as MenuFlyoutItem)?.Tag is not WallpaperItem wallpaper)
         {
@@ -808,10 +808,10 @@ public sealed partial class MainWindow : Window
         ApplyWallpaperPresentation();
         RefreshVisibleWallpapers();
         RefreshSelectedWallpapers();
-        SaveSettingsAsync();
+        TriggerSaveSettings();
     }
 
-    private async void ToggleWallpaperTagMenuItem_Click(object sender, RoutedEventArgs e)
+    private void ToggleWallpaperTagMenuItem_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as ToggleMenuFlyoutItem)?.Tag is not WallpaperTagAction action)
         {
@@ -830,7 +830,7 @@ public sealed partial class MainWindow : Window
         ApplyWallpaperPresentation();
         RefreshVisibleWallpapers();
         RefreshSelectedWallpapers();
-        SaveSettingsAsync();
+        TriggerSaveSettings();
     }
 
     private void StartEngine_Click(object sender, RoutedEventArgs e)
@@ -1039,7 +1039,7 @@ public sealed partial class MainWindow : Window
 
         if (needsSave)
         {
-            SaveSettingsAsync();
+            TriggerSaveSettings();
         }
     }
 
@@ -1337,7 +1337,7 @@ public sealed partial class MainWindow : Window
 
     private DispatcherTimer? _saveSettingsTimer;
 
-    private void SaveSettingsAsync()
+    private void TriggerSaveSettings()
     {
         if (_saveSettingsTimer == null)
         {
@@ -1901,7 +1901,7 @@ public sealed partial class MainWindow : Window
         ApplyWallpaperPresentation();
         RefreshVisibleWallpapers();
         RefreshSelectedWallpapers();
-        SaveSettingsAsync();
+        TriggerSaveSettings();
     }
 
     private void RefreshTagRow(WallpaperTag tag)
@@ -2063,7 +2063,7 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    private async void ToggleMatureMenuItem_Click(object sender, RoutedEventArgs e)
+    private void ToggleMatureMenuItem_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as MenuFlyoutItem)?.Tag is not WallpaperItem wallpaper)
         {
@@ -2075,7 +2075,7 @@ public sealed partial class MainWindow : Window
         ApplyWallpaperPresentation();
         RefreshVisibleWallpapers();
         RefreshSelectedWallpapers();
-        SaveSettingsAsync();
+        TriggerSaveSettings();
     }
 
     private async void WallpaperDetails_Click(object sender, RoutedEventArgs e)
@@ -2305,13 +2305,13 @@ public sealed partial class MainWindow : Window
         {
             CurrentSettings.SelectedWallpaperKeys.Remove(wallpaper.Key);
             wallpaper.IsSelected = false;
-            SaveSettingsAsync();
+            TriggerSaveSettings();
             RefreshSelectedWallpapers();
             RefreshVisibleWallpapers();
         }
     }
 
-    private async void HomeSortComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private void HomeSortComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_isLoadingSettings || sender is not ComboBox comboBox || comboBox.SelectedItem is not string sortMode)
             return;
@@ -2319,20 +2319,20 @@ public sealed partial class MainWindow : Window
         CurrentSettings.HomeSortMode = sortMode;
         ApplyHomeSortMode();
         RefreshSelectedWallpapers();
-        SaveSettingsAsync();
+        TriggerSaveSettings();
     }
 
-    private async void LibrarySortComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private void LibrarySortComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_isLoadingSettings || sender is not ComboBox comboBox || comboBox.SelectedItem is not string sortMode)
             return;
 
         CurrentSettings.LibrarySortMode = sortMode;
         RefreshVisibleWallpapers();
-        SaveSettingsAsync();
+        TriggerSaveSettings();
     }
 
-    private async void HomeView_DragItemsCompleted(ListViewBase sender, DragItemsCompletedEventArgs args)
+    private void HomeView_DragItemsCompleted(ListViewBase sender, DragItemsCompletedEventArgs args)
     {
         if (CurrentSettings.HomeSortMode != "Free Movement")
             return;
@@ -2343,6 +2343,6 @@ public sealed partial class MainWindow : Window
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        SaveSettingsAsync();
+        TriggerSaveSettings();
     }
 }

@@ -1,9 +1,58 @@
-bin/
-obj/
+## [Standard .NET .gitignore]
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio files
 .vs/
-.vscode/
-.buildcheck/
 *.user
+*.userosscache
+*.sln.docstates
+
+# Visual Studio Code files
+.vscode/
+
+# Windows
+[Tt]humbs.db
+[Ee]hthumbs.db
+Desktop.ini
+
+# User-specific files
 *.rsuser
 *.suo
-.env
+*.user
+*.userosscache
+*.sln.docstates
+
+# NuGet Packages
+*.nupkg
+# The packages folder can be ignored because of PackageReference usage
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+# Build log files
+*.log
+
+# Windows App SDK / WinUI 3 specific
+AppPackages/
+BundleArtifacts/
+Package.StoreAssociation.xml
+_pkginfo.txt
+*.msix
+*.appx
+*.appxbundle
+*.msixbundle
+
+# Temporary files
+*.tmp
+*.temp
