@@ -161,20 +161,18 @@
                                                     <Border Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="4">
                                                         <Image Source="{x:Bind PreviewImage}" Stretch="UniformToFill" Opacity="{x:Bind BlurOpacity, Mode=OneWay}" />
                                                     </Border>
-                                                    <Grid Visibility="{x:Bind BlurOverlayVisibility, Mode=OneWay}">
+                                                    <Grid Visibility="{x:Bind BlurOverlayVisibility, Mode=OneWay}" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}">
                                                         <Border CornerRadius="4">
                                                             <Border.Background>
-                                                                <AcrylicBrush TintColor="Black" TintOpacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" FallbackColor="#AA000000" />
+                                                                <AcrylicBrush TintColor="White" TintOpacity="0.05" TintLuminosityOpacity="0.9" FallbackColor="Transparent" />
                                                             </Border.Background>
                                                         </Border>
                                                     </Grid>
                                                     <Grid Visibility="{x:Bind NsfwOverlayVisibility, Mode=OneWay}">
                                                         <Border Background="Black" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="4" />
-                                                        <TextBlock Text="NSFW" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold" Foreground="White" />
                                                     </Grid>
                                                     <Grid Visibility="{x:Bind MatureOverlayVisibility, Mode=OneWay}">
                                                         <Border Background="Black" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="4" />
-                                                        <TextBlock Text="Mature" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold" Foreground="White" />
                                                     </Grid>
                                                 </Grid>
                                                 <TextBlock Grid.Column="1" Text="{x:Bind DisplayName, Mode=OneWay}" FontSize="{x:Bind ListTitleFontSize}" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Visibility="{x:Bind LocalNameColumnVisibility}" />
@@ -204,20 +202,18 @@
                                                     <Border Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="6">
                                                         <Image Source="{x:Bind PreviewImage}" Stretch="UniformToFill" Opacity="{x:Bind BlurOpacity, Mode=OneWay}" />
                                                     </Border>
-                                                    <Grid Visibility="{x:Bind BlurOverlayVisibility, Mode=OneWay}">
+                                                    <Grid Visibility="{x:Bind BlurOverlayVisibility, Mode=OneWay}" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}">
                                                         <Border CornerRadius="6">
                                                             <Border.Background>
-                                                                <AcrylicBrush TintColor="Black" TintOpacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" FallbackColor="#AA000000" />
+                                                                <AcrylicBrush TintColor="White" TintOpacity="0.05" TintLuminosityOpacity="0.9" FallbackColor="Transparent" />
                                                             </Border.Background>
                                                         </Border>
                                                     </Grid>
                                                     <Grid Visibility="{x:Bind NsfwOverlayVisibility, Mode=OneWay}">
                                                         <Border Background="Black" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="6" />
-                                                        <TextBlock Text="NSFW" HorizontalAlignment="Center" VerticalAlignment="Center" Style="{StaticResource BodyStrongTextBlockStyle}" Foreground="White" />
                                                     </Grid>
                                                     <Grid Visibility="{x:Bind MatureOverlayVisibility, Mode=OneWay}">
                                                         <Border Background="Black" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="6" />
-                                                        <TextBlock Text="Mature" HorizontalAlignment="Center" VerticalAlignment="Center" Style="{StaticResource BodyStrongTextBlockStyle}" Foreground="White" />
                                                     </Grid>
                                                     <Button HorizontalAlignment="Right" VerticalAlignment="Top" Margin="6" Padding="6" Width="32" Height="32" Style="{StaticResource SubtleButtonStyle}" CornerRadius="4" ToolTipService.ToolTip="Remove" Click="RemoveHomeCard_Click">
                                                         <FontIcon Glyph="&#xE711;" FontSize="12" />
@@ -313,20 +309,18 @@
                                                         <Border Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="6">
                                                             <Image Source="{x:Bind PreviewImage}" Stretch="UniformToFill" Opacity="{x:Bind BlurOpacity, Mode=OneWay}" />
                                                         </Border>
-                                                    <Grid Visibility="{x:Bind BlurOverlayVisibility, Mode=OneWay}">
+                                                    <Grid Visibility="{x:Bind BlurOverlayVisibility, Mode=OneWay}" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}">
                                                         <Border CornerRadius="6">
                                                             <Border.Background>
-                                                                <AcrylicBrush TintColor="Black" TintOpacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" FallbackColor="#AA000000" />
+                                                                <AcrylicBrush TintColor="White" TintOpacity="0.05" TintLuminosityOpacity="0.9" FallbackColor="Transparent" />
                                                             </Border.Background>
                                                         </Border>
                                                     </Grid>
                                                         <Grid Visibility="{x:Bind NsfwOverlayVisibility, Mode=OneWay}">
                                                             <Border Background="Black" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="6" />
-                                                            <TextBlock Text="NSFW" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold" Foreground="White" />
                                                         </Grid>
                                                         <Grid Visibility="{x:Bind MatureOverlayVisibility, Mode=OneWay}">
                                                             <Border Background="Black" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="6" />
-                                                            <TextBlock Text="Mature" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold" Foreground="White" />
                                                         </Grid>
                                                     </Grid>
                                                     <StackPanel Grid.Column="1" Spacing="14" VerticalAlignment="Center">
@@ -374,20 +368,18 @@
                                                         <Border Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="4">
                                                             <Image Source="{x:Bind PreviewImage}" Stretch="UniformToFill" Opacity="{x:Bind BlurOpacity, Mode=OneWay}" />
                                                         </Border>
-                                                    <Grid Visibility="{x:Bind BlurOverlayVisibility, Mode=OneWay}">
+                                                    <Grid Visibility="{x:Bind BlurOverlayVisibility, Mode=OneWay}" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}">
                                                         <Border CornerRadius="4">
                                                             <Border.Background>
-                                                                <AcrylicBrush TintColor="Black" TintOpacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" FallbackColor="#AA000000" />
+                                                                <AcrylicBrush TintColor="White" TintOpacity="0.05" TintLuminosityOpacity="0.9" FallbackColor="Transparent" />
                                                             </Border.Background>
                                                         </Border>
                                                     </Grid>
                                                         <Grid Visibility="{x:Bind NsfwOverlayVisibility, Mode=OneWay}">
                                                             <Border Background="Black" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="4" />
-                                                            <TextBlock Text="NSFW" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold" Foreground="White" />
                                                         </Grid>
                                                         <Grid Visibility="{x:Bind MatureOverlayVisibility, Mode=OneWay}">
                                                             <Border Background="Black" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="4" />
-                                                            <TextBlock Text="Mature" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold" Foreground="White" />
                                                         </Grid>
                                                     </Grid>
                                                     <TextBlock Grid.Column="1" Text="{x:Bind DisplayName, Mode=OneWay}" FontSize="{x:Bind ListTitleFontSize}" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Visibility="{x:Bind LocalNameColumnVisibility}" />
@@ -418,20 +410,18 @@
                                                         <Border Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="6">
                                                             <Image Source="{x:Bind PreviewImage}" Stretch="UniformToFill" Opacity="{x:Bind BlurOpacity, Mode=OneWay}" />
                                                         </Border>
-                                                    <Grid Visibility="{x:Bind BlurOverlayVisibility, Mode=OneWay}">
+                                                    <Grid Visibility="{x:Bind BlurOverlayVisibility, Mode=OneWay}" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}">
                                                         <Border CornerRadius="6">
                                                             <Border.Background>
-                                                                <AcrylicBrush TintColor="Black" TintOpacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" FallbackColor="#AA000000" />
+                                                                <AcrylicBrush TintColor="White" TintOpacity="0.05" TintLuminosityOpacity="0.9" FallbackColor="Transparent" />
                                                             </Border.Background>
                                                         </Border>
                                                     </Grid>
                                                         <Grid Visibility="{x:Bind NsfwOverlayVisibility, Mode=OneWay}">
                                                             <Border Background="Black" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="6" />
-                                                            <TextBlock Text="NSFW" HorizontalAlignment="Center" VerticalAlignment="Center" Style="{StaticResource BodyStrongTextBlockStyle}" Foreground="White" />
                                                         </Grid>
                                                         <Grid Visibility="{x:Bind MatureOverlayVisibility, Mode=OneWay}">
                                                             <Border Background="Black" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="6" />
-                                                            <TextBlock Text="Mature" HorizontalAlignment="Center" VerticalAlignment="Center" Style="{StaticResource BodyStrongTextBlockStyle}" Foreground="White" />
                                                         </Grid>
                                                     </Grid>
                                                     <TextBlock Text="{x:Bind DisplayName, Mode=OneWay}" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="Wrap" />
@@ -501,35 +491,10 @@
 
                             <StackPanel x:Name="EngineWallpaperSettingsPanel" Visibility="Collapsed" Spacing="20">
                                 <StackPanel Orientation="Horizontal" Spacing="10">
-                                    <TextBlock Text="Engine and Wallpaper" FontSize="28" FontWeight="SemiBold" />
+                                    <TextBlock Text="Engine Setting" FontSize="28" FontWeight="SemiBold" />
                                 </StackPanel>
                                 <StackPanel Spacing="5">
-                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18">
-                                        <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                        <FontIcon Glyph="&#xE8B7;" FontSize="18" VerticalAlignment="Center" />
-                                        <StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Wallpaper directories" FontSize="17" /><TextBlock Text="Folders scanned for wallpapers" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel>
-                                        <Button Grid.Column="2" Content="Add directory" Click="AddDirectory_Click" />
-                                    </Grid>
-                                    <ListView ItemsSource="{x:Bind LibraryRoots, Mode=OneWay}" SelectionMode="None">
-                                        <ListView.ItemContainerStyle>
-                                            <Style TargetType="ListViewItem">
-                                                <Setter Property="Padding" Value="0" />
-                                                <Setter Property="Margin" Value="0,5,0,0" />
-                                                <Setter Property="MinHeight" Value="0" />
-                                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                                            </Style>
-                                        </ListView.ItemContainerStyle>
-                                        <ListView.ItemTemplate>
-                                            <DataTemplate x:DataType="models:WallpaperLibraryRoot">
-                                                <Grid Padding="18,10" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="12">
-                                                    <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                                    <FontIcon Glyph="&#xE8B7;" />
-                                                    <StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="{x:Bind DisplayName}" /><TextBlock Text="{x:Bind Path}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" /></StackPanel>
-                                                    <Button Grid.Column="2" Content="Remove" Tag="{x:Bind Path}" Click="RemoveDirectory_Click" />
-                                                </Grid>
-                                            </DataTemplate>
-                                        </ListView.ItemTemplate>
-                                    </ListView>
+
                                     <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                         <FontIcon Glyph="&#xE756;" FontSize="18" VerticalAlignment="Center" />
@@ -580,6 +545,10 @@
                                             <x:String>Green</x:String>
                                             <x:String>Yellow</x:String>
                                             <x:String>Purple</x:String>
+                                            <x:String>Orange</x:String>
+                                            <x:String>Pink</x:String>
+                                            <x:String>Teal</x:String>
+                                            <x:String>Gray</x:String>
                                             <x:String>Custom</x:String>
                                         </ComboBox>
                                     </Grid>
@@ -612,6 +581,34 @@
                                     <TextBlock Text="Library" FontSize="28" FontWeight="SemiBold" />
                                 </StackPanel>
                                 <StackPanel Spacing="5">
+                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                        <FontIcon Glyph="&#xE8B7;" FontSize="18" VerticalAlignment="Center" />
+                                        <StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Wallpaper directories" FontSize="17" /><TextBlock Text="Folders scanned for wallpapers" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel>
+                                        <Button Grid.Column="2" Content="Add directory" Click="AddDirectory_Click" />
+                                    </Grid>
+                                    <ListView ItemsSource="{x:Bind LibraryRoots, Mode=OneWay}" SelectionMode="None">
+                                        <ListView.ItemContainerStyle>
+                                            <Style TargetType="ListViewItem">
+                                                <Setter Property="Padding" Value="0" />
+                                                <Setter Property="Margin" Value="0,5,0,0" />
+                                                <Setter Property="MinHeight" Value="0" />
+                                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                            </Style>
+                                        </ListView.ItemContainerStyle>
+                                        <ListView.ItemTemplate>
+                                            <DataTemplate x:DataType="models:WallpaperLibraryRoot">
+                                                <Grid Padding="18,10" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="12">
+                                                    <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                                    <FontIcon Glyph="&#xE8B7;" />
+                                                    <StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="{x:Bind DisplayName}" /><TextBlock Text="{x:Bind Path}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" /></StackPanel>
+                                                    <Button Grid.Column="2" Content="Remove" Tag="{x:Bind Path}" Click="RemoveDirectory_Click" />
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ListView.ItemTemplate>
+                                    </ListView>
+
+                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><FontIcon Glyph="&#xED1A;" FontSize="18" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Hide NSFW/Mature" FontSize="17" /><TextBlock Text="Filter adult content from the library view" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel><ComboBox x:Name="LibraryHideComboBox" Grid.Column="2" Width="160" SelectionChanged="LibraryHideComboBox_SelectionChanged"><x:String>Off</x:String><x:String>Only NSFW</x:String><x:String>NSFW and Mature</x:String></ComboBox></Grid>
                                     <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><FontIcon Glyph="&#xE814;" FontSize="18" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="NSFW tab" FontSize="17" /><TextBlock Text="Control how adult and mature content is displayed" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel><ComboBox x:Name="NsfwTabComboBox" ItemsSource="{x:Bind NsfwTabChoices, Mode=OneWay}" Grid.Column="2" Width="160" SelectionChanged="NsfwTabComboBox_SelectionChanged" /></Grid>
                                     <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><FontIcon Glyph="&#xE790;" FontSize="18" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Color wallpaper cards with highest priority tag" FontSize="17" /><TextBlock Text="Tags stay enabled; only color highlighting changes" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel><ToggleSwitch x:Name="ColorRowsToggle" Grid.Column="2" Toggled="ColorRowsToggle_Toggled" /></Grid>
                                     <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><FontIcon Glyph="&#xE8AB;" FontSize="18" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Prioritize workshop name over local name" FontSize="17" /><TextBlock Text="When enabled, workshop fetched names are shown in library" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel><ToggleSwitch x:Name="PrioritizeWorkshopNameToggle" Grid.Column="2" Toggled="PrioritizeWorkshopNameToggle_Toggled" /></Grid>
@@ -640,11 +637,10 @@
                                                     <TextBlock Text="NSFW" Style="{StaticResource CaptionTextBlockStyle}" HorizontalAlignment="Center" />
                                                     <Border Width="160" Height="90" Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="6" BorderThickness="1" BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}">
                                                         <Grid>
-                                                            <Image Source="ms-appx:///Assets/StoreLogo.png" Stretch="UniformToFill" Opacity="{x:Bind NsfwPreviewItem.BlurOpacity, Mode=OneWay}" />
-                                                            <Grid Visibility="{x:Bind NsfwPreviewItem.BlurOverlayVisibility, Mode=OneWay}"><Border CornerRadius="6"><Border.Background><AcrylicBrush TintColor="Black" TintOpacity="{x:Bind NsfwPreviewItem.CensorshipOverlayOpacity, Mode=OneWay}" FallbackColor="#AA000000" /></Border.Background></Border></Grid>
+                                                            <Image Source="{x:Bind NsfwPreviewItem.PreviewImage, Mode=OneWay}" Stretch="UniformToFill" Opacity="{x:Bind NsfwPreviewItem.BlurOpacity, Mode=OneWay}" />
+                                                            <Grid Visibility="{x:Bind NsfwPreviewItem.BlurOverlayVisibility, Mode=OneWay}" Opacity="{x:Bind NsfwPreviewItem.CensorshipOverlayOpacity, Mode=OneWay}"><Border CornerRadius="6"><Border.Background><AcrylicBrush TintColor="White" TintOpacity="0.01" TintLuminosityOpacity="0" FallbackColor="Transparent" /></Border.Background></Border></Grid>
                                                             <Grid Visibility="{x:Bind NsfwPreviewItem.NsfwOverlayVisibility, Mode=OneWay}">
                                                                 <Border Background="Black" Opacity="{x:Bind NsfwPreviewItem.CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="6" />
-                                                                <TextBlock Text="NSFW" HorizontalAlignment="Center" VerticalAlignment="Center" Style="{StaticResource BodyStrongTextBlockStyle}" Foreground="White" />
                                                             </Grid>
                                                         </Grid>
                                                     </Border>
@@ -653,8 +649,8 @@
                                                     <TextBlock Text="Mature" Style="{StaticResource CaptionTextBlockStyle}" HorizontalAlignment="Center" />
                                                     <Border Width="160" Height="90" Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="6" BorderThickness="1" BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}">
                                                         <Grid>
-                                                            <Image Source="ms-appx:///Assets/StoreLogo.png" Stretch="UniformToFill" Opacity="{x:Bind MaturePreviewItem.BlurOpacity, Mode=OneWay}" />
-                                                            <Grid Visibility="{x:Bind MaturePreviewItem.BlurOverlayVisibility, Mode=OneWay}"><Border CornerRadius="6"><Border.Background><AcrylicBrush TintColor="Black" TintOpacity="{x:Bind MaturePreviewItem.CensorshipOverlayOpacity, Mode=OneWay}" FallbackColor="#AA000000" /></Border.Background></Border></Grid>
+                                                            <Image Source="{x:Bind MaturePreviewItem.PreviewImage, Mode=OneWay}" Stretch="UniformToFill" Opacity="{x:Bind MaturePreviewItem.BlurOpacity, Mode=OneWay}" />
+                                                            <Grid Visibility="{x:Bind MaturePreviewItem.BlurOverlayVisibility, Mode=OneWay}" Opacity="{x:Bind MaturePreviewItem.CensorshipOverlayOpacity, Mode=OneWay}"><Border CornerRadius="6"><Border.Background><AcrylicBrush TintColor="White" TintOpacity="0.01" TintLuminosityOpacity="0" FallbackColor="Transparent" /></Border.Background></Border></Grid>
                                                             <Grid Visibility="{x:Bind MaturePreviewItem.MatureOverlayVisibility, Mode=OneWay}">
                                                                 <Border Background="Black" Opacity="{x:Bind MaturePreviewItem.CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="6" />
                                                             </Grid>

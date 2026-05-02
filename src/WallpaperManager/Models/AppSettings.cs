@@ -66,6 +66,14 @@ public sealed class AppSettings
     public string LibrarySortMode { get; set; } = "Name";
 
     public string HomeSortMode { get; set; } = "Free Movement";
+    public LibraryHideMode LibraryHideMode { get; set; } = LibraryHideMode.Off;
+}
+
+public enum LibraryHideMode
+{
+    Off,
+    OnlyNsfw,
+    NsfwAndMature
 }
 
 public enum NsfwTabMode

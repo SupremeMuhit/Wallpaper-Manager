@@ -153,6 +153,8 @@ public sealed partial class MainWindow : Window
         RemoveCensorOnHoverToggle.IsOn = CurrentSettings.RemoveCensorOnHover;
         NsfwModeComboBox.SelectedIndex = (int)CurrentSettings.NsfwMode;
         MatureModeComboBox.SelectedIndex = (int)CurrentSettings.MatureMode;
+        LibraryHideComboBox.SelectedIndex = (int)CurrentSettings.LibraryHideMode;
+        
         BlurIntensitySlider.Value = CurrentSettings.BlurIntensity;
         OverlayOpacitySlider.Value = CurrentSettings.OverlayOpacity;
         UseWorkshopTagsToggle.IsOn = CurrentSettings.UseWorkshopTags;
@@ -424,6 +426,21 @@ public sealed partial class MainWindow : Window
         SaveSettingsAsync();
     }
 
+    private async void LibraryHideComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isLoadingSettings || LibraryHideComboBox.SelectedItem is not string selection) return;
+        
+        CurrentSettings.LibraryHideMode = selection switch
+        {
+            "Only NSFW" => LibraryHideMode.OnlyNsfw,
+            "NSFW and Mature" => LibraryHideMode.NsfwAndMature,
+            _ => LibraryHideMode.Off
+        };
+        
+        RefreshVisibleWallpapers();
+        SaveSettingsAsync();
+    }
+
     private async void AutoMarkNsfwToggle_Toggled(object sender, RoutedEventArgs e)
     {
         if (_isLoadingSettings) return;
@@ -461,6 +478,45 @@ public sealed partial class MainWindow : Window
         CurrentSettings.BlurIntensity = BlurIntensitySlider.Value;
         ApplyWallpaperPresentation();
         SaveSettingsAsync();
+    }
+
+    private void UpdatePreviewWallpapers()
+    {
+        if (Wallpapers.Count == 0) return;
+
+        var random = new Random();
+        var nsfwOptions = Wallpapers.Where(w => w.IsNsfw).ToList();
+        var matureOptions = Wallpapers.Where(w => w.IsMature).ToList();
+        var allOptions = Wallpapers.ToList();
+
+        if (nsfwOptions.Count > 0)
+        {
+            var r = nsfwOptions[random.Next(nsfwOptions.Count)];
+            NsfwPreviewItem.PreviewPath = r.PreviewPath;
+            NsfwPreviewItem.SteamId = r.SteamId;
+            NsfwPreviewItem.DirectoryPath = r.DirectoryPath;
+        }
+        else if (allOptions.Count > 0)
+        {
+            var r = allOptions[random.Next(allOptions.Count)];
+            NsfwPreviewItem.PreviewPath = r.PreviewPath;
+        }
+
+        if (matureOptions.Count > 0)
+        {
+            var r = matureOptions[random.Next(matureOptions.Count)];
+            MaturePreviewItem.PreviewPath = r.PreviewPath;
+            MaturePreviewItem.SteamId = r.SteamId;
+            MaturePreviewItem.DirectoryPath = r.DirectoryPath;
+        }
+        else if (allOptions.Count > 0)
+        {
+            var r = allOptions[random.Next(allOptions.Count)];
+            MaturePreviewItem.PreviewPath = r.PreviewPath;
+        }
+
+        NsfwPreviewItem.OnPropertyChanged(nameof(WallpaperItem.PreviewImage));
+        MaturePreviewItem.OnPropertyChanged(nameof(WallpaperItem.PreviewImage));
     }
 
     private async void OverlayOpacitySlider_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
@@ -733,7 +789,7 @@ public sealed partial class MainWindow : Window
         }
 
         wallpaper.IsSelected = !wallpaper.IsSelected;
-        RefreshVisibleWallpapers();
+        // RefreshVisibleWallpapers(); // REMOVED: This causes the list to jump to top
         RefreshSelectedWallpapers();
         SaveSettingsAsync();
     }
@@ -907,6 +963,7 @@ public sealed partial class MainWindow : Window
 
         ShowPage(page);
         RefreshVisibleWallpapers();
+        UpdatePreviewWallpapers();
     }
 
     private bool _showingNsfwTab = false;
@@ -988,11 +1045,27 @@ public sealed partial class MainWindow : Window
 
     private void RefreshVisibleWallpapers()
     {
-        VisibleWallpapers.Clear();
-        var sorted = SortWallpapers(Wallpapers.Where(ShouldShowWallpaper), CurrentSettings.LibrarySortMode);
-        foreach (var wallpaper in sorted)
+        var sorted = SortWallpapers(Wallpapers.Where(ShouldShowWallpaper), CurrentSettings.LibrarySortMode).ToList();
+        
+        // Incremental update to preserve scroll position
+        for (int i = 0; i < sorted.Count; i++)
         {
-            VisibleWallpapers.Add(wallpaper);
+            if (i < VisibleWallpapers.Count)
+            {
+                if (VisibleWallpapers[i] != sorted[i])
+                {
+                    VisibleWallpapers[i] = sorted[i];
+                }
+            }
+            else
+            {
+                VisibleWallpapers.Add(sorted[i]);
+            }
+        }
+        
+        while (VisibleWallpapers.Count > sorted.Count)
+        {
+            VisibleWallpapers.RemoveAt(VisibleWallpapers.Count - 1);
         }
 
         UpdateEmptyStates();
@@ -1100,8 +1173,9 @@ public sealed partial class MainWindow : Window
                 item.BlurOverlayVisibility = Visibility.Collapsed;
                 break;
             case CensorshipMode.Blur:
-                item.BlurOpacity = Math.Clamp(1.0 - (CurrentSettings.BlurIntensity / 100.0) * 0.95, 0.05, 1.0);
-                item.CensorshipOverlayOpacity = CurrentSettings.OverlayOpacity;
+                // Direct blur/fade. No darktone tint, but use BlurIntensity for blur strength.
+                item.BlurOpacity = 1.0; // Keep image fully opaque behind blur
+                item.CensorshipOverlayOpacity = Math.Clamp(CurrentSettings.BlurIntensity / 100.0, 0.1, 1.0);
                 item.NsfwOverlayVisibility = Visibility.Collapsed;
                 item.MatureOverlayVisibility = Visibility.Collapsed;
                 item.BlurOverlayVisibility = Visibility.Visible;
@@ -1253,6 +1327,12 @@ public sealed partial class MainWindow : Window
         TagSettingsPanel.Visibility = section == "Tags" ? Visibility.Visible : Visibility.Collapsed;
         AboutSettingsPanel.Visibility = section == "About" ? Visibility.Visible : Visibility.Collapsed;
         ContactSettingsPanel.Visibility = section == "Contact" ? Visibility.Visible : Visibility.Collapsed;
+
+        if (section == "NsfwMature")
+        {
+            UpdatePreviewWallpapers();
+            ApplyWallpaperPresentation();
+        }
     }
 
     private DispatcherTimer? _saveSettingsTimer;
@@ -1307,6 +1387,7 @@ public sealed partial class MainWindow : Window
         CurrentSettings.MatureMode = (CensorshipMode)MatureModeComboBox.SelectedIndex;
         CurrentSettings.BlurIntensity = BlurIntensitySlider.Value;
         CurrentSettings.OverlayOpacity = OverlayOpacitySlider.Value;
+        CurrentSettings.LibraryHideMode = (LibraryHideMode)LibraryHideComboBox.SelectedIndex;
         CurrentSettings.UseWorkshopTags = UseWorkshopTagsToggle.IsOn;
         CurrentSettings.Tags = Tags.ToList();
         CurrentSettings.NsfwWallpaperKeys = Wallpapers.Where(wallpaper => wallpaper.IsNsfw).Select(wallpaper => wallpaper.Key).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
@@ -1338,6 +1419,10 @@ public sealed partial class MainWindow : Window
         }
         else
         {
+            // Respect Library Hide settings
+            if (CurrentSettings.LibraryHideMode == LibraryHideMode.OnlyNsfw && wallpaper.IsNsfw) return false;
+            if (CurrentSettings.LibraryHideMode == LibraryHideMode.NsfwAndMature && (wallpaper.IsNsfw || wallpaper.IsMature)) return false;
+
             if (CurrentSettings.NsfwTabMode == NsfwTabMode.OnlyNsfw && wallpaper.IsNsfw && !wallpaper.IsMature) return false;
             if (CurrentSettings.NsfwTabMode == NsfwTabMode.NsfwAndMature && (wallpaper.IsNsfw || wallpaper.IsMature)) return false;
             return true;
@@ -1491,6 +1576,10 @@ public sealed partial class MainWindow : Window
             "Yellow" => "#CC9A1F",
             "Purple" => "#6A5ACD",
             "Blue" => "#3A7AFE",
+            "Orange" => "#F7630C",
+            "Pink" => "#E3008C",
+            "Teal" => "#00B294",
+            "Gray" => "#69797E",
             _ => "#3A7AFE"
         };
     }
@@ -1505,6 +1594,10 @@ public sealed partial class MainWindow : Window
             "#CC9A1F" => "Yellow",
             "#6A5ACD" => "Purple",
             "#3A7AFE" => "Blue",
+            "#F7630C" => "Orange",
+            "#E3008C" => "Pink",
+            "#00B294" => "Teal",
+            "#69797E" => "Gray",
             _ => "Custom"
         };
     }
