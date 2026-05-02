@@ -153,7 +153,8 @@ public sealed partial class MainWindow : Window
         RemoveCensorOnHoverToggle.IsOn = CurrentSettings.RemoveCensorOnHover;
         NsfwModeComboBox.SelectedIndex = (int)CurrentSettings.NsfwMode;
         MatureModeComboBox.SelectedIndex = (int)CurrentSettings.MatureMode;
-        CensorshipIntensitySlider.Value = CurrentSettings.CensorshipIntensity;
+        BlurIntensitySlider.Value = CurrentSettings.BlurIntensity;
+        OverlayOpacitySlider.Value = CurrentSettings.OverlayOpacity;
         UseWorkshopTagsToggle.IsOn = CurrentSettings.UseWorkshopTags;
 
         ApplyTheme(CurrentSettings.Theme);
@@ -454,10 +455,18 @@ public sealed partial class MainWindow : Window
         await SaveSettingsAsync();
     }
 
-    private async void CensorshipIntensitySlider_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
+    private async void BlurIntensitySlider_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
     {
         if (_isLoadingSettings) return;
-        CurrentSettings.CensorshipIntensity = CensorshipIntensitySlider.Value;
+        CurrentSettings.BlurIntensity = BlurIntensitySlider.Value;
+        ApplyWallpaperPresentation();
+        await SaveSettingsAsync();
+    }
+
+    private async void OverlayOpacitySlider_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
+    {
+        if (_isLoadingSettings) return;
+        CurrentSettings.OverlayOpacity = OverlayOpacitySlider.Value;
         ApplyWallpaperPresentation();
         await SaveSettingsAsync();
     }
@@ -982,8 +991,7 @@ public sealed partial class MainWindow : Window
     private void RefreshSelectedWallpapers()
     {
         SelectedWallpapers.Clear();
-        var selected = Wallpapers.Where(item => item.IsSelected && ShouldShowWallpaper(item));
-        
+        var selected = Wallpapers.Where(item => item.IsSelected);
         if (CurrentSettings.HomeSortMode == "Free Movement")
         {
             // Preserve the order defined in SelectedWallpaperKeys
@@ -1061,7 +1069,6 @@ public sealed partial class MainWindow : Window
     private void ApplyCensorship(WallpaperItem item)
     {
         var mode = item.IsNsfw ? CurrentSettings.NsfwMode : (item.IsMature ? CurrentSettings.MatureMode : CensorshipMode.Off);
-        var intensity = CurrentSettings.CensorshipIntensity;
 
         if (CurrentSettings.RemoveCensorOnHover && item.IsHovered)
         {
@@ -1083,15 +1090,15 @@ public sealed partial class MainWindow : Window
                 item.BlurOverlayVisibility = Visibility.Collapsed;
                 break;
             case CensorshipMode.Blur:
-                item.BlurOpacity = 1.0;
-                item.CensorshipOverlayOpacity = 0.3 + (0.7 * intensity);
+                item.BlurOpacity = Math.Clamp(1.0 - (CurrentSettings.BlurIntensity / 100.0) * 0.95, 0.05, 1.0);
+                item.CensorshipOverlayOpacity = CurrentSettings.OverlayOpacity;
                 item.NsfwOverlayVisibility = Visibility.Collapsed;
                 item.MatureOverlayVisibility = Visibility.Collapsed;
                 item.BlurOverlayVisibility = Visibility.Visible;
                 break;
             case CensorshipMode.Overlay:
                 item.BlurOpacity = 1.0;
-                item.CensorshipOverlayOpacity = 0.3 + (0.7 * intensity);
+                item.CensorshipOverlayOpacity = CurrentSettings.OverlayOpacity;
                 item.NsfwOverlayVisibility = item.IsNsfw ? Visibility.Visible : Visibility.Collapsed;
                 item.MatureOverlayVisibility = (item.IsMature && !item.IsNsfw) ? Visibility.Visible : Visibility.Collapsed;
                 item.BlurOverlayVisibility = Visibility.Collapsed;
@@ -1238,10 +1245,31 @@ public sealed partial class MainWindow : Window
         ContactSettingsPanel.Visibility = section == "Contact" ? Visibility.Visible : Visibility.Collapsed;
     }
 
+    private bool _isSavingSettings;
+    private bool _settingsSavePending;
+
     private async Task SaveSettingsAsync()
     {
-        ScanLibraryFromSettings();
-        await _settingsStore.SaveAsync(CurrentSettings);
+        if (_isSavingSettings)
+        {
+            _settingsSavePending = true;
+            return;
+        }
+
+        _isSavingSettings = true;
+        try
+        {
+            do
+            {
+                _settingsSavePending = false;
+                ScanLibraryFromSettings();
+                await _settingsStore.SaveAsync(CurrentSettings);
+            } while (_settingsSavePending);
+        }
+        finally
+        {
+            _isSavingSettings = false;
+        }
     }
 
     private void ScanLibraryFromSettings()
@@ -1264,7 +1292,8 @@ public sealed partial class MainWindow : Window
         CurrentSettings.AutoMarkNsfwFromWorkshop = AutoMarkNsfwToggle.IsOn;
         CurrentSettings.NsfwMode = (CensorshipMode)NsfwModeComboBox.SelectedIndex;
         CurrentSettings.MatureMode = (CensorshipMode)MatureModeComboBox.SelectedIndex;
-        CurrentSettings.CensorshipIntensity = CensorshipIntensitySlider.Value;
+        CurrentSettings.BlurIntensity = BlurIntensitySlider.Value;
+        CurrentSettings.OverlayOpacity = OverlayOpacitySlider.Value;
         CurrentSettings.UseWorkshopTags = UseWorkshopTagsToggle.IsOn;
         CurrentSettings.Tags = Tags.ToList();
         CurrentSettings.NsfwWallpaperKeys = Wallpapers.Where(wallpaper => wallpaper.IsNsfw).Select(wallpaper => wallpaper.Key).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
@@ -1531,7 +1560,8 @@ public sealed partial class MainWindow : Window
         var colorBox = new TextBox
         {
             Header = editingExisting ? "Change tag color" : "New tag color",
-            Text = tag?.Color ?? "#3A7AFE"
+            Text = tag?.Color ?? "#3A7AFE",
+            Width = 200
         };
 
         var colorPicker = new ColorPicker
@@ -1539,10 +1569,23 @@ public sealed partial class MainWindow : Window
             Color = ParseHexColor(colorBox.Text),
             IsAlphaEnabled = false,
             IsAlphaSliderVisible = false,
-            IsAlphaTextInputVisible = false,
-            MinWidth = 220,
-            Height = 260
+            IsAlphaTextInputVisible = false
         };
+
+        var colorButtonRect = new Border { Background = new SolidColorBrush(ParseHexColor(colorBox.Text)), Width = 28, Height = 28, CornerRadius = new CornerRadius(4) };
+        var colorButton = new Button
+        {
+            Content = colorButtonRect,
+            Flyout = new Flyout { Content = colorPicker },
+            Margin = new Thickness(12, 0, 0, 0),
+            VerticalAlignment = VerticalAlignment.Bottom,
+            Height = 32,
+            Padding = new Thickness(0)
+        };
+
+        var colorPanel = new StackPanel { Orientation = Orientation.Horizontal };
+        colorPanel.Children.Add(colorBox);
+        colorPanel.Children.Add(colorButton);
 
         var previewCards = new StackPanel { Spacing = 8 };
         var previewSamples = Wallpapers
@@ -1616,15 +1659,22 @@ public sealed partial class MainWindow : Window
             previewCards.Children.Add(row);
         }
 
+        bool updatingColor = false;
         void UpdatePreview()
         {
+            if (updatingColor) return;
+            updatingColor = true;
+
             var color = ParseHexColor(colorBox.Text);
             var brush = new SolidColorBrush(Color.FromArgb(40, color.R, color.G, color.B));
             foreach (var child in previewCards.Children.OfType<Border>())
             {
                 child.Background = brush;
             }
+            colorButtonRect.Background = new SolidColorBrush(color);
             colorPicker.Color = color;
+            
+            updatingColor = false;
         }
 
         colorBox.TextChanged += (_, _) =>
@@ -1636,29 +1686,26 @@ public sealed partial class MainWindow : Window
         };
         colorPicker.ColorChanged += (_, args) =>
         {
+            if (updatingColor) return;
             colorBox.Text = FormatHexColor(args.NewColor);
-            UpdatePreview();
         };
 
         var editorLayout = new Grid
         {
-            ColumnSpacing = 22,
-            Width = 1200,
-            Height = 760
+            ColumnSpacing = 32
         };
-        editorLayout.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(0.46, GridUnitType.Star) });
-        editorLayout.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(0.54, GridUnitType.Star) });
+        editorLayout.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(0.40, GridUnitType.Star) });
+        editorLayout.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(0.60, GridUnitType.Star) });
 
         var leftPanel = new StackPanel
         {
-            Spacing = 14,
+            Spacing = 16,
             HorizontalAlignment = HorizontalAlignment.Stretch
         };
         leftPanel.Children.Add(nameBox);
-        leftPanel.Children.Add(colorBox);
-        leftPanel.Children.Add(colorPicker);
+        leftPanel.Children.Add(colorPanel);
 
-        var rightPanel = new StackPanel { Spacing = 12, HorizontalAlignment = HorizontalAlignment.Stretch };
+        var rightPanel = new StackPanel { Spacing = 16, HorizontalAlignment = HorizontalAlignment.Stretch };
         rightPanel.Children.Add(new TextBlock { Text = "Preview", FontSize = 28, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold });
         rightPanel.Children.Add(previewCards);
 
@@ -1670,13 +1717,14 @@ public sealed partial class MainWindow : Window
         var dialog = new ContentDialog
         {
             Title = editingExisting ? "Modify tag" : "New tag",
-            Content = editorLayout,
+            Content = new ScrollViewer { Content = editorLayout, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, VerticalScrollBarVisibility = ScrollBarVisibility.Auto },
             PrimaryButtonText = "Save",
             CloseButtonText = "Cancel",
             DefaultButton = ContentDialogButton.Primary,
-            FullSizeDesired = true,
             XamlRoot = RootGrid.XamlRoot
         };
+
+        dialog.Resources["ContentDialogMaxWidth"] = 1000.0;
 
         if (await dialog.ShowAsync() != ContentDialogResult.Primary)
         {

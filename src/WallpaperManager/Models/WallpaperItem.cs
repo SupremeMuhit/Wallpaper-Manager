@@ -93,33 +93,103 @@ public sealed class WallpaperItem : INotifyPropertyChanged
         set { if (_useWorkshopTags != value) { _useWorkshopTags = value; OnPropertyChanged(); OnPropertyChanged(nameof(TagsText)); } }
     }
 
-    public Brush? RowBackground { get; set; }
+    private Brush? _rowBackground;
+    public Brush? RowBackground
+    {
+        get => _rowBackground;
+        set { if (_rowBackground != value) { _rowBackground = value; OnPropertyChanged(); } }
+    }
 
-    public double CardWidth { get; set; } = 250;
+    private double _cardWidth = 250;
+    public double CardWidth
+    {
+        get => _cardWidth;
+        set { if (_cardWidth != value) { _cardWidth = value; OnPropertyChanged(); } }
+    }
 
-    public double CardPreviewHeight { get; set; } = 132;
+    private double _cardPreviewHeight = 132;
+    public double CardPreviewHeight
+    {
+        get => _cardPreviewHeight;
+        set { if (_cardPreviewHeight != value) { _cardPreviewHeight = value; OnPropertyChanged(); } }
+    }
 
-    public double ListPreviewWidth { get; set; } = 88;
+    private double _listPreviewWidth = 88;
+    public double ListPreviewWidth
+    {
+        get => _listPreviewWidth;
+        set { if (_listPreviewWidth != value) { _listPreviewWidth = value; OnPropertyChanged(); } }
+    }
 
-    public double ListPreviewHeight { get; set; } = 52;
+    private double _listPreviewHeight = 52;
+    public double ListPreviewHeight
+    {
+        get => _listPreviewHeight;
+        set { if (_listPreviewHeight != value) { _listPreviewHeight = value; OnPropertyChanged(); } }
+    }
 
-    public double ListRowMinHeight { get; set; } = 72;
+    private double _listRowMinHeight = 72;
+    public double ListRowMinHeight
+    {
+        get => _listRowMinHeight;
+        set { if (_listRowMinHeight != value) { _listRowMinHeight = value; OnPropertyChanged(); } }
+    }
 
-    public double ListTitleFontSize { get; set; } = 15;
+    private double _listTitleFontSize = 15;
+    public double ListTitleFontSize
+    {
+        get => _listTitleFontSize;
+        set { if (_listTitleFontSize != value) { _listTitleFontSize = value; OnPropertyChanged(); } }
+    }
 
-    public Thickness ListRowPadding { get; set; } = new(12, 8, 12, 8);
+    private Thickness _listRowPadding = new(12, 8, 12, 8);
+    public Thickness ListRowPadding
+    {
+        get => _listRowPadding;
+        set { if (_listRowPadding != value) { _listRowPadding = value; OnPropertyChanged(); } }
+    }
 
-    public Visibility ListPreviewVisibility { get; set; } = Visibility.Visible;
+    private Visibility _listPreviewVisibility = Visibility.Visible;
+    public Visibility ListPreviewVisibility
+    {
+        get => _listPreviewVisibility;
+        set { if (_listPreviewVisibility != value) { _listPreviewVisibility = value; OnPropertyChanged(); } }
+    }
 
-    public Visibility DirectHomeActionVisibility { get; set; } = Visibility.Visible;
+    private Visibility _directHomeActionVisibility = Visibility.Visible;
+    public Visibility DirectHomeActionVisibility
+    {
+        get => _directHomeActionVisibility;
+        set { if (_directHomeActionVisibility != value) { _directHomeActionVisibility = value; OnPropertyChanged(); } }
+    }
 
-    public Visibility ListDetailsVisibility { get; set; } = Visibility.Visible;
+    private Visibility _listDetailsVisibility = Visibility.Visible;
+    public Visibility ListDetailsVisibility
+    {
+        get => _listDetailsVisibility;
+        set { if (_listDetailsVisibility != value) { _listDetailsVisibility = value; OnPropertyChanged(); } }
+    }
 
-    public Visibility ThumbnailDetailsVisibility { get; set; } = Visibility.Visible;
+    private Visibility _thumbnailDetailsVisibility = Visibility.Visible;
+    public Visibility ThumbnailDetailsVisibility
+    {
+        get => _thumbnailDetailsVisibility;
+        set { if (_thumbnailDetailsVisibility != value) { _thumbnailDetailsVisibility = value; OnPropertyChanged(); } }
+    }
 
-    public Visibility LargeListLayoutVisibility { get; set; } = Visibility.Collapsed;
+    private Visibility _largeListLayoutVisibility = Visibility.Collapsed;
+    public Visibility LargeListLayoutVisibility
+    {
+        get => _largeListLayoutVisibility;
+        set { if (_largeListLayoutVisibility != value) { _largeListLayoutVisibility = value; OnPropertyChanged(); } }
+    }
 
-    public Visibility CompactListLayoutVisibility { get; set; } = Visibility.Visible;
+    private Visibility _compactListLayoutVisibility = Visibility.Visible;
+    public Visibility CompactListLayoutVisibility
+    {
+        get => _compactListLayoutVisibility;
+        set { if (_compactListLayoutVisibility != value) { _compactListLayoutVisibility = value; OnPropertyChanged(); } }
+    }
 
     private double _blurOpacity = 1.0;
     /// <summary>Opacity applied to the preview image (controlled by censorship settings).</summary>
@@ -160,25 +230,75 @@ public sealed class WallpaperItem : INotifyPropertyChanged
         set { if (_blurOverlayVisibility != value) { _blurOverlayVisibility = value; OnPropertyChanged(); } }
     }
 
-    public Visibility PreviewColumnVisibility { get; set; } = Visibility.Visible;
+    private Visibility _previewColumnVisibility = Visibility.Visible;
+    public Visibility PreviewColumnVisibility
+    {
+        get => _previewColumnVisibility;
+        set { if (_previewColumnVisibility != value) { _previewColumnVisibility = value; OnPropertyChanged(); } }
+    }
 
-    public Visibility LocalNameColumnVisibility { get; set; } = Visibility.Visible;
+    private Visibility _localNameColumnVisibility = Visibility.Visible;
+    public Visibility LocalNameColumnVisibility
+    {
+        get => _localNameColumnVisibility;
+        set { if (_localNameColumnVisibility != value) { _localNameColumnVisibility = value; OnPropertyChanged(); } }
+    }
 
-    public Visibility IdColumnVisibility { get; set; } = Visibility.Visible;
+    private Visibility _idColumnVisibility = Visibility.Visible;
+    public Visibility IdColumnVisibility
+    {
+        get => _idColumnVisibility;
+        set { if (_idColumnVisibility != value) { _idColumnVisibility = value; OnPropertyChanged(); } }
+    }
 
-    public Visibility SizeColumnVisibility { get; set; } = Visibility.Visible;
+    private Visibility _sizeColumnVisibility = Visibility.Visible;
+    public Visibility SizeColumnVisibility
+    {
+        get => _sizeColumnVisibility;
+        set { if (_sizeColumnVisibility != value) { _sizeColumnVisibility = value; OnPropertyChanged(); } }
+    }
 
-    public Visibility TagsColumnVisibility { get; set; } = Visibility.Visible;
+    private Visibility _tagsColumnVisibility = Visibility.Visible;
+    public Visibility TagsColumnVisibility
+    {
+        get => _tagsColumnVisibility;
+        set { if (_tagsColumnVisibility != value) { _tagsColumnVisibility = value; OnPropertyChanged(); } }
+    }
 
-    public GridLength PreviewColumnWidth { get; set; } = new(104);
+    private GridLength _previewColumnWidth = new(104);
+    public GridLength PreviewColumnWidth
+    {
+        get => _previewColumnWidth;
+        set { if (_previewColumnWidth != value) { _previewColumnWidth = value; OnPropertyChanged(); } }
+    }
 
-    public GridLength LocalNameColumnWidth { get; set; } = new(2, GridUnitType.Star);
+    private GridLength _localNameColumnWidth = new(2, GridUnitType.Star);
+    public GridLength LocalNameColumnWidth
+    {
+        get => _localNameColumnWidth;
+        set { if (_localNameColumnWidth != value) { _localNameColumnWidth = value; OnPropertyChanged(); } }
+    }
 
-    public GridLength IdColumnWidth { get; set; } = new(140);
+    private GridLength _idColumnWidth = new(140);
+    public GridLength IdColumnWidth
+    {
+        get => _idColumnWidth;
+        set { if (_idColumnWidth != value) { _idColumnWidth = value; OnPropertyChanged(); } }
+    }
 
-    public GridLength SizeColumnWidth { get; set; } = new(110);
+    private GridLength _sizeColumnWidth = new(110);
+    public GridLength SizeColumnWidth
+    {
+        get => _sizeColumnWidth;
+        set { if (_sizeColumnWidth != value) { _sizeColumnWidth = value; OnPropertyChanged(); } }
+    }
 
-    public GridLength TagsColumnWidth { get; set; } = new(160);
+    private GridLength _tagsColumnWidth = new(160);
+    public GridLength TagsColumnWidth
+    {
+        get => _tagsColumnWidth;
+        set { if (_tagsColumnWidth != value) { _tagsColumnWidth = value; OnPropertyChanged(); } }
+    }
 
     public string DisplayName => PrioritizeWorkshopName && WorkshopMetadata != null && !string.IsNullOrWhiteSpace(WorkshopMetadata.Title)
         ? WorkshopMetadata.Title

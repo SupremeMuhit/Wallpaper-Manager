@@ -48,8 +48,9 @@ public sealed class AppSettings
 
     public CensorshipMode MatureMode { get; set; } = CensorshipMode.Overlay;
 
-    public double CensorshipIntensity { get; set; } = 0.5;
+    public double BlurIntensity { get; set; } = 40.0;
 
+    public double OverlayOpacity { get; set; } = 0.5;
     public bool RemoveCensorOnHover { get; set; } = true;
 
     public bool UseWorkshopTags { get; set; }

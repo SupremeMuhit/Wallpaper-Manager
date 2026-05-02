@@ -27,8 +27,20 @@ public sealed class AppSettingsStore
     {
         if (File.Exists(_settingsPath))
         {
-            await using var stream = File.OpenRead(_settingsPath);
-            return await JsonSerializer.DeserializeAsync<AppSettings>(stream, JsonOptions) ?? new AppSettings();
+            try
+            {
+                await using var stream = File.OpenRead(_settingsPath);
+                return await JsonSerializer.DeserializeAsync<AppSettings>(stream, JsonOptions) ?? new AppSettings();
+            }
+            catch (JsonException)
+            {
+                // File is empty or corrupted
+                return new AppSettings();
+            }
+            catch (Exception)
+            {
+                return new AppSettings();
+            }
         }
 
         return new AppSettings
@@ -39,8 +51,12 @@ public sealed class AppSettingsStore
 
     public async Task SaveAsync(AppSettings settings)
     {
-        await using var stream = File.Create(_settingsPath);
-        await JsonSerializer.SerializeAsync(stream, settings, JsonOptions);
+        var tempPath = _settingsPath + ".tmp";
+        await using (var stream = File.Create(tempPath))
+        {
+            await JsonSerializer.SerializeAsync(stream, settings, JsonOptions);
+        }
+        File.Move(tempPath, _settingsPath, overwrite: true);
     }
 
     private async Task<List<WallpaperLibraryRoot>> LoadLegacyRootsAsync()
