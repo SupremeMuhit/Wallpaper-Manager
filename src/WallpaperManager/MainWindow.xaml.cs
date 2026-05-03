@@ -93,8 +93,26 @@ public sealed partial class MainWindow : Window
         _engineStatusTimer.Tick += (_, _) => UpdateEngineStatus();
         _engineStatusTimer.Start();
 
+        _sizeChangedTimer.Interval = TimeSpan.FromMilliseconds(200);
+        _sizeChangedTimer.Tick += (_, _) =>
+        {
+            _sizeChangedTimer.Stop();
+            ApplyWallpaperPresentation();
+        };
+
+        RootGrid.SizeChanged += (s, e) =>
+        {
+            if (CurrentSettings.CardSize == CardSizeOptions.Large)
+            {
+                _sizeChangedTimer.Stop();
+                _sizeChangedTimer.Start();
+            }
+        };
+
         LoadSettings();
     }
+
+    private readonly DispatcherTimer _sizeChangedTimer = new();
 
     private void ApplyBackdrop(bool useMica)
     {
@@ -301,8 +319,6 @@ public sealed partial class MainWindow : Window
         CurrentSettings.CardSize = cardSize;
         SyncCardSizeSelectors(cardSize);
         ApplyWallpaperPresentation();
-        RefreshVisibleWallpapers();
-        RefreshSelectedWallpapers();
         TriggerSaveSettings();
     }
 
@@ -1157,9 +1173,18 @@ public sealed partial class MainWindow : Window
         };
     }
 
+    private void UpdateWallpaperButtons(WallpaperItem item, IReadOnlyList<string> buttons, IReadOnlySet<string> selectedKeys)
+    {
+        var isSelected = selectedKeys.Contains(item.Key);
+        var maxVisible = CurrentSettings.CardSize == CardSizeOptions.Large ? 6 : 3;
+        item.UpdateButtons(buttons, isSelected, maxVisible);
+    }
+
     private void ApplyWallpaperPresentation()
     {
         var hiddenColumns = CurrentSettings.HiddenLibraryColumns.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var buttons = CurrentSettings.CardButtons;
+        var selectedKeys = CurrentSettings.SelectedWallpaperKeys.ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         foreach (var wallpaper in Wallpapers)
         {
@@ -1180,7 +1205,7 @@ public sealed partial class MainWindow : Window
 
             ApplyCensorship(wallpaper);
             ApplySizePresentation(wallpaper, hiddenColumns);
-            UpdateWallpaperButtons(wallpaper);
+            UpdateWallpaperButtons(wallpaper, buttons, selectedKeys);
         }
 
         ApplyCensorship(NsfwPreviewItem);
@@ -1270,19 +1295,35 @@ public sealed partial class MainWindow : Window
         CardButtonsList.Clear();
         var allButtons = new List<CardButtonInfo>
         {
-            new() { Id = CardButtonIds.ThreeDot, Name = "Three Dot Menu", Glyph = "\uE712" },
+            new() { Id = CardButtonIds.ThreeDot, Name = "More actions (Three Dot)", Glyph = "\uE712", IsEnabled = true },
             new() { Id = CardButtonIds.AddTag, Name = "Add Tag / Mark", Glyph = "\uE8EC" },
             new() { Id = CardButtonIds.AddToHome, Name = "Add to Home", Glyph = "\uE710" },
             new() { Id = CardButtonIds.Delete, Name = "Delete Wallpaper", Glyph = "\uE74D" },
             new() { Id = CardButtonIds.Details, Name = "Wallpaper Details", Glyph = "\uE946" }
         };
 
-        foreach (var id in CurrentSettings.CardButtons)
+        // Ensure ThreeDot is in the top 3 and enabled
+        var enabledButtons = CurrentSettings.CardButtons.ToList();
+        if (!enabledButtons.Contains(CardButtonIds.ThreeDot))
+        {
+            enabledButtons.Insert(0, CardButtonIds.ThreeDot);
+        }
+
+        // Reorder list to ensure ThreeDot is at index 0-2 if it's further down
+        var threeDotIdx = enabledButtons.IndexOf(CardButtonIds.ThreeDot);
+        if (threeDotIdx > 2)
+        {
+            enabledButtons.RemoveAt(threeDotIdx);
+            enabledButtons.Insert(2, CardButtonIds.ThreeDot);
+        }
+
+        foreach (var id in enabledButtons)
         {
             var btn = allButtons.FirstOrDefault(b => b.Id == id);
             if (btn != null)
             {
                 btn.IsEnabled = true;
+                if (btn.Id == CardButtonIds.ThreeDot) btn.IsEnabled = true; // Hard force
                 CardButtonsList.Add(btn);
                 allButtons.Remove(btn);
             }
@@ -1293,15 +1334,39 @@ public sealed partial class MainWindow : Window
             btn.IsEnabled = false;
             CardButtonsList.Add(btn);
         }
+        
+        // Final check on ThreeDot position in the UI list
+        EnsureThreeDotPosition();
+    }
+
+    private void EnsureThreeDotPosition()
+    {
+        var threeDot = CardButtonsList.FirstOrDefault(b => b.Id == CardButtonIds.ThreeDot);
+        if (threeDot != null)
+        {
+            threeDot.IsEnabled = true; // Cannot disable ThreeDot
+            var idx = CardButtonsList.IndexOf(threeDot);
+            if (idx > 2)
+            {
+                CardButtonsList.Move(idx, 2);
+            }
+        }
     }
 
     private void CardButtonEnabled_Click(object sender, RoutedEventArgs e)
     {
+        if (sender is CheckBox cb && cb.DataContext is CardButtonInfo btn && btn.Id == CardButtonIds.ThreeDot)
+        {
+            cb.IsChecked = true; // Force stay checked
+            btn.IsEnabled = true;
+            return;
+        }
         SaveCardButtonsFromList();
     }
 
     private void CardButtons_DragItemsCompleted(ListViewBase sender, DragItemsCompletedEventArgs args)
     {
+        EnsureThreeDotPosition();
         SaveCardButtonsFromList();
     }
 
@@ -1313,8 +1378,6 @@ public sealed partial class MainWindow : Window
             .ToList();
             
         ApplyWallpaperPresentation();
-        RefreshVisibleWallpapers(); // Ensure instant update in library
-        RefreshSelectedWallpapers(); // Ensure instant update in home
         TriggerSaveSettings();
     }
 
@@ -1339,18 +1402,12 @@ public sealed partial class MainWindow : Window
         ApplyColumnVisibility();
     }
 
-    private void UpdateWallpaperButtons(WallpaperItem item)
-    {
-        var buttons = CurrentSettings.CardButtons;
-        var isSelected = SelectedWallpapers.Any(w => w.Key == item.Key);
-        item.UpdateButtons(buttons, isSelected);
-    }
-
     private void ApplyLibraryViewMode(string viewMode)
     {
         var isThumbnail = viewMode == LibraryViewModes.Thumbnail;
         LibraryListView.Visibility = isThumbnail ? Visibility.Collapsed : Visibility.Visible;
         LibraryThumbnailView.Visibility = isThumbnail ? Visibility.Visible : Visibility.Collapsed;
+        ApplyWallpaperPresentation();
     }
 
     private void ApplyHomeViewMode(string viewMode)
@@ -1358,6 +1415,7 @@ public sealed partial class MainWindow : Window
         var isThumbnail = viewMode == LibraryViewModes.Thumbnail;
         HomeListView.Visibility = isThumbnail ? Visibility.Collapsed : Visibility.Visible;
         HomeThumbnailView.Visibility = isThumbnail ? Visibility.Visible : Visibility.Collapsed;
+        ApplyWallpaperPresentation();
     }
 
     private void ApplyHomeSortMode()
@@ -1568,13 +1626,6 @@ public sealed partial class MainWindow : Window
         RootGrid.Resources["SystemAccentColorBrush"] = accentBrush;
 
         MicaTintOverlay.Background = new SolidColorBrush(Color.FromArgb(36, color.R, color.G, color.B));
-    }
-
-    private void ThumbnailView_SizeChanged(object sender, SizeChangedEventArgs e)
-    {
-        ApplyWallpaperPresentation();
-        RefreshVisibleWallpapers();
-        RefreshSelectedWallpapers();
     }
 
     private void InitializePicker(object picker)
@@ -2479,35 +2530,88 @@ public sealed partial class MainWindow : Window
     {
         var menu = new MenuFlyout();
         
+        // Always include basic actions if they aren't already visible on the card
+        AddDynamicMenuItem(menu, CardButtonIds.AddToHome, item);
+        AddDynamicMenuItem(menu, CardButtonIds.Details, item);
+        AddDynamicMenuItem(menu, CardButtonIds.AddTag, item);
+
+        if (item.OverflowButtons.Count > 0)
+        {
+            menu.Items.Add(new MenuFlyoutSeparator());
+            foreach (var btnId in item.OverflowButtons)
+            {
+                // Avoid duplicates if we already added them above as basic actions
+                if (btnId == CardButtonIds.ThreeDot || btnId == CardButtonIds.AddToHome || btnId == CardButtonIds.Details || btnId == CardButtonIds.AddTag)
+                    continue;
+
+                AddDynamicMenuItem(menu, btnId, item);
+            }
+        }
+
+        menu.Items.Add(new MenuFlyoutSeparator());
+        
         var runItem = new MenuFlyoutItem { Text = "Run Wallpaper", Icon = new SymbolIcon(Symbol.Play) };
         runItem.Click += (_, _) => RunWallpaper(item);
         menu.Items.Add(runItem);
-
-        menu.Items.Add(new MenuFlyoutSeparator());
-
-        var homeText = SelectedWallpapers.Contains(item) ? "Remove from Home" : "Add to Home";
-        var homeIcon = SelectedWallpapers.Contains(item) ? "\uE711" : "\uE710";
-        var homeItem = new MenuFlyoutItem { Text = homeText, Icon = new FontIcon { Glyph = homeIcon } };
-        homeItem.Click += (_, _) => ToggleHomeStatus(item);
-        menu.Items.Add(homeItem);
-
-        var detailsItem = new MenuFlyoutItem { Text = "Details", Icon = new SymbolIcon(Symbol.List) };
-        detailsItem.Click += (_, _) => ShowWallpaperDetails(item);
-        if (!CurrentSettings.CardButtons.Contains(CardButtonIds.Details))
-            menu.Items.Add(detailsItem);
 
         var openFolderItem = new MenuFlyoutItem { Text = "Open Folder", Icon = new SymbolIcon(Symbol.Folder) };
         openFolderItem.Click += (_, _) => OpenWallpaperFolder(item);
         menu.Items.Add(openFolderItem);
 
-        menu.Items.Add(new MenuFlyoutSeparator());
-
-        var deleteItem = new MenuFlyoutItem { Text = "Delete", Icon = new SymbolIcon(Symbol.Delete), Foreground = new SolidColorBrush(Microsoft.UI.Colors.Red) };
-        deleteItem.Click += async (_, _) => await DeleteWallpaperAsync(item);
-        if (!CurrentSettings.CardButtons.Contains(CardButtonIds.Delete))
-            menu.Items.Add(deleteItem);
+        // Delete is special and usually at the bottom
+        if (item.OverflowButtons.Contains(CardButtonIds.Delete) || !CurrentSettings.CardButtons.Contains(CardButtonIds.Delete))
+        {
+            menu.Items.Add(new MenuFlyoutSeparator());
+            AddDynamicMenuItem(menu, CardButtonIds.Delete, item);
+        }
 
         menu.ShowAt(anchor);
+    }
+
+    private void AddDynamicMenuItem(MenuFlyout menu, string buttonId, WallpaperItem item)
+    {
+        var text = buttonId switch
+        {
+            CardButtonIds.AddToHome => item.IsSelected ? "Remove from Home" : "Add to Home",
+            CardButtonIds.AddTag => "Mark / Add Tags",
+            CardButtonIds.Delete => "Delete Wallpaper",
+            CardButtonIds.Details => "Wallpaper Details",
+            _ => string.Empty
+        };
+
+        if (string.IsNullOrEmpty(text)) return;
+
+        IconElement? icon = buttonId switch
+        {
+            CardButtonIds.AddToHome => new FontIcon { Glyph = item.HomeActionGlyph },
+            CardButtonIds.AddTag => new SymbolIcon(Symbol.Tag),
+            CardButtonIds.Delete => new SymbolIcon(Symbol.Delete),
+            CardButtonIds.Details => new SymbolIcon(Symbol.List),
+            _ => null
+        };
+
+        var menuItem = new MenuFlyoutItem { Text = text, Icon = icon };
+        if (buttonId == CardButtonIds.Delete) menuItem.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Red);
+
+        menuItem.Click += async (s, e) =>
+        {
+            switch (buttonId)
+            {
+                case CardButtonIds.AddTag: ShowAddTagFlyout(anchor: null!, item); break; // Anchor is used for flyout positioning, might need care
+                case CardButtonIds.AddToHome: ToggleHomeStatus(item); break;
+                case CardButtonIds.Delete: await DeleteWallpaperAsync(item); break;
+                case CardButtonIds.Details: ShowWallpaperDetails(item); break;
+            }
+        };
+
+        // If we don't have an anchor for AddTag flyout when called from menu, we might need to adjust ShowAddTagFlyout
+        if (buttonId == CardButtonIds.AddTag)
+        {
+            menuItem.Click -= (s, e) => { }; // Clear previous and re-add with proper logic
+            menuItem.Click += (s, e) => ShowAddTagFlyout(menu.Target, item);
+        }
+
+        menu.Items.Add(menuItem);
     }
 
     private void ShowAddTagFlyout(FrameworkElement anchor, WallpaperItem item)
@@ -2532,8 +2636,8 @@ public sealed partial class MainWindow : Window
         var tagSearch = new AutoSuggestBox { PlaceholderText = "Search/Add tag", QueryIcon = new SymbolIcon(Symbol.Find) };
         tagSearch.ItemsSource = Tags.Select(t => t.Name).ToList();
         tagSearch.SuggestionChosen += (s, a) => { 
-            var tagName = a.SelectedItem.ToString();
-            if (!item.Tags.Contains(tagName)) { item.Tags.Add(tagName); TriggerSaveSettings(); ApplyWallpaperPresentation(); }
+            var tagName = a.SelectedItem?.ToString();
+            if (!string.IsNullOrEmpty(tagName) && !item.Tags.Contains(tagName)) { item.Tags.Add(tagName); TriggerSaveSettings(); ApplyWallpaperPresentation(); }
             flyout.Hide();
         };
 
@@ -2545,7 +2649,7 @@ public sealed partial class MainWindow : Window
 
     private void ShowWallpaperDetails(WallpaperItem item)
     {
-        WallpaperDetails_Click(new Button { Tag = item }, null);
+        WallpaperDetails_Click(new Button { Tag = item }, new RoutedEventArgs());
     }
 
     private async Task DeleteWallpaperAsync(WallpaperItem item)

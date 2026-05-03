@@ -105,15 +105,15 @@
                                 </ListView.Header>
                                 <ListView.ItemTemplate>
                                     <DataTemplate x:DataType="models:WallpaperItem">
-                                        <Border Background="{x:Bind RowBackground}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Margin="0,4" MinHeight="{x:Bind ListRowMinHeight}">
+                                        <Border Background="{x:Bind RowBackground, Mode=OneWay}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Margin="0,4" MinHeight="{x:Bind ListRowMinHeight, Mode=OneWay}">
                                             <Grid>
-                                            <Grid Padding="{x:Bind ListRowPadding}" ColumnSpacing="16" Visibility="{x:Bind LargeListLayoutVisibility}">
+                                            <Grid Padding="{x:Bind ListRowPadding, Mode=OneWay}" ColumnSpacing="16" Visibility="{x:Bind LargeListLayoutVisibility, Mode=OneWay}">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="Auto" />
                                                     <ColumnDefinition Width="*" />
                                                     <ColumnDefinition Width="Auto" />
                                                 </Grid.ColumnDefinitions>
-                                                <Grid Width="{x:Bind ListPreviewWidth}" Height="{x:Bind ListPreviewHeight}" Visibility="{x:Bind ListPreviewVisibility}" PointerEntered="PreviewImage_PointerEntered" PointerExited="PreviewImage_PointerExited">
+                                                <Grid Width="{x:Bind ListPreviewWidth, Mode=OneWay}" Height="{x:Bind ListPreviewHeight, Mode=OneWay}" Visibility="{x:Bind ListPreviewVisibility, Mode=OneWay}" PointerEntered="PreviewImage_PointerEntered" PointerExited="PreviewImage_PointerExited">
                                                     <Border Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="6">
                                                         <Image Source="{x:Bind PreviewImage}" Stretch="UniformToFill" Opacity="{x:Bind BlurOpacity, Mode=OneWay}" />
                                                     </Border>
@@ -132,11 +132,11 @@
                                                     </Grid>
                                                 </Grid>
                                                 <StackPanel Grid.Column="1" Spacing="8" VerticalAlignment="Center">
-                                                    <TextBlock Text="{x:Bind DisplayName, Mode=OneWay}" FontSize="{x:Bind ListTitleFontSize}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                                    <StackPanel Orientation="Horizontal" Spacing="22" Visibility="{x:Bind ListDetailsVisibility}">
+                                                    <TextBlock Text="{x:Bind DisplayName, Mode=OneWay}" FontSize="{x:Bind ListTitleFontSize, Mode=OneWay}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                    <StackPanel Orientation="Horizontal" Spacing="22" Visibility="{x:Bind ListDetailsVisibility, Mode=OneWay}">
                                                         <TextBlock Text="{x:Bind IdText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
                                                         <TextBlock Text="{x:Bind SizeText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                                        <TextBlock Text="{x:Bind TagsText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock Text="{x:Bind TagsText, Mode=OneWay}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
                                                     </StackPanel>
                                                 </StackPanel>
                                                 <Grid Grid.Column="2" ColumnSpacing="8" RowSpacing="8" VerticalAlignment="Center">
@@ -149,27 +149,27 @@
                                                         <RowDefinition Height="Auto" />
                                                         <RowDefinition Height="Auto" />
                                                     </Grid.RowDefinitions>
-                                                    <Button Grid.Row="0" Grid.Column="1" Visibility="{x:Bind Button1Visibility}" Tag="{x:Bind Button1Id}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="36" Height="36" ToolTipService.ToolTip="{x:Bind Button1Tooltip, Mode=OneWay}">
+                                                    <Button Grid.Row="0" Grid.Column="1" Visibility="{x:Bind Button1Visibility, Mode=OneWay}" Tag="{x:Bind Button1Id, Mode=OneWay}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="36" Height="36" ToolTipService.ToolTip="{x:Bind Button1Tooltip, Mode=OneWay}">
                                                         <FontIcon Glyph="{x:Bind Button1Glyph, Mode=OneWay}" FontSize="16" />
                                                     </Button>
-                                                    <Button Grid.Row="1" Grid.Column="1" Visibility="{x:Bind Button2Visibility}" Tag="{x:Bind Button2Id}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="36" Height="36" ToolTipService.ToolTip="{x:Bind Button2Tooltip, Mode=OneWay}">
+                                                    <Button Grid.Row="1" Grid.Column="1" Visibility="{x:Bind Button2Visibility, Mode=OneWay}" Tag="{x:Bind Button2Id, Mode=OneWay}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="36" Height="36" ToolTipService.ToolTip="{x:Bind Button2Tooltip, Mode=OneWay}">
                                                         <FontIcon Glyph="{x:Bind Button2Glyph, Mode=OneWay}" FontSize="16" />
                                                     </Button>
-                                                    <Button Grid.Row="2" Grid.Column="1" Visibility="{x:Bind Button3Visibility}" Tag="{x:Bind Button3Id}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="36" Height="36" ToolTipService.ToolTip="{x:Bind Button3Tooltip, Mode=OneWay}">
+                                                    <Button Grid.Row="2" Grid.Column="1" Visibility="{x:Bind Button3Visibility, Mode=OneWay}" Tag="{x:Bind Button3Id, Mode=OneWay}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="36" Height="36" ToolTipService.ToolTip="{x:Bind Button3Tooltip, Mode=OneWay}">
                                                         <FontIcon Glyph="{x:Bind Button3Glyph, Mode=OneWay}" FontSize="16" />
                                                     </Button>
-                                                    <Button Grid.Row="0" Grid.Column="0" Visibility="{x:Bind Button4Visibility}" Tag="{x:Bind Button4Id}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="36" Height="36" ToolTipService.ToolTip="{x:Bind Button4Tooltip, Mode=OneWay}">
+                                                    <Button Grid.Row="0" Grid.Column="0" Visibility="{x:Bind Button4Visibility, Mode=OneWay}" Tag="{x:Bind Button4Id, Mode=OneWay}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="36" Height="36" ToolTipService.ToolTip="{x:Bind Button4Tooltip, Mode=OneWay}">
                                                         <FontIcon Glyph="{x:Bind Button4Glyph, Mode=OneWay}" FontSize="16" />
                                                     </Button>
-                                                    <Button Grid.Row="1" Grid.Column="0" Visibility="{x:Bind Button5Visibility}" Tag="{x:Bind Button5Id}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="36" Height="36" ToolTipService.ToolTip="{x:Bind Button5Tooltip, Mode=OneWay}">
+                                                    <Button Grid.Row="1" Grid.Column="0" Visibility="{x:Bind Button5Visibility, Mode=OneWay}" Tag="{x:Bind Button5Id, Mode=OneWay}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="36" Height="36" ToolTipService.ToolTip="{x:Bind Button5Tooltip, Mode=OneWay}">
                                                         <FontIcon Glyph="{x:Bind Button5Glyph, Mode=OneWay}" FontSize="16" />
                                                     </Button>
-                                                    <Button Grid.Row="2" Grid.Column="0" Visibility="{x:Bind Button6Visibility}" Tag="{x:Bind Button6Id}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="36" Height="36" ToolTipService.ToolTip="{x:Bind Button6Tooltip, Mode=OneWay}">
+                                                    <Button Grid.Row="2" Grid.Column="0" Visibility="{x:Bind Button6Visibility, Mode=OneWay}" Tag="{x:Bind Button6Id, Mode=OneWay}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="36" Height="36" ToolTipService.ToolTip="{x:Bind Button6Tooltip, Mode=OneWay}">
                                                         <FontIcon Glyph="{x:Bind Button6Glyph, Mode=OneWay}" FontSize="16" />
                                                     </Button>
                                                 </Grid>
                                             </Grid>
-                                            <Grid Padding="{x:Bind ListRowPadding}" ColumnSpacing="14" Visibility="{x:Bind CompactListLayoutVisibility}">
+                                            <Grid Padding="{x:Bind ListRowPadding, Mode=OneWay}" ColumnSpacing="14" Visibility="{x:Bind CompactListLayoutVisibility, Mode=OneWay}">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="Auto" />
                                                     <ColumnDefinition Width="*" />
@@ -178,7 +178,7 @@
                                                     <ColumnDefinition Width="180" />
                                                     <ColumnDefinition Width="Auto" />
                                                 </Grid.ColumnDefinitions>
-                                                <Grid Width="{x:Bind ListPreviewWidth}" Height="{x:Bind ListPreviewHeight}" Visibility="{x:Bind ListPreviewVisibility}" PointerEntered="PreviewImage_PointerEntered" PointerExited="PreviewImage_PointerExited">
+                                                <Grid Width="{x:Bind ListPreviewWidth, Mode=OneWay}" Height="{x:Bind ListPreviewHeight, Mode=OneWay}" Visibility="{x:Bind ListPreviewVisibility, Mode=OneWay}" PointerEntered="PreviewImage_PointerEntered" PointerExited="PreviewImage_PointerExited">
                                                     <Border Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="4">
                                                         <Image Source="{x:Bind PreviewImage}" Stretch="UniformToFill" Opacity="{x:Bind BlurOpacity, Mode=OneWay}" />
                                                     </Border>
@@ -196,18 +196,18 @@
                                                         <Border Background="Black" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="4" />
                                                     </Grid>
                                                 </Grid>
-                                                <TextBlock Grid.Column="1" Text="{x:Bind DisplayName, Mode=OneWay}" FontSize="{x:Bind ListTitleFontSize}" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Visibility="{x:Bind LocalNameColumnVisibility}" />
+                                                <TextBlock Grid.Column="1" Text="{x:Bind DisplayName, Mode=OneWay}" FontSize="{x:Bind ListTitleFontSize, Mode=OneWay}" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Visibility="{x:Bind LocalNameColumnVisibility, Mode=OneWay}" />
                                                 <TextBlock Grid.Column="2" Text="{x:Bind IdText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                                 <TextBlock Grid.Column="3" Text="{x:Bind SizeText}" VerticalAlignment="Center" />
-                                                <TextBlock Grid.Column="4" Text="{x:Bind TagsText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Grid.Column="4" Text="{x:Bind TagsText, Mode=OneWay}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                                 <StackPanel Grid.Column="5" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                                    <Button Visibility="{x:Bind Button3Visibility}" Tag="{x:Bind Button3Id}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="32" Height="32" ToolTipService.ToolTip="{x:Bind Button3Tooltip, Mode=OneWay}">
+                                                    <Button Visibility="{x:Bind Button3Visibility, Mode=OneWay}" Tag="{x:Bind Button3Id, Mode=OneWay}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="32" Height="32" ToolTipService.ToolTip="{x:Bind Button3Tooltip, Mode=OneWay}">
                                                         <FontIcon Glyph="{x:Bind Button3Glyph, Mode=OneWay}" FontSize="12" />
                                                     </Button>
-                                                    <Button Visibility="{x:Bind Button2Visibility}" Tag="{x:Bind Button2Id}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="32" Height="32" ToolTipService.ToolTip="{x:Bind Button2Tooltip, Mode=OneWay}">
+                                                    <Button Visibility="{x:Bind Button2Visibility, Mode=OneWay}" Tag="{x:Bind Button2Id, Mode=OneWay}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="32" Height="32" ToolTipService.ToolTip="{x:Bind Button2Tooltip, Mode=OneWay}">
                                                         <FontIcon Glyph="{x:Bind Button2Glyph, Mode=OneWay}" FontSize="12" />
                                                     </Button>
-                                                    <Button Visibility="{x:Bind Button1Visibility}" Tag="{x:Bind Button1Id}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="32" Height="32" ToolTipService.ToolTip="{x:Bind Button1Tooltip, Mode=OneWay}">
+                                                    <Button Visibility="{x:Bind Button1Visibility, Mode=OneWay}" Tag="{x:Bind Button1Id, Mode=OneWay}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="32" Height="32" ToolTipService.ToolTip="{x:Bind Button1Tooltip, Mode=OneWay}">
                                                         <FontIcon Glyph="{x:Bind Button1Glyph, Mode=OneWay}" FontSize="12" />
                                                     </Button>
                                                 </StackPanel>
@@ -218,13 +218,13 @@
                                 </ListView.ItemTemplate>
                             </ListView>
 
-                            <GridView x:Name="HomeThumbnailView" ItemsSource="{x:Bind SelectedWallpapers, Mode=OneWay}" SelectionMode="None" SizeChanged="ThumbnailView_SizeChanged" CanDragItems="True" CanReorderItems="True" AllowDrop="True" DragItemsCompleted="HomeView_DragItemsCompleted">
+                            <GridView x:Name="HomeThumbnailView" ItemsSource="{x:Bind SelectedWallpapers, Mode=OneWay}" SelectionMode="None" CanDragItems="True" CanReorderItems="True" AllowDrop="True" DragItemsCompleted="HomeView_DragItemsCompleted">
                                 <GridView.ItemTemplate>
                                     <DataTemplate x:DataType="models:WallpaperItem">
-                                        <Border Width="{x:Bind CardWidth}" Padding="12" Background="{x:Bind RowBackground}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                                        <Border Width="{x:Bind CardWidth, Mode=OneWay}" Padding="12" Background="{x:Bind RowBackground, Mode=OneWay}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
                                             <Grid>
                                             <StackPanel Spacing="10">
-                                                <Grid Height="{x:Bind CardPreviewHeight}" PointerEntered="PreviewImage_PointerEntered" PointerExited="PreviewImage_PointerExited">
+                                                <Grid Height="{x:Bind CardPreviewHeight, Mode=OneWay}" PointerEntered="PreviewImage_PointerEntered" PointerExited="PreviewImage_PointerExited">
                                                     <Border Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="6">
                                                         <Image Source="{x:Bind PreviewImage}" Stretch="UniformToFill" Opacity="{x:Bind BlurOpacity, Mode=OneWay}" />
                                                     </Border>
@@ -246,14 +246,14 @@
                                                     </Button>
                                                 </Grid>
                                                 <TextBlock Text="{x:Bind DisplayName, Mode=OneWay}" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="Wrap" />
-                                                <Grid ColumnSpacing="8">
+                                                <Grid ColumnSpacing="8" Visibility="{x:Bind ThumbnailDetailsVisibility, Mode=OneWay}">
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="*" />
                                                         <ColumnDefinition Width="Auto" />
                                                         <ColumnDefinition Width="Auto" />
                                                     </Grid.ColumnDefinitions>
                                                     <TextBlock Text="{x:Bind IdText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
-                                                    <TextBlock Grid.Column="1" Text="{x:Bind SizeText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Visibility="{x:Bind ThumbnailDetailsVisibility}" />
+                                                    <TextBlock Grid.Column="1" Text="{x:Bind SizeText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                                     <Button Grid.Column="2" Content="USE" Click="RunWallpaper_Click" />
                                                 </Grid>
                                             </StackPanel>
@@ -323,15 +323,15 @@
                                     </ListView.ItemContainerStyle>
                                     <ListView.ItemTemplate>
                                         <DataTemplate x:DataType="models:WallpaperItem">
-                                            <Border Background="{x:Bind RowBackground}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Margin="0,4" MinHeight="{x:Bind ListRowMinHeight}">
+                                            <Border Background="{x:Bind RowBackground, Mode=OneWay}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Margin="0,4" MinHeight="{x:Bind ListRowMinHeight, Mode=OneWay}">
                                                 <Grid>
-                                                <Grid Padding="{x:Bind ListRowPadding}" ColumnSpacing="16" Visibility="{x:Bind LargeListLayoutVisibility}">
+                                                <Grid Padding="{x:Bind ListRowPadding, Mode=OneWay}" ColumnSpacing="16" Visibility="{x:Bind LargeListLayoutVisibility, Mode=OneWay}">
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="Auto" />
                                                         <ColumnDefinition Width="*" />
                                                         <ColumnDefinition Width="Auto" />
                                                     </Grid.ColumnDefinitions>
-                                                    <Grid Width="{x:Bind ListPreviewWidth}" Height="{x:Bind ListPreviewHeight}" Visibility="{x:Bind ListPreviewVisibility}" PointerEntered="PreviewImage_PointerEntered" PointerExited="PreviewImage_PointerExited">
+                                                    <Grid Width="{x:Bind ListPreviewWidth, Mode=OneWay}" Height="{x:Bind ListPreviewHeight, Mode=OneWay}" Visibility="{x:Bind ListPreviewVisibility, Mode=OneWay}" PointerEntered="PreviewImage_PointerEntered" PointerExited="PreviewImage_PointerExited">
                                                         <Border Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="6">
                                                             <Image Source="{x:Bind PreviewImage}" Stretch="UniformToFill" Opacity="{x:Bind BlurOpacity, Mode=OneWay}" />
                                                         </Border>
@@ -350,7 +350,7 @@
                                                         </Grid>
                                                     </Grid>
                                                     <StackPanel Grid.Column="1" Spacing="14" VerticalAlignment="Center">
-                                                        <TextBlock Text="{x:Bind DisplayName, Mode=OneWay}" FontSize="{x:Bind ListTitleFontSize}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock Text="{x:Bind DisplayName, Mode=OneWay}" FontSize="{x:Bind ListTitleFontSize, Mode=OneWay}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                                                         <Grid ColumnSpacing="34">
                                                             <Grid.ColumnDefinitions>
                                                                 <ColumnDefinition Width="170" />
@@ -367,7 +367,7 @@
                                                             </StackPanel>
                                                             <StackPanel Grid.Column="2" Spacing="2">
                                                                 <TextBlock Text="Tags" Style="{StaticResource CaptionTextBlockStyle}" />
-                                                                <TextBlock Text="{x:Bind TagsText}" TextTrimming="CharacterEllipsis" />
+                                                                <TextBlock Text="{x:Bind TagsText, Mode=OneWay}" TextTrimming="CharacterEllipsis" />
                                                             </StackPanel>
                                                         </Grid>
                                                     </StackPanel>
@@ -381,27 +381,27 @@
                                                         <RowDefinition Height="Auto" />
                                                         <RowDefinition Height="Auto" />
                                                     </Grid.RowDefinitions>
-                                                    <Button Grid.Row="0" Grid.Column="1" Visibility="{x:Bind Button1Visibility}" Tag="{x:Bind Button1Id}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="36" Height="36" ToolTipService.ToolTip="{x:Bind Button1Tooltip, Mode=OneWay}">
+                                                    <Button Grid.Row="0" Grid.Column="1" Visibility="{x:Bind Button1Visibility, Mode=OneWay}" Tag="{x:Bind Button1Id, Mode=OneWay}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="36" Height="36" ToolTipService.ToolTip="{x:Bind Button1Tooltip, Mode=OneWay}">
                                                         <FontIcon Glyph="{x:Bind Button1Glyph, Mode=OneWay}" FontSize="16" />
                                                     </Button>
-                                                    <Button Grid.Row="1" Grid.Column="1" Visibility="{x:Bind Button2Visibility}" Tag="{x:Bind Button2Id}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="36" Height="36" ToolTipService.ToolTip="{x:Bind Button2Tooltip, Mode=OneWay}">
+                                                    <Button Grid.Row="1" Grid.Column="1" Visibility="{x:Bind Button2Visibility, Mode=OneWay}" Tag="{x:Bind Button2Id, Mode=OneWay}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="36" Height="36" ToolTipService.ToolTip="{x:Bind Button2Tooltip, Mode=OneWay}">
                                                         <FontIcon Glyph="{x:Bind Button2Glyph, Mode=OneWay}" FontSize="16" />
                                                     </Button>
-                                                    <Button Grid.Row="2" Grid.Column="1" Visibility="{x:Bind Button3Visibility}" Tag="{x:Bind Button3Id}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="36" Height="36" ToolTipService.ToolTip="{x:Bind Button3Tooltip, Mode=OneWay}">
+                                                    <Button Grid.Row="2" Grid.Column="1" Visibility="{x:Bind Button3Visibility, Mode=OneWay}" Tag="{x:Bind Button3Id, Mode=OneWay}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="36" Height="36" ToolTipService.ToolTip="{x:Bind Button3Tooltip, Mode=OneWay}">
                                                         <FontIcon Glyph="{x:Bind Button3Glyph, Mode=OneWay}" FontSize="16" />
                                                     </Button>
-                                                    <Button Grid.Row="0" Grid.Column="0" Visibility="{x:Bind Button4Visibility}" Tag="{x:Bind Button4Id}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="36" Height="36" ToolTipService.ToolTip="{x:Bind Button4Tooltip, Mode=OneWay}">
+                                                    <Button Grid.Row="0" Grid.Column="0" Visibility="{x:Bind Button4Visibility, Mode=OneWay}" Tag="{x:Bind Button4Id, Mode=OneWay}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="36" Height="36" ToolTipService.ToolTip="{x:Bind Button4Tooltip, Mode=OneWay}">
                                                         <FontIcon Glyph="{x:Bind Button4Glyph, Mode=OneWay}" FontSize="16" />
                                                     </Button>
-                                                    <Button Grid.Row="1" Grid.Column="0" Visibility="{x:Bind Button5Visibility}" Tag="{x:Bind Button5Id}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="36" Height="36" ToolTipService.ToolTip="{x:Bind Button5Tooltip, Mode=OneWay}">
+                                                    <Button Grid.Row="1" Grid.Column="0" Visibility="{x:Bind Button5Visibility, Mode=OneWay}" Tag="{x:Bind Button5Id, Mode=OneWay}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="36" Height="36" ToolTipService.ToolTip="{x:Bind Button5Tooltip, Mode=OneWay}">
                                                         <FontIcon Glyph="{x:Bind Button5Glyph, Mode=OneWay}" FontSize="16" />
                                                     </Button>
-                                                    <Button Grid.Row="2" Grid.Column="0" Visibility="{x:Bind Button6Visibility}" Tag="{x:Bind Button6Id}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="36" Height="36" ToolTipService.ToolTip="{x:Bind Button6Tooltip, Mode=OneWay}">
+                                                    <Button Grid.Row="2" Grid.Column="0" Visibility="{x:Bind Button6Visibility, Mode=OneWay}" Tag="{x:Bind Button6Id, Mode=OneWay}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="36" Height="36" ToolTipService.ToolTip="{x:Bind Button6Tooltip, Mode=OneWay}">
                                                         <FontIcon Glyph="{x:Bind Button6Glyph, Mode=OneWay}" FontSize="16" />
                                                     </Button>
                                                 </Grid>
                                                 </Grid>
-                                                <Grid Padding="{x:Bind ListRowPadding}" ColumnSpacing="16" Visibility="{x:Bind CompactListLayoutVisibility}">
+                                                <Grid Padding="{x:Bind ListRowPadding, Mode=OneWay}" ColumnSpacing="16" Visibility="{x:Bind CompactListLayoutVisibility, Mode=OneWay}">
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="Auto" />
                                                         <ColumnDefinition Width="*" />
@@ -411,7 +411,7 @@
                                                         <ColumnDefinition Width="Auto" />
                                                         <ColumnDefinition Width="Auto" />
                                                     </Grid.ColumnDefinitions>
-                                                    <Grid Width="{x:Bind ListPreviewWidth}" Height="{x:Bind ListPreviewHeight}" Visibility="{x:Bind ListPreviewVisibility}" PointerEntered="PreviewImage_PointerEntered" PointerExited="PreviewImage_PointerExited">
+                                                    <Grid Width="{x:Bind ListPreviewWidth, Mode=OneWay}" Height="{x:Bind ListPreviewHeight, Mode=OneWay}" Visibility="{x:Bind ListPreviewVisibility, Mode=OneWay}" PointerEntered="PreviewImage_PointerEntered" PointerExited="PreviewImage_PointerExited">
                                                         <Border Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="4">
                                                             <Image Source="{x:Bind PreviewImage}" Stretch="UniformToFill" Opacity="{x:Bind BlurOpacity, Mode=OneWay}" />
                                                         </Border>
@@ -429,18 +429,18 @@
                                                             <Border Background="Black" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="4" />
                                                         </Grid>
                                                     </Grid>
-                                                    <TextBlock Grid.Column="1" Text="{x:Bind DisplayName, Mode=OneWay}" FontSize="{x:Bind ListTitleFontSize}" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Visibility="{x:Bind LocalNameColumnVisibility}" />
-                                                    <TextBlock Grid.Column="2" Text="{x:Bind IdText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Visibility="{x:Bind IdColumnVisibility}" />
-                                                    <TextBlock Grid.Column="3" Text="{x:Bind SizeText}" VerticalAlignment="Center" Visibility="{x:Bind SizeColumnVisibility}" />
-                                                    <TextBlock Grid.Column="4" Text="{x:Bind TagsText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Visibility="{x:Bind TagsColumnVisibility}" />
+                                                    <TextBlock Grid.Column="1" Text="{x:Bind DisplayName, Mode=OneWay}" FontSize="{x:Bind ListTitleFontSize, Mode=OneWay}" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Visibility="{x:Bind LocalNameColumnVisibility, Mode=OneWay}" />
+                                                    <TextBlock Grid.Column="2" Text="{x:Bind IdText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Visibility="{x:Bind IdColumnVisibility, Mode=OneWay}" />
+                                                    <TextBlock Grid.Column="3" Text="{x:Bind SizeText}" VerticalAlignment="Center" Visibility="{x:Bind SizeColumnVisibility, Mode=OneWay}" />
+                                                    <TextBlock Grid.Column="4" Text="{x:Bind TagsText, Mode=OneWay}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Visibility="{x:Bind TagsColumnVisibility, Mode=OneWay}" />
                                                     <StackPanel Grid.Column="5" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" HorizontalAlignment="Right">
-                                                        <Button Visibility="{x:Bind Button3Visibility}" Tag="{x:Bind Button3Id}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="32" Height="32" ToolTipService.ToolTip="{x:Bind Button3Tooltip, Mode=OneWay}">
+                                                        <Button Visibility="{x:Bind Button3Visibility, Mode=OneWay}" Tag="{x:Bind Button3Id, Mode=OneWay}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="32" Height="32" ToolTipService.ToolTip="{x:Bind Button3Tooltip, Mode=OneWay}">
                                                             <FontIcon Glyph="{x:Bind Button3Glyph, Mode=OneWay}" FontSize="14" />
                                                         </Button>
-                                                        <Button Visibility="{x:Bind Button2Visibility}" Tag="{x:Bind Button2Id}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="32" Height="32" ToolTipService.ToolTip="{x:Bind Button2Tooltip, Mode=OneWay}">
+                                                        <Button Visibility="{x:Bind Button2Visibility, Mode=OneWay}" Tag="{x:Bind Button2Id, Mode=OneWay}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="32" Height="32" ToolTipService.ToolTip="{x:Bind Button2Tooltip, Mode=OneWay}">
                                                             <FontIcon Glyph="{x:Bind Button2Glyph, Mode=OneWay}" FontSize="14" />
                                                         </Button>
-                                                        <Button Visibility="{x:Bind Button1Visibility}" Tag="{x:Bind Button1Id}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="32" Height="32" ToolTipService.ToolTip="{x:Bind Button1Tooltip, Mode=OneWay}">
+                                                        <Button Visibility="{x:Bind Button1Visibility, Mode=OneWay}" Tag="{x:Bind Button1Id, Mode=OneWay}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="32" Height="32" ToolTipService.ToolTip="{x:Bind Button1Tooltip, Mode=OneWay}">
                                                             <FontIcon Glyph="{x:Bind Button1Glyph, Mode=OneWay}" FontSize="14" />
                                                         </Button>
                                                     </StackPanel>
@@ -452,13 +452,13 @@
                                 </ListView>
                             </Grid>
 
-                            <GridView x:Name="LibraryThumbnailView" ItemsSource="{x:Bind VisibleWallpapers, Mode=OneWay}" SelectionMode="None" Visibility="Collapsed" SizeChanged="ThumbnailView_SizeChanged">
+                            <GridView x:Name="LibraryThumbnailView" ItemsSource="{x:Bind VisibleWallpapers, Mode=OneWay}" SelectionMode="None" Visibility="Collapsed">
                                 <GridView.ItemTemplate>
                                     <DataTemplate x:DataType="models:WallpaperItem">
-                                        <Border Width="{x:Bind CardWidth}" Padding="12" Background="{x:Bind RowBackground}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                                        <Border Width="{x:Bind CardWidth, Mode=OneWay}" Padding="12" Background="{x:Bind RowBackground, Mode=OneWay}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
                                             <Grid>
                                                 <StackPanel Spacing="10">
-                                                    <Grid Height="{x:Bind CardPreviewHeight}" PointerEntered="PreviewImage_PointerEntered" PointerExited="PreviewImage_PointerExited">
+                                                    <Grid Height="{x:Bind CardPreviewHeight, Mode=OneWay}" PointerEntered="PreviewImage_PointerEntered" PointerExited="PreviewImage_PointerExited">
                                                         <Border Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="6">
                                                             <Image Source="{x:Bind PreviewImage}" Stretch="UniformToFill" Opacity="{x:Bind BlurOpacity, Mode=OneWay}" />
                                                         </Border>
@@ -477,7 +477,7 @@
                                                         </Grid>
                                                     </Grid>
                                                     <TextBlock Text="{x:Bind DisplayName, Mode=OneWay}" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="Wrap" />
-                                                    <Grid ColumnSpacing="8" Visibility="{x:Bind ThumbnailDetailsVisibility}">
+                                                    <Grid ColumnSpacing="8" Visibility="{x:Bind ThumbnailDetailsVisibility, Mode=OneWay}">
                                                         <Grid.ColumnDefinitions>
                                                             <ColumnDefinition Width="*" />
                                                             <ColumnDefinition Width="Auto" />
@@ -668,8 +668,19 @@
                                     <StackPanel Spacing="10" Margin="0,10,0,0">
                                         <TextBlock Text="Wallpaper Card Buttons" FontSize="17" Margin="18,0" />
                                         <TextBlock Text="Choose which buttons appear on cards and reorder them (top 3 shown on compact/medium views)" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="18,-5,18,5" />
-                                        <ListView x:Name="CardButtonsListView" ItemsSource="{x:Bind CardButtonsList, Mode=OneWay}" SelectionMode="None" CanDragItems="True" CanReorderItems="True" AllowDrop="True" DragItemsCompleted="CardButtons_DragItemsCompleted">
-                                            <ListView.ItemContainerStyle>
+                                        <Grid Padding="18,10" Margin="0,5,0,0" BorderThickness="0,0,0,1" BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="32" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="Pos" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center" Width="14" />
+                                            <TextBlock Grid.Column="1" Text="Icon" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                            <TextBlock Grid.Column="2" Text="Button Name" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                            <TextBlock Grid.Column="3" Text="Visible" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="0,0,10,0" />
+                                        </Grid>
+                                        <ListView x:Name="CardButtonsListView" ItemsSource="{x:Bind CardButtonsList, Mode=OneWay}" SelectionMode="None" CanDragItems="True" CanReorderItems="True" AllowDrop="True" DragItemsCompleted="CardButtons_DragItemsCompleted">                                            <ListView.ItemContainerStyle>
                                                 <Style TargetType="ListViewItem">
                                                     <Setter Property="Padding" Value="0" />
                                                     <Setter Property="Margin" Value="0,2,0,0" />

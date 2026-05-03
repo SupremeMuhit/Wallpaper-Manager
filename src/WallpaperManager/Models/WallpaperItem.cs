@@ -375,27 +375,68 @@ public sealed class WallpaperItem : INotifyPropertyChanged
         _ => string.Empty
     };
 
-    public void UpdateButtons(List<string> buttons, bool isSelected)
+    public List<string> OverflowButtons { get; } = [];
+
+    public void UpdateButtons(IReadOnlyList<string> buttons, bool isSelected, int maxVisible)
     {
-        IsSelected = isSelected; // Ensure state is correct
+        IsSelected = isSelected;
+        OverflowButtons.Clear();
 
-        Button1Id = buttons.Count > 0 ? buttons[0] : string.Empty;
-        Button1Visibility = string.IsNullOrEmpty(Button1Id) ? Visibility.Collapsed : Visibility.Visible;
+        var visibleCount = 0;
+        
+        // Find ThreeDot position - it's guaranteed to be in top 3 by MainWindow logic
+        var threeDotIdx = -1;
+        for (int i = 0; i < buttons.Count; i++)
+        {
+            if (buttons[i] == CardButtonIds.ThreeDot)
+            {
+                threeDotIdx = i;
+                break;
+            }
+        }
+        
+        for (int i = 0; i < buttons.Count; i++)
+        {
+            var btnId = buttons[i];
+            
+            // If we are at max visible, and there are more buttons, everything else goes to overflow
+            // EXCEPT if one of those is the ThreeDot, we MUST show ThreeDot if we have overflow.
+            if (visibleCount >= maxVisible - 1 && buttons.Count > maxVisible && btnId != CardButtonIds.ThreeDot)
+            {
+                OverflowButtons.Add(btnId);
+                continue;
+            }
 
-        Button2Id = buttons.Count > 1 ? buttons[1] : string.Empty;
-        Button2Visibility = string.IsNullOrEmpty(Button2Id) ? Visibility.Collapsed : Visibility.Visible;
+            if (visibleCount < maxVisible)
+            {
+                SetButton(visibleCount + 1, btnId);
+                visibleCount++;
+            }
+            else
+            {
+                OverflowButtons.Add(btnId);
+            }
+        }
 
-        Button3Id = buttons.Count > 2 ? buttons[2] : string.Empty;
-        Button3Visibility = string.IsNullOrEmpty(Button3Id) ? Visibility.Collapsed : Visibility.Visible;
+        // Hide remaining buttons
+        for (int i = visibleCount + 1; i <= 6; i++)
+        {
+            SetButton(i, string.Empty);
+        }
+    }
 
-        Button4Id = buttons.Count > 3 ? buttons[3] : string.Empty;
-        Button4Visibility = string.IsNullOrEmpty(Button4Id) ? Visibility.Collapsed : Visibility.Visible;
-
-        Button5Id = buttons.Count > 4 ? buttons[4] : string.Empty;
-        Button5Visibility = string.IsNullOrEmpty(Button5Id) ? Visibility.Collapsed : Visibility.Visible;
-
-        Button6Id = buttons.Count > 5 ? buttons[5] : string.Empty;
-        Button6Visibility = string.IsNullOrEmpty(Button6Id) ? Visibility.Collapsed : Visibility.Visible;
+    private void SetButton(int index, string id)
+    {
+        var visibility = string.IsNullOrEmpty(id) ? Visibility.Collapsed : Visibility.Visible;
+        switch (index)
+        {
+            case 1: Button1Id = id; Button1Visibility = visibility; break;
+            case 2: Button2Id = id; Button2Visibility = visibility; break;
+            case 3: Button3Id = id; Button3Visibility = visibility; break;
+            case 4: Button4Id = id; Button4Visibility = visibility; break;
+            case 5: Button5Id = id; Button5Visibility = visibility; break;
+            case 6: Button6Id = id; Button6Visibility = visibility; break;
+        }
     }
 
     public string HomeActionGlyph => IsSelected ? "\uE711" : "\uE710"; // Minus vs Add
