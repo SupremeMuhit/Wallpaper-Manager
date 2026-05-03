@@ -37,8 +37,10 @@ public sealed class WallpaperItem : INotifyPropertyChanged
     public bool IsSelected
     {
         get => _isSelected;
-        set { if (_isSelected != value) { _isSelected = value; OnPropertyChanged(); } }
+        set { if (_isSelected != value) { _isSelected = value; OnPropertyChanged(); OnPropertyChanged(nameof(HomeActionGlyph)); OnPropertyChanged(nameof(HomeActionTooltip)); } }
     }
+
+    public string HomeActionTooltip => IsSelected ? "Remove from Home" : "Add to Home";
 
     private bool _isNsfw;
     public bool IsNsfw
@@ -322,7 +324,81 @@ public sealed class WallpaperItem : INotifyPropertyChanged
         }
     }
 
-    public string HomeActionGlyph => IsSelected ? "\uE738" : "\uE710";
+    // Dynamic Button Slots
+    private string _button1Id = string.Empty; public string Button1Id { get => _button1Id; set { _button1Id = value; OnPropertyChanged(); OnPropertyChanged(nameof(Button1Glyph)); OnPropertyChanged(nameof(Button1Tooltip)); } }
+    private Visibility _button1Visibility = Visibility.Collapsed; public Visibility Button1Visibility { get => _button1Visibility; set { _button1Visibility = value; OnPropertyChanged(); } }
+    public string Button1Glyph => GetButtonGlyph(Button1Id);
+    public string Button1Tooltip => GetButtonTooltip(Button1Id);
+
+    private string _button2Id = string.Empty; public string Button2Id { get => _button2Id; set { _button2Id = value; OnPropertyChanged(); OnPropertyChanged(nameof(Button2Glyph)); OnPropertyChanged(nameof(Button2Tooltip)); } }
+    private Visibility _button2Visibility = Visibility.Collapsed; public Visibility Button2Visibility { get => _button2Visibility; set { _button2Visibility = value; OnPropertyChanged(); } }
+    public string Button2Glyph => GetButtonGlyph(Button2Id);
+    public string Button2Tooltip => GetButtonTooltip(Button2Id);
+
+    private string _button3Id = string.Empty; public string Button3Id { get => _button3Id; set { _button3Id = value; OnPropertyChanged(); OnPropertyChanged(nameof(Button3Glyph)); OnPropertyChanged(nameof(Button3Tooltip)); } }
+    private Visibility _button3Visibility = Visibility.Collapsed; public Visibility Button3Visibility { get => _button3Visibility; set { _button3Visibility = value; OnPropertyChanged(); } }
+    public string Button3Glyph => GetButtonGlyph(Button3Id);
+    public string Button3Tooltip => GetButtonTooltip(Button3Id);
+
+    private string _button4Id = string.Empty; public string Button4Id { get => _button4Id; set { _button4Id = value; OnPropertyChanged(); OnPropertyChanged(nameof(Button4Glyph)); OnPropertyChanged(nameof(Button4Tooltip)); } }
+    private Visibility _button4Visibility = Visibility.Collapsed; public Visibility Button4Visibility { get => _button4Visibility; set { _button4Visibility = value; OnPropertyChanged(); } }
+    public string Button4Glyph => GetButtonGlyph(Button4Id);
+    public string Button4Tooltip => GetButtonTooltip(Button4Id);
+
+    private string _button5Id = string.Empty; public string Button5Id { get => _button5Id; set { _button5Id = value; OnPropertyChanged(); OnPropertyChanged(nameof(Button5Glyph)); OnPropertyChanged(nameof(Button5Tooltip)); } }
+    private Visibility _button5Visibility = Visibility.Collapsed; public Visibility Button5Visibility { get => _button5Visibility; set { _button5Visibility = value; OnPropertyChanged(); } }
+    public string Button5Glyph => GetButtonGlyph(Button5Id);
+    public string Button5Tooltip => GetButtonTooltip(Button5Id);
+
+    private string _button6Id = string.Empty; public string Button6Id { get => _button6Id; set { _button6Id = value; OnPropertyChanged(); OnPropertyChanged(nameof(Button6Glyph)); OnPropertyChanged(nameof(Button6Tooltip)); } }
+    private Visibility _button6Visibility = Visibility.Collapsed; public Visibility Button6Visibility { get => _button6Visibility; set { _button6Visibility = value; OnPropertyChanged(); } }
+    public string Button6Glyph => GetButtonGlyph(Button6Id);
+    public string Button6Tooltip => GetButtonTooltip(Button6Id);
+
+    private string GetButtonGlyph(string id) => id switch
+    {
+        CardButtonIds.ThreeDot => "\uE712",
+        CardButtonIds.AddTag => "\uE8EC", // Tag
+        CardButtonIds.AddToHome => HomeActionGlyph,
+        CardButtonIds.Delete => "\uE74D", // Delete
+        CardButtonIds.Details => "\uE946", // Info
+        _ => string.Empty
+    };
+
+    private string GetButtonTooltip(string id) => id switch
+    {
+        CardButtonIds.ThreeDot => "More actions",
+        CardButtonIds.AddTag => "Add tags",
+        CardButtonIds.AddToHome => HomeActionTooltip,
+        CardButtonIds.Delete => "Delete wallpaper",
+        CardButtonIds.Details => "Wallpaper details",
+        _ => string.Empty
+    };
+
+    public void UpdateButtons(List<string> buttons, bool isSelected)
+    {
+        IsSelected = isSelected; // Ensure state is correct
+
+        Button1Id = buttons.Count > 0 ? buttons[0] : string.Empty;
+        Button1Visibility = string.IsNullOrEmpty(Button1Id) ? Visibility.Collapsed : Visibility.Visible;
+
+        Button2Id = buttons.Count > 1 ? buttons[1] : string.Empty;
+        Button2Visibility = string.IsNullOrEmpty(Button2Id) ? Visibility.Collapsed : Visibility.Visible;
+
+        Button3Id = buttons.Count > 2 ? buttons[2] : string.Empty;
+        Button3Visibility = string.IsNullOrEmpty(Button3Id) ? Visibility.Collapsed : Visibility.Visible;
+
+        Button4Id = buttons.Count > 3 ? buttons[3] : string.Empty;
+        Button4Visibility = string.IsNullOrEmpty(Button4Id) ? Visibility.Collapsed : Visibility.Visible;
+
+        Button5Id = buttons.Count > 4 ? buttons[4] : string.Empty;
+        Button5Visibility = string.IsNullOrEmpty(Button5Id) ? Visibility.Collapsed : Visibility.Visible;
+
+        Button6Id = buttons.Count > 5 ? buttons[5] : string.Empty;
+        Button6Visibility = string.IsNullOrEmpty(Button6Id) ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    public string HomeActionGlyph => IsSelected ? "\uE711" : "\uE710"; // Minus vs Add
 
     public BitmapImage? PreviewImage => string.IsNullOrWhiteSpace(PreviewPath) || !File.Exists(PreviewPath)
         ? null

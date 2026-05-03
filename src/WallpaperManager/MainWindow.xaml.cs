@@ -53,6 +53,8 @@ public sealed partial class MainWindow : Window
     public ObservableCollection<WallpaperTag> Tags { get; } = [];
 
     public ObservableCollection<WallpaperTag> VisibleTags { get; } = [];
+    
+    public ObservableCollection<CardButtonInfo> CardButtonsList { get; } = [];
 
     public IReadOnlyList<string> ThemeChoices { get; } = ThemeOptions.All;
 
@@ -65,14 +67,14 @@ public sealed partial class MainWindow : Window
     public WallpaperItem NsfwPreviewItem { get; } = new() { IsNsfw = true, LocalName = "NSFW Preview" };
     public WallpaperItem MaturePreviewItem { get; } = new() { IsMature = true, LocalName = "Mature Preview" };
 
-    public IReadOnlyList<string> LibrarySortChoices { get; } = ["Name", "Date Added", "Workshop Updated"];
-    public IReadOnlyList<string> HomeSortChoices { get; } = ["Free Movement", "Name", "Date Added", "Workshop Updated"];
+    public IReadOnlyList<string> LibrarySortChoices { get; } = ["Name", "Date Added", "Workshop Updated", "Subscribers", "Size"];
+    public IReadOnlyList<string> HomeSortChoices { get; } = ["Free Movement", "Name", "Date Added", "Workshop Updated", "Subscribers", "Size"];
 
     public IReadOnlyList<string> NsfwTabChoices { get; } = ["Off", "Only NSFW", "NSFW and Mature"];
 
     public ObservableCollection<SettingsCategory> SettingsCategories { get; } =
     [
-        new() { Tag = "EngineWallpaper", Title = "Engine and Wallpaper", Icon = "\uE8A7" },
+        new() { Tag = "EngineWallpaper", Title = "Engine Setting", Icon = "\uE8A7" },
         new() { Tag = "Appearance", Title = "Appearance", Icon = "\uE771" },
         new() { Tag = "Library", Title = "Library", Icon = "\uE8B7" },
         new() { Tag = "NsfwMature", Title = "NSFW / Mature", Icon = "\uE8D4" },
@@ -155,6 +157,8 @@ public sealed partial class MainWindow : Window
         MatureModeComboBox.SelectedIndex = (int)CurrentSettings.MatureMode;
         LibraryHideComboBox.SelectedIndex = (int)CurrentSettings.LibraryHideMode;
         
+        InitializeCardButtonsList();
+
         BlurIntensitySlider.Value = CurrentSettings.BlurIntensity;
         OverlayOpacitySlider.Value = CurrentSettings.OverlayOpacity;
         UseWorkshopTagsToggle.IsOn = CurrentSettings.UseWorkshopTags;
@@ -922,6 +926,11 @@ public sealed partial class MainWindow : Window
             return;
         }
 
+        RunWallpaper(wallpaper);
+    }
+
+    private void RunWallpaper(WallpaperItem wallpaper)
+    {
         if (!_engineService.IsRunning(CurrentSettings.EngineExecutablePath))
         {
             _engineService.StartEngine(CurrentSettings.EngineExecutablePath);
@@ -941,6 +950,18 @@ public sealed partial class MainWindow : Window
         Process.Start(new ProcessStartInfo
         {
             FileName = url,
+            UseShellExecute = true
+        });
+    }
+
+    private void OpenWallpaperFolder(WallpaperItem item)
+    {
+        if (string.IsNullOrWhiteSpace(item.DirectoryPath) || !Directory.Exists(item.DirectoryPath))
+            return;
+
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = item.DirectoryPath,
             UseShellExecute = true
         });
     }
@@ -1113,7 +1134,26 @@ public sealed partial class MainWindow : Window
         {
             "Date Added" => items.OrderByDescending(w => w.DateModified).ThenBy(w => w.DisplayName),
             "Workshop Updated" => items.OrderByDescending(w => w.WorkshopMetadata?.TimeUpdated ?? DateTime.MinValue).ThenBy(w => w.DisplayName),
+            "Subscribers" => items.OrderByDescending(w => w.WorkshopMetadata?.SubscriptionCount ?? 0).ThenBy(w => w.DisplayName),
+            "Size" => items.OrderByDescending(w => w.SizeBytes).ThenBy(w => w.DisplayName),
             _ => items.OrderBy(w => w.DisplayName, StringComparer.CurrentCultureIgnoreCase)
+        };
+    }
+
+    private IEnumerable<WallpaperItem> SortWallpapersDescending(IEnumerable<WallpaperItem> items, string mode)
+    {
+        return SortWallpapers(items, mode); // Already descending for relevant fields
+    }
+
+    private IEnumerable<WallpaperItem> SortWallpapersAscending(IEnumerable<WallpaperItem> items, string mode)
+    {
+        return mode switch
+        {
+            "Date Added" => items.OrderBy(w => w.DateModified).ThenBy(w => w.DisplayName),
+            "Workshop Updated" => items.OrderBy(w => w.WorkshopMetadata?.TimeUpdated ?? DateTime.MinValue).ThenBy(w => w.DisplayName),
+            "Subscribers" => items.OrderBy(w => w.WorkshopMetadata?.SubscriptionCount ?? 0).ThenBy(w => w.DisplayName),
+            "Size" => items.OrderBy(w => w.SizeBytes).ThenBy(w => w.DisplayName),
+            _ => items.OrderByDescending(w => w.DisplayName, StringComparer.CurrentCultureIgnoreCase)
         };
     }
 
@@ -1140,6 +1180,7 @@ public sealed partial class MainWindow : Window
 
             ApplyCensorship(wallpaper);
             ApplySizePresentation(wallpaper, hiddenColumns);
+            UpdateWallpaperButtons(wallpaper);
         }
 
         ApplyCensorship(NsfwPreviewItem);
@@ -1224,6 +1265,59 @@ public sealed partial class MainWindow : Window
         TagsHeaderColumn.Width = GetColumnWidth(hiddenColumns, TagsColumn, new GridLength(180));
     }
 
+    private void InitializeCardButtonsList()
+    {
+        CardButtonsList.Clear();
+        var allButtons = new List<CardButtonInfo>
+        {
+            new() { Id = CardButtonIds.ThreeDot, Name = "Three Dot Menu", Glyph = "\uE712" },
+            new() { Id = CardButtonIds.AddTag, Name = "Add Tag / Mark", Glyph = "\uE8EC" },
+            new() { Id = CardButtonIds.AddToHome, Name = "Add to Home", Glyph = "\uE710" },
+            new() { Id = CardButtonIds.Delete, Name = "Delete Wallpaper", Glyph = "\uE74D" },
+            new() { Id = CardButtonIds.Details, Name = "Wallpaper Details", Glyph = "\uE946" }
+        };
+
+        foreach (var id in CurrentSettings.CardButtons)
+        {
+            var btn = allButtons.FirstOrDefault(b => b.Id == id);
+            if (btn != null)
+            {
+                btn.IsEnabled = true;
+                CardButtonsList.Add(btn);
+                allButtons.Remove(btn);
+            }
+        }
+
+        foreach (var btn in allButtons)
+        {
+            btn.IsEnabled = false;
+            CardButtonsList.Add(btn);
+        }
+    }
+
+    private void CardButtonEnabled_Click(object sender, RoutedEventArgs e)
+    {
+        SaveCardButtonsFromList();
+    }
+
+    private void CardButtons_DragItemsCompleted(ListViewBase sender, DragItemsCompletedEventArgs args)
+    {
+        SaveCardButtonsFromList();
+    }
+
+    private void SaveCardButtonsFromList()
+    {
+        CurrentSettings.CardButtons = CardButtonsList
+            .Where(b => b.IsEnabled)
+            .Select(b => b.Id)
+            .ToList();
+            
+        ApplyWallpaperPresentation();
+        RefreshVisibleWallpapers(); // Ensure instant update in library
+        RefreshSelectedWallpapers(); // Ensure instant update in home
+        TriggerSaveSettings();
+    }
+
     private void ApplyCompactHeaderVisibility()
     {
         var visible = CurrentSettings.CardSize == CardSizeOptions.Large
@@ -1243,6 +1337,13 @@ public sealed partial class MainWindow : Window
         SizeColumnToggle.IsChecked = !hiddenColumns.Contains(SizeColumn);
         TagsColumnToggle.IsChecked = !hiddenColumns.Contains(TagsColumn);
         ApplyColumnVisibility();
+    }
+
+    private void UpdateWallpaperButtons(WallpaperItem item)
+    {
+        var buttons = CurrentSettings.CardButtons;
+        var isSelected = SelectedWallpapers.Any(w => w.Key == item.Key);
+        item.UpdateButtons(buttons, isSelected);
     }
 
     private void ApplyLibraryViewMode(string viewMode)
@@ -2343,6 +2444,168 @@ public sealed partial class MainWindow : Window
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
+        TriggerSaveSettings();
+    }
+
+    private async void DynamicCardButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.DataContext is WallpaperItem item)
+        {
+            var buttonId = btn.Tag?.ToString();
+            if (string.IsNullOrEmpty(buttonId)) return;
+
+            switch (buttonId)
+            {
+                case CardButtonIds.ThreeDot:
+                    ShowWallpaperActions(btn, item);
+                    break;
+                case CardButtonIds.AddTag:
+                    ShowAddTagFlyout(btn, item);
+                    break;
+                case CardButtonIds.AddToHome:
+                    ToggleHomeStatus(item);
+                    break;
+                case CardButtonIds.Delete:
+                    await DeleteWallpaperAsync(item);
+                    break;
+                case CardButtonIds.Details:
+                    ShowWallpaperDetails(item);
+                    break;
+            }
+        }
+    }
+
+    private void ShowWallpaperActions(FrameworkElement anchor, WallpaperItem item)
+    {
+        var menu = new MenuFlyout();
+        
+        var runItem = new MenuFlyoutItem { Text = "Run Wallpaper", Icon = new SymbolIcon(Symbol.Play) };
+        runItem.Click += (_, _) => RunWallpaper(item);
+        menu.Items.Add(runItem);
+
+        menu.Items.Add(new MenuFlyoutSeparator());
+
+        var homeText = SelectedWallpapers.Contains(item) ? "Remove from Home" : "Add to Home";
+        var homeIcon = SelectedWallpapers.Contains(item) ? "\uE711" : "\uE710";
+        var homeItem = new MenuFlyoutItem { Text = homeText, Icon = new FontIcon { Glyph = homeIcon } };
+        homeItem.Click += (_, _) => ToggleHomeStatus(item);
+        menu.Items.Add(homeItem);
+
+        var detailsItem = new MenuFlyoutItem { Text = "Details", Icon = new SymbolIcon(Symbol.List) };
+        detailsItem.Click += (_, _) => ShowWallpaperDetails(item);
+        if (!CurrentSettings.CardButtons.Contains(CardButtonIds.Details))
+            menu.Items.Add(detailsItem);
+
+        var openFolderItem = new MenuFlyoutItem { Text = "Open Folder", Icon = new SymbolIcon(Symbol.Folder) };
+        openFolderItem.Click += (_, _) => OpenWallpaperFolder(item);
+        menu.Items.Add(openFolderItem);
+
+        menu.Items.Add(new MenuFlyoutSeparator());
+
+        var deleteItem = new MenuFlyoutItem { Text = "Delete", Icon = new SymbolIcon(Symbol.Delete), Foreground = new SolidColorBrush(Microsoft.UI.Colors.Red) };
+        deleteItem.Click += async (_, _) => await DeleteWallpaperAsync(item);
+        if (!CurrentSettings.CardButtons.Contains(CardButtonIds.Delete))
+            menu.Items.Add(deleteItem);
+
+        menu.ShowAt(anchor);
+    }
+
+    private void ShowAddTagFlyout(FrameworkElement anchor, WallpaperItem item)
+    {
+        var flyout = new Flyout();
+        var panel = new StackPanel { Spacing = 10, Width = 200, Padding = new Thickness(5) };
+
+        panel.Children.Add(new TextBlock { Text = "Mark Content", FontWeight = Microsoft.UI.Text.FontWeights.SemiBold });
+        
+        var markNsfwBtn = new Button { Content = item.IsNsfw ? "Unmark NSFW" : "Mark NSFW", HorizontalAlignment = HorizontalAlignment.Stretch };
+        markNsfwBtn.Click += (_, _) => { item.IsNsfw = !item.IsNsfw; TriggerSaveSettings(); ApplyWallpaperPresentation(); flyout.Hide(); };
+        
+        var markMatureBtn = new Button { Content = item.IsMature ? "Unmark Mature" : "Mark Mature", HorizontalAlignment = HorizontalAlignment.Stretch };
+        markMatureBtn.Click += (_, _) => { item.IsMature = !item.IsMature; TriggerSaveSettings(); ApplyWallpaperPresentation(); flyout.Hide(); };
+
+        panel.Children.Add(markNsfwBtn);
+        panel.Children.Add(markMatureBtn);
+        
+        panel.Children.Add(new MenuFlyoutSeparator());
+        panel.Children.Add(new TextBlock { Text = "Add Local Tag", FontWeight = Microsoft.UI.Text.FontWeights.SemiBold });
+
+        var tagSearch = new AutoSuggestBox { PlaceholderText = "Search/Add tag", QueryIcon = new SymbolIcon(Symbol.Find) };
+        tagSearch.ItemsSource = Tags.Select(t => t.Name).ToList();
+        tagSearch.SuggestionChosen += (s, a) => { 
+            var tagName = a.SelectedItem.ToString();
+            if (!item.Tags.Contains(tagName)) { item.Tags.Add(tagName); TriggerSaveSettings(); ApplyWallpaperPresentation(); }
+            flyout.Hide();
+        };
+
+        panel.Children.Add(tagSearch);
+
+        flyout.Content = panel;
+        flyout.ShowAt(anchor);
+    }
+
+    private void ShowWallpaperDetails(WallpaperItem item)
+    {
+        WallpaperDetails_Click(new Button { Tag = item }, null);
+    }
+
+    private async Task DeleteWallpaperAsync(WallpaperItem item)
+    {
+        var dialog = new ContentDialog
+        {
+            Title = "Delete Wallpaper",
+            Content = $"Are you sure you want to permanently delete '{item.DisplayName}'?\nThis will remove the files from your computer.",
+            PrimaryButtonText = "Delete",
+            CloseButtonText = "Cancel",
+            DefaultButton = ContentDialogButton.Close,
+            XamlRoot = RootGrid.XamlRoot
+        };
+
+        if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+        {
+            try
+            {
+                if (Directory.Exists(item.DirectoryPath))
+                {
+                    Directory.Delete(item.DirectoryPath, true);
+                }
+                
+                VisibleWallpapers.Remove(item);
+                SelectedWallpapers.Remove(item);
+                CurrentSettings.SelectedWallpaperKeys.Remove(item.Key);
+                
+                TriggerSaveSettings();
+            }
+            catch (Exception ex)
+            {
+                var errorDialog = new ContentDialog
+                {
+                    Title = "Delete Failed",
+                    Content = $"Could not delete wallpaper: {ex.Message}",
+                    CloseButtonText = "OK",
+                    XamlRoot = RootGrid.XamlRoot
+                };
+                await errorDialog.ShowAsync();
+            }
+        }
+    }
+
+    private void ToggleHomeStatus(WallpaperItem item)
+    {
+        item.IsSelected = !item.IsSelected;
+        
+        if (item.IsSelected)
+        {
+            if (!CurrentSettings.SelectedWallpaperKeys.Contains(item.Key))
+            {
+                CurrentSettings.SelectedWallpaperKeys.Add(item.Key);
+            }
+        }
+        else
+        {
+            CurrentSettings.SelectedWallpaperKeys.Remove(item.Key);
+        }
+
+        RefreshSelectedWallpapers();
         TriggerSaveSettings();
     }
 }
