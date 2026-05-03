@@ -1500,66 +1500,38 @@ public sealed partial class MainWindow : Window
     {
         if (_saveSettingsTimer == null)
         {
-            _saveSettingsTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
+            _saveSettingsTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(400) };
             _saveSettingsTimer.Tick += async (_, _) =>
             {
+                _saveSettingsTimer.Stop();
                 try
                 {
-                    _saveSettingsTimer.Stop();
-                    if (!_isScanning)
-                    {
-                        ScanLibraryFromSettings();
-                    }
+                    // Update collection-based settings that aren't easily tracked by single handlers
+                    CurrentSettings.Tags = Tags.ToList();
+                    CurrentSettings.WallpaperDirectories = LibraryRoots.ToList();
+
                     await _settingsStore.SaveAsync(CurrentSettings);
                 }
                 catch (Exception ex)
                 {
-                    // Log error but don't crash
                     System.Diagnostics.Debug.WriteLine($"Save failed: {ex.Message}");
                 }
             };
         }
-        
+
         _saveSettingsTimer.Stop();
         _saveSettingsTimer.Start();
     }
 
     private void ScanLibraryFromSettings()
     {
-        CurrentSettings.WallpaperDirectories = LibraryRoots.ToList();
-        CurrentSettings.EngineExecutablePath = EnginePathTextBox.Text;
-        CurrentSettings.Theme = FromThemeMode(ThemeComboBox.SelectedItem as string ?? "Auto");
-        CurrentSettings.ThemeColor = NormalizeHexColor(ThemeColorTextBox.Text);
-        CurrentSettings.LibraryViewMode = LibraryViewComboBox.SelectedItem as string ?? LibraryViewModes.List;
-        CurrentSettings.HomeViewMode = HomeViewComboBox.SelectedItem as string ?? LibraryViewModes.Thumbnail;
-        CurrentSettings.LibrarySortMode = LibrarySortComboBox.SelectedItem as string ?? "Name";
-        CurrentSettings.HomeSortMode = HomeSortComboBox.SelectedItem as string ?? "Free Movement";
-        CurrentSettings.CardSize = CardSizeComboBox.SelectedItem as string ?? CardSizeOptions.Medium;
-        CurrentSettings.ColorRowsByHighestPriorityTag = ColorRowsToggle.IsOn;
-        CurrentSettings.NsfwTabMode = (NsfwTabMode)NsfwTabComboBox.SelectedIndex;
-        CurrentSettings.UseMicaBackdrop = true;
-        CurrentSettings.RunOnStartup = RunOnStartupToggle.IsOn;
-        CurrentSettings.MemoryUsageProfile = MemoryUsageComboBox.SelectedItem as string ?? "Balanced";
-        CurrentSettings.PrioritizeWorkshopName = PrioritizeWorkshopNameToggle.IsOn;
-        CurrentSettings.AutoMarkNsfwFromWorkshop = AutoMarkNsfwToggle.IsOn;
-        CurrentSettings.NsfwMode = (CensorshipMode)NsfwModeComboBox.SelectedIndex;
-        CurrentSettings.MatureMode = (CensorshipMode)MatureModeComboBox.SelectedIndex;
-        CurrentSettings.BlurIntensity = BlurIntensitySlider.Value;
-        CurrentSettings.OverlayOpacity = OverlayOpacitySlider.Value;
-        CurrentSettings.LibraryHideMode = (LibraryHideMode)LibraryHideComboBox.SelectedIndex;
-        CurrentSettings.UseWorkshopTags = UseWorkshopTagsToggle.IsOn;
-        CurrentSettings.Tags = Tags.ToList();
-        CurrentSettings.NsfwWallpaperKeys = Wallpapers.Where(wallpaper => wallpaper.IsNsfw).Select(wallpaper => wallpaper.Key).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-        CurrentSettings.MatureWallpaperKeys = Wallpapers.Where(wallpaper => wallpaper.IsMature).Select(wallpaper => wallpaper.Key).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-        CurrentSettings.WallpaperTags = Wallpapers
-            .Where(wallpaper => wallpaper != null && !string.IsNullOrEmpty(wallpaper.Key) && wallpaper.Tags != null && wallpaper.Tags.Count > 0)
-            .GroupBy(wallpaper => wallpaper.Key)
-            .ToDictionary(
-                group => group.Key, 
-                group => group.First().Tags.Distinct(StringComparer.OrdinalIgnoreCase).ToList(), 
-                StringComparer.OrdinalIgnoreCase);
+        // This method is now only for refreshing state from the CurrentSettings object
+        // No longer scraping UI as it caused race conditions/toggle issues.
+        ApplyBackdrop(true);
+        ApplyTheme(CurrentSettings.Theme);
+        ApplyWallpaperPresentation();
+        RefreshVisibleWallpapers();
     }
-
     private void UpdateEmptyStates()
     {
         EmptyHomeInfo.IsOpen = SelectedWallpapers.Count == 0;
