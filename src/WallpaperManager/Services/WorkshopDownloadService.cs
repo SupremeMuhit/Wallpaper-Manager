@@ -59,7 +59,6 @@ public sealed class WorkshopDownloadService
         if (EncryptedAccounts.Count == 0)
         {
             EncryptedAccounts.Add(("ruiiixx", "JFdbKzI1Ml1BaVY3"));
-            EncryptedAccounts.Add(("premexilmenledgconis", "RBE0Djg7Ogk2Tw=="));
             EncryptedAccounts.Add(("vAbuDy", "NQ4DAAFZBgwC"));
             EncryptedAccounts.Add(("adgjl1182", "JiQ4OT9YSVxLFA=="));
             EncryptedAccounts.Add(("gobjj16182", "DRQDDhkAH11AH1c="));
@@ -67,7 +66,14 @@ public sealed class WorkshopDownloadService
             EncryptedAccounts.Add(("workshop01", "DRQDAw8WA19f"));
             EncryptedAccounts.Add(("workshop02", "DRQDAw8WA19c"));
             EncryptedAccounts.Add(("workshop03", "DRQDAw8WA19e"));
+            EncryptedAccounts.Add(("premexilmenledgconis", "RBE0Djg7Ogk2Tw==")); // Move to end as requested
         }
+    }
+
+    private bool _skipCurrentRequested = false;
+    public void SkipCurrentAccount()
+    {
+        _skipCurrentRequested = true;
     }
 
     public string? ExtractWorkshopId(string input)
@@ -114,16 +120,16 @@ public sealed class WorkshopDownloadService
             }
         }
 
-        var random = new Random();
+        _skipCurrentRequested = false;
         var accounts = EncryptedAccounts
             .Select(a => (a.Username, Password: Decrypt(a.EncryptedPassword)))
-            .OrderBy(_ => random.Next())
             .ToList();
         
         string lastError = "All accounts failed";
 
         foreach (var account in accounts)
         {
+            _skipCurrentRequested = false;
             onProgress?.Invoke(0, $"Connecting to Steam as {account.Username}...");
 
             var startInfo = new ProcessStartInfo
@@ -182,13 +188,28 @@ public sealed class WorkshopDownloadService
                 var connectionTimeout = Task.Delay(TimeSpan.FromSeconds(30));
                 var processTask = process.WaitForExitAsync();
 
-                var firstTask = await Task.WhenAny(processTask, connectionTimeout);
-                if (firstTask == connectionTimeout && !receivedAnyOutput)
+                while (!processTask.IsCompleted)
                 {
-                    try { process.Kill(); } catch { }
-                    onProgress?.Invoke(0, $"Account {account.Username} unresponsive. Trying next...");
-                    continue;
+                    if (_skipCurrentRequested)
+                    {
+                        try { process.Kill(); } catch { }
+                        onProgress?.Invoke(0, "Skipping current account...");
+                        break;
+                    }
+                    
+                    var completed = await Task.WhenAny(processTask, Task.Delay(500));
+                    if (completed == processTask) break;
+
+                    // Still check initial timeout
+                    if (!receivedAnyOutput && DateTime.Now - process.StartTime > TimeSpan.FromSeconds(30))
+                    {
+                        try { process.Kill(); } catch { }
+                        onProgress?.Invoke(0, $"Account {account.Username} unresponsive. Trying next...");
+                        break;
+                    }
                 }
+
+                if (_skipCurrentRequested) continue;
 
                 var timeoutTask = Task.Delay(TimeSpan.FromMinutes(5));
                 var completedTask = await Task.WhenAny(processTask, timeoutTask);

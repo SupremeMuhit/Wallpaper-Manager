@@ -853,6 +853,7 @@ public sealed partial class MainWindow : Window
             DownloadSuccessPanel.Visibility = Visibility.Visible;
             ActiveDownloadPanel.Visibility = Visibility.Collapsed;
             WorkshopUrlInput.Text = string.Empty;
+            WorkshopPreviewPanel.Visibility = Visibility.Collapsed;
             ShowDownloadInfo("Success", $"Wallpaper {workshopId} downloaded successfully.", InfoBarSeverity.Success);
             await ScanLibraryAsync();
         }
@@ -860,6 +861,11 @@ public sealed partial class MainWindow : Window
         {
             ShowDownloadInfo("Download Failed", "There was an error downloading the wallpaper. Check the logs or try again.", InfoBarSeverity.Error);
         }
+    }
+
+    private void SkipAccount_Click(object sender, RoutedEventArgs e)
+    {
+        _downloadService.SkipCurrentAccount();
     }
 
     private string _lastPreviewId = string.Empty;
@@ -890,6 +896,8 @@ public sealed partial class MainWindow : Window
                 WorkshopPreviewTitle.Text = metadata.Title;
                 WorkshopPreviewDescription.Text = metadata.Description;
                 WorkshopPreviewTags.ItemsSource = metadata.Tags;
+                WorkshopPreviewSize.Text = FormatSize(metadata.FileSize);
+                WorkshopPreviewDate.Text = metadata.TimeUpdated.ToString("MMM dd, yyyy");
                 
                 if (!string.IsNullOrEmpty(metadata.PreviewUrl))
                 {
@@ -1028,8 +1036,6 @@ public sealed partial class MainWindow : Window
         RefreshSelectedWallpapers();
         TriggerSaveSettings();
     }
-
-
 
     private void ToggleNsfwMenuItem_Click(object sender, RoutedEventArgs e)
     {
@@ -2911,5 +2917,18 @@ public sealed partial class MainWindow : Window
 
         RefreshSelectedWallpapers();
         TriggerSaveSettings();
+    }
+
+    private string FormatSize(long bytes)
+    {
+        string[] suffixes = { "B", "KB", "MB", "GB", "TB" };
+        int counter = 0;
+        decimal number = bytes;
+        while (Math.Round(number / 1024) >= 1)
+        {
+            number /= 1024;
+            counter++;
+        }
+        return string.Format("{0:n1} {1}", number, suffixes[counter]);
     }
 }
