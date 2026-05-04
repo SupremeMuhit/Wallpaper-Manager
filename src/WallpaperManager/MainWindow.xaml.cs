@@ -1289,6 +1289,7 @@ public sealed partial class MainWindow : Window
     {
         var mode = item.IsNsfw ? CurrentSettings.NsfwMode : (item.IsMature ? CurrentSettings.MatureMode : CensorshipMode.Off);
 
+        // Remove censorship on hover
         if (CurrentSettings.RemoveCensorOnHover && item.IsHovered)
         {
             item.BlurOpacity = 1.0;
@@ -1309,9 +1310,10 @@ public sealed partial class MainWindow : Window
                 item.BlurOverlayVisibility = Visibility.Collapsed;
                 break;
             case CensorshipMode.Blur:
-                // Direct blur/fade. No darktone tint, but use BlurIntensity for blur strength.
-                item.BlurOpacity = 1.0; // Keep image fully opaque behind blur
-                item.CensorshipOverlayOpacity = Math.Clamp(CurrentSettings.BlurIntensity / 100.0, 0.1, 1.0);
+                // Pure blur: Keep overlay opacity at 1.0 so the blur effect is fully opaque, 
+                // but let the BlurAmount (intensity) handle the thickness.
+                item.BlurOpacity = 1.0; 
+                item.CensorshipOverlayOpacity = 1.0; 
                 item.NsfwOverlayVisibility = Visibility.Collapsed;
                 item.MatureOverlayVisibility = Visibility.Collapsed;
                 item.BlurOverlayVisibility = Visibility.Visible;
@@ -1423,11 +1425,11 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    private void CardButtonEnabled_Click(object sender, RoutedEventArgs e)
+    private void CardButtonEnabled_Toggled(object sender, RoutedEventArgs e)
     {
-        if (sender is CheckBox cb && cb.DataContext is CardButtonInfo btn && btn.Id == CardButtonIds.ThreeDot)
+        if (sender is ToggleSwitch ts && ts.DataContext is CardButtonInfo btn && btn.Id == CardButtonIds.ThreeDot)
         {
-            cb.IsChecked = true; // Force stay checked
+            ts.IsOn = true; // Force stay on
             btn.IsEnabled = true;
             return;
         }
