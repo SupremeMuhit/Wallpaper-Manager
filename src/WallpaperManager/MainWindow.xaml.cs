@@ -14,6 +14,10 @@ using Microsoft.UI;
 using Windows.UI;
 using System.Diagnostics;
 using Microsoft.UI.Xaml.Media.Imaging;
+using Microsoft.UI.Composition;
+using Microsoft.UI.Xaml.Hosting;
+using Microsoft.Graphics.Canvas.Effects;
+using Windows.Graphics.Effects;
 
 namespace WallpaperManager;
 
@@ -497,7 +501,73 @@ public sealed partial class MainWindow : Window
         if (_isLoadingSettings) return;
         CurrentSettings.BlurIntensity = BlurIntensitySlider.Value;
         ApplyWallpaperPresentation();
+        UpdateAllBlurEffects();
         TriggerSaveSettings();
+    }
+
+    private readonly HashSet<FrameworkElement> _activeBlurOverlays = new();
+
+    private void BlurOverlay_Loaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement element)
+        {
+            _activeBlurOverlays.Add(element);
+            UpdateBlurEffect(element);
+        }
+    }
+
+    private void BlurOverlay_Unloaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement element)
+        {
+            _activeBlurOverlays.Remove(element);
+        }
+    }
+
+    private void UpdateAllBlurEffects()
+    {
+        foreach (var element in _activeBlurOverlays.ToList())
+        {
+            UpdateBlurEffect(element);
+        }
+    }
+
+    private void UpdateBlurEffect(FrameworkElement element)
+    {
+        var visual = ElementCompositionPreview.GetElementVisual(element);
+        var compositor = visual.Compositor;
+
+        var childVisual = ElementCompositionPreview.GetElementChildVisual(element) as SpriteVisual;
+        if (childVisual == null)
+        {
+            var blurEffect = new GaussianBlurEffect
+            {
+                Name = "Blur",
+                BlurAmount = (float)(CurrentSettings.BlurIntensity / 3.0), // Scale intensity to a reasonable radius (0 to 33.3)
+                BorderMode = EffectBorderMode.Hard,
+                Source = new CompositionEffectSourceParameter("source")
+            };
+
+            var factory = compositor.CreateEffectFactory(blurEffect, new[] { "Blur.BlurAmount" });
+            var brush = factory.CreateBrush();
+            brush.SetSourceParameter("source", compositor.CreateBackdropBrush());
+
+            childVisual = compositor.CreateSpriteVisual();
+            childVisual.Brush = brush;
+
+            ElementCompositionPreview.SetElementChildVisual(element, childVisual);
+
+            // Bind size
+            var bind = compositor.CreateExpressionAnimation("visual.Size");
+            bind.SetReferenceParameter("visual", visual);
+            childVisual.StartAnimation("Size", bind);
+        }
+
+        // Update intensity
+        if (childVisual.Brush is CompositionEffectBrush effectBrush)
+        {
+            effectBrush.Properties.InsertScalar("Blur.BlurAmount", (float)(CurrentSettings.BlurIntensity / 3.0));
+        }
     }
 
     private void UpdatePreviewWallpapers()

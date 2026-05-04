@@ -118,11 +118,7 @@
                                                         <Image Source="{x:Bind PreviewImage}" Stretch="UniformToFill" Opacity="{x:Bind BlurOpacity, Mode=OneWay}" />
                                                     </Border>
                                                     <Grid Visibility="{x:Bind BlurOverlayVisibility, Mode=OneWay}" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}">
-                                                        <Border CornerRadius="6">
-                                                            <Border.Background>
-                                                                <AcrylicBrush TintColor="White" TintOpacity="0.05" TintLuminosityOpacity="0.9" FallbackColor="Transparent" />
-                                                            </Border.Background>
-                                                        </Border>
+                                                        <Border CornerRadius="6" Loaded="BlurOverlay_Loaded" Unloaded="BlurOverlay_Unloaded" />
                                                     </Grid>
                                                     <Grid Visibility="{x:Bind NsfwOverlayVisibility, Mode=OneWay}">
                                                         <Border Background="Black" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="6" />
@@ -183,11 +179,7 @@
                                                         <Image Source="{x:Bind PreviewImage}" Stretch="UniformToFill" Opacity="{x:Bind BlurOpacity, Mode=OneWay}" />
                                                     </Border>
                                                     <Grid Visibility="{x:Bind BlurOverlayVisibility, Mode=OneWay}" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}">
-                                                        <Border CornerRadius="4">
-                                                            <Border.Background>
-                                                                <AcrylicBrush TintColor="White" TintOpacity="0.05" TintLuminosityOpacity="0.9" FallbackColor="Transparent" />
-                                                            </Border.Background>
-                                                        </Border>
+                                                        <Border CornerRadius="4" Loaded="BlurOverlay_Loaded" Unloaded="BlurOverlay_Unloaded" />
                                                     </Grid>
                                                     <Grid Visibility="{x:Bind NsfwOverlayVisibility, Mode=OneWay}">
                                                         <Border Background="Black" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="4" />
@@ -229,11 +221,7 @@
                                                         <Image Source="{x:Bind PreviewImage}" Stretch="UniformToFill" Opacity="{x:Bind BlurOpacity, Mode=OneWay}" />
                                                     </Border>
                                                     <Grid Visibility="{x:Bind BlurOverlayVisibility, Mode=OneWay}" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}">
-                                                        <Border CornerRadius="6">
-                                                            <Border.Background>
-                                                                <AcrylicBrush TintColor="White" TintOpacity="0.05" TintLuminosityOpacity="0.9" FallbackColor="Transparent" />
-                                                            </Border.Background>
-                                                        </Border>
+                                                        <Border CornerRadius="6" Loaded="BlurOverlay_Loaded" Unloaded="BlurOverlay_Unloaded" />
                                                     </Grid>
                                                     <Grid Visibility="{x:Bind NsfwOverlayVisibility, Mode=OneWay}">
                                                         <Border Background="Black" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="6" />
@@ -336,11 +324,7 @@
                                                             <Image Source="{x:Bind PreviewImage}" Stretch="UniformToFill" Opacity="{x:Bind BlurOpacity, Mode=OneWay}" />
                                                         </Border>
                                                     <Grid Visibility="{x:Bind BlurOverlayVisibility, Mode=OneWay}" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}">
-                                                        <Border CornerRadius="6">
-                                                            <Border.Background>
-                                                                <AcrylicBrush TintColor="White" TintOpacity="0.05" TintLuminosityOpacity="0.9" FallbackColor="Transparent" />
-                                                            </Border.Background>
-                                                        </Border>
+                                                        <Border CornerRadius="6" Loaded="BlurOverlay_Loaded" Unloaded="BlurOverlay_Unloaded" />
                                                     </Grid>
                                                         <Grid Visibility="{x:Bind NsfwOverlayVisibility, Mode=OneWay}">
                                                             <Border Background="Black" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="6" />
@@ -416,11 +400,7 @@
                                                             <Image Source="{x:Bind PreviewImage}" Stretch="UniformToFill" Opacity="{x:Bind BlurOpacity, Mode=OneWay}" />
                                                         </Border>
                                                     <Grid Visibility="{x:Bind BlurOverlayVisibility, Mode=OneWay}" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}">
-                                                        <Border CornerRadius="4">
-                                                            <Border.Background>
-                                                                <AcrylicBrush TintColor="White" TintOpacity="0.05" TintLuminosityOpacity="0.9" FallbackColor="Transparent" />
-                                                            </Border.Background>
-                                                        </Border>
+                                                        <Border CornerRadius="4" Loaded="BlurOverlay_Loaded" Unloaded="BlurOverlay_Unloaded" />
                                                     </Grid>
                                                         <Grid Visibility="{x:Bind NsfwOverlayVisibility, Mode=OneWay}">
                                                             <Border Background="Black" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="4" />
@@ -463,11 +443,7 @@
                                                             <Image Source="{x:Bind PreviewImage}" Stretch="UniformToFill" Opacity="{x:Bind BlurOpacity, Mode=OneWay}" />
                                                         </Border>
                                                     <Grid Visibility="{x:Bind BlurOverlayVisibility, Mode=OneWay}" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}">
-                                                        <Border CornerRadius="6">
-                                                            <Border.Background>
-                                                                <AcrylicBrush TintColor="White" TintOpacity="0.05" TintLuminosityOpacity="0.9" FallbackColor="Transparent" />
-                                                            </Border.Background>
-                                                        </Border>
+                                                        <Border CornerRadius="6" Loaded="BlurOverlay_Loaded" Unloaded="BlurOverlay_Unloaded" />
                                                     </Grid>
                                                         <Grid Visibility="{x:Bind NsfwOverlayVisibility, Mode=OneWay}">
                                                             <Border Background="Black" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="6" />
@@ -733,7 +709,7 @@
                                                     <Border Width="160" Height="90" Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="6" BorderThickness="1" BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}">
                                                         <Grid>
                                                             <Image Source="{x:Bind NsfwPreviewItem.PreviewImage, Mode=OneWay}" Stretch="UniformToFill" Opacity="{x:Bind NsfwPreviewItem.BlurOpacity, Mode=OneWay}" />
-                                                            <Grid Visibility="{x:Bind NsfwPreviewItem.BlurOverlayVisibility, Mode=OneWay}" Opacity="{x:Bind NsfwPreviewItem.CensorshipOverlayOpacity, Mode=OneWay}"><Border CornerRadius="6"><Border.Background><AcrylicBrush TintColor="White" TintOpacity="0.01" TintLuminosityOpacity="0" FallbackColor="Transparent" /></Border.Background></Border></Grid>
+                                                            <Grid Visibility="{x:Bind NsfwPreviewItem.BlurOverlayVisibility, Mode=OneWay}" Opacity="{x:Bind NsfwPreviewItem.CensorshipOverlayOpacity, Mode=OneWay}"><Border CornerRadius="6" Loaded="BlurOverlay_Loaded" Unloaded="BlurOverlay_Unloaded" /></Grid>
                                                             <Grid Visibility="{x:Bind NsfwPreviewItem.NsfwOverlayVisibility, Mode=OneWay}">
                                                                 <Border Background="Black" Opacity="{x:Bind NsfwPreviewItem.CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="6" />
                                                             </Grid>
@@ -745,7 +721,7 @@
                                                     <Border Width="160" Height="90" Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="6" BorderThickness="1" BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}">
                                                         <Grid>
                                                             <Image Source="{x:Bind MaturePreviewItem.PreviewImage, Mode=OneWay}" Stretch="UniformToFill" Opacity="{x:Bind MaturePreviewItem.BlurOpacity, Mode=OneWay}" />
-                                                            <Grid Visibility="{x:Bind MaturePreviewItem.BlurOverlayVisibility, Mode=OneWay}" Opacity="{x:Bind MaturePreviewItem.CensorshipOverlayOpacity, Mode=OneWay}"><Border CornerRadius="6"><Border.Background><AcrylicBrush TintColor="White" TintOpacity="0.01" TintLuminosityOpacity="0" FallbackColor="Transparent" /></Border.Background></Border></Grid>
+                                                            <Grid Visibility="{x:Bind MaturePreviewItem.BlurOverlayVisibility, Mode=OneWay}" Opacity="{x:Bind MaturePreviewItem.CensorshipOverlayOpacity, Mode=OneWay}"><Border CornerRadius="6" Loaded="BlurOverlay_Loaded" Unloaded="BlurOverlay_Unloaded" /></Grid>
                                                             <Grid Visibility="{x:Bind MaturePreviewItem.MatureOverlayVisibility, Mode=OneWay}">
                                                                 <Border Background="Black" Opacity="{x:Bind MaturePreviewItem.CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="6" />
                                                             </Grid>
