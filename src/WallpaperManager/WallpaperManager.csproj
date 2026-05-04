@@ -13,6 +13,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <WindowsPackageType>None</WindowsPackageType>
     <WindowsAppSDKSelfContained Condition="'$(RuntimeIdentifier)' != ''">true</WindowsAppSDKSelfContained>
+    <Win2DWarnNoPlatform>true</Win2DWarnNoPlatform>
   </PropertyGroup>
 
   <ItemGroup>

@@ -113,17 +113,17 @@
                                                     <ColumnDefinition Width="*" />
                                                     <ColumnDefinition Width="Auto" />
                                                 </Grid.ColumnDefinitions>
-                                                <Grid Width="{x:Bind ListPreviewWidth, Mode=OneWay}" Height="{x:Bind ListPreviewHeight, Mode=OneWay}" Visibility="{x:Bind ListPreviewVisibility, Mode=OneWay}" PointerEntered="PreviewImage_PointerEntered" PointerExited="PreviewImage_PointerExited">
+                                                <Grid Width="{x:Bind ListPreviewWidth, Mode=OneWay}" Height="{x:Bind ListPreviewHeight, Mode=OneWay}" Visibility="{x:Bind ListPreviewVisibility, Mode=OneWay}" Background="Transparent" PointerEntered="PreviewImage_PointerEntered" PointerExited="PreviewImage_PointerExited">
                                                     <Border Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="6">
                                                         <Image Source="{x:Bind PreviewImage}" Stretch="UniformToFill" Opacity="{x:Bind BlurOpacity, Mode=OneWay}" />
                                                     </Border>
-                                                    <Grid Visibility="{x:Bind BlurOverlayVisibility, Mode=OneWay}" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}">
+                                                    <Grid Visibility="{x:Bind BlurOverlayVisibility, Mode=OneWay}" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" IsHitTestVisible="False">
                                                         <Border CornerRadius="6" Loaded="BlurOverlay_Loaded" Unloaded="BlurOverlay_Unloaded" />
                                                     </Grid>
-                                                    <Grid Visibility="{x:Bind NsfwOverlayVisibility, Mode=OneWay}">
+                                                    <Grid Visibility="{x:Bind NsfwOverlayVisibility, Mode=OneWay}" IsHitTestVisible="False">
                                                         <Border Background="Black" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="6" />
                                                     </Grid>
-                                                    <Grid Visibility="{x:Bind MatureOverlayVisibility, Mode=OneWay}">
+                                                    <Grid Visibility="{x:Bind MatureOverlayVisibility, Mode=OneWay}" IsHitTestVisible="False">
                                                         <Border Background="Black" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="6" />
                                                     </Grid>
                                                 </Grid>
@@ -174,17 +174,17 @@
                                                     <ColumnDefinition Width="180" />
                                                     <ColumnDefinition Width="Auto" />
                                                 </Grid.ColumnDefinitions>
-                                                <Grid Width="{x:Bind ListPreviewWidth, Mode=OneWay}" Height="{x:Bind ListPreviewHeight, Mode=OneWay}" Visibility="{x:Bind ListPreviewVisibility, Mode=OneWay}" PointerEntered="PreviewImage_PointerEntered" PointerExited="PreviewImage_PointerExited">
+                                                <Grid Width="{x:Bind ListPreviewWidth, Mode=OneWay}" Height="{x:Bind ListPreviewHeight, Mode=OneWay}" Visibility="{x:Bind ListPreviewVisibility, Mode=OneWay}" Background="Transparent" PointerEntered="PreviewImage_PointerEntered" PointerExited="PreviewImage_PointerExited">
                                                     <Border Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="4">
                                                         <Image Source="{x:Bind PreviewImage}" Stretch="UniformToFill" Opacity="{x:Bind BlurOpacity, Mode=OneWay}" />
                                                     </Border>
-                                                    <Grid Visibility="{x:Bind BlurOverlayVisibility, Mode=OneWay}" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}">
+                                                    <Grid Visibility="{x:Bind BlurOverlayVisibility, Mode=OneWay}" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" IsHitTestVisible="False">
                                                         <Border CornerRadius="4" Loaded="BlurOverlay_Loaded" Unloaded="BlurOverlay_Unloaded" />
                                                     </Grid>
-                                                    <Grid Visibility="{x:Bind NsfwOverlayVisibility, Mode=OneWay}">
+                                                    <Grid Visibility="{x:Bind NsfwOverlayVisibility, Mode=OneWay}" IsHitTestVisible="False">
                                                         <Border Background="Black" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="4" />
                                                     </Grid>
-                                                    <Grid Visibility="{x:Bind MatureOverlayVisibility, Mode=OneWay}">
+                                                    <Grid Visibility="{x:Bind MatureOverlayVisibility, Mode=OneWay}" IsHitTestVisible="False">
                                                         <Border Background="Black" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="4" />
                                                     </Grid>
                                                 </Grid>
@@ -216,17 +216,17 @@
                                         <Border Width="{x:Bind CardWidth, Mode=OneWay}" Padding="12" Background="{x:Bind RowBackground, Mode=OneWay}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
                                             <Grid>
                                             <StackPanel Spacing="10">
-                                                <Grid Height="{x:Bind CardPreviewHeight, Mode=OneWay}" PointerEntered="PreviewImage_PointerEntered" PointerExited="PreviewImage_PointerExited">
+                                                <Grid Height="{x:Bind CardPreviewHeight, Mode=OneWay}" Background="Transparent" PointerEntered="PreviewImage_PointerEntered" PointerExited="PreviewImage_PointerExited">
                                                     <Border Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="6">
                                                         <Image Source="{x:Bind PreviewImage}" Stretch="UniformToFill" Opacity="{x:Bind BlurOpacity, Mode=OneWay}" />
                                                     </Border>
-                                                    <Grid Visibility="{x:Bind BlurOverlayVisibility, Mode=OneWay}" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}">
+                                                    <Grid Visibility="{x:Bind BlurOverlayVisibility, Mode=OneWay}" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" IsHitTestVisible="False">
                                                         <Border CornerRadius="6" Loaded="BlurOverlay_Loaded" Unloaded="BlurOverlay_Unloaded" />
                                                     </Grid>
-                                                    <Grid Visibility="{x:Bind NsfwOverlayVisibility, Mode=OneWay}">
+                                                    <Grid Visibility="{x:Bind NsfwOverlayVisibility, Mode=OneWay}" IsHitTestVisible="False">
                                                         <Border Background="Black" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="6" />
                                                     </Grid>
-                                                    <Grid Visibility="{x:Bind MatureOverlayVisibility, Mode=OneWay}">
+                                                    <Grid Visibility="{x:Bind MatureOverlayVisibility, Mode=OneWay}" IsHitTestVisible="False">
                                                         <Border Background="Black" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="6" />
                                                     </Grid>
                                                     <Button HorizontalAlignment="Right" VerticalAlignment="Top" Margin="6" Padding="6" Width="32" Height="32" Style="{StaticResource SubtleButtonStyle}" CornerRadius="4" Tag="ThreeDot" Click="DynamicCardButton_Click" ToolTipService.ToolTip="More actions">
@@ -319,17 +319,17 @@
                                                         <ColumnDefinition Width="*" />
                                                         <ColumnDefinition Width="Auto" />
                                                     </Grid.ColumnDefinitions>
-                                                    <Grid Width="{x:Bind ListPreviewWidth, Mode=OneWay}" Height="{x:Bind ListPreviewHeight, Mode=OneWay}" Visibility="{x:Bind ListPreviewVisibility, Mode=OneWay}" PointerEntered="PreviewImage_PointerEntered" PointerExited="PreviewImage_PointerExited">
+                                                    <Grid Width="{x:Bind ListPreviewWidth, Mode=OneWay}" Height="{x:Bind ListPreviewHeight, Mode=OneWay}" Visibility="{x:Bind ListPreviewVisibility, Mode=OneWay}" Background="Transparent" PointerEntered="PreviewImage_PointerEntered" PointerExited="PreviewImage_PointerExited">
                                                         <Border Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="6">
                                                             <Image Source="{x:Bind PreviewImage}" Stretch="UniformToFill" Opacity="{x:Bind BlurOpacity, Mode=OneWay}" />
                                                         </Border>
-                                                    <Grid Visibility="{x:Bind BlurOverlayVisibility, Mode=OneWay}" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}">
+                                                    <Grid Visibility="{x:Bind BlurOverlayVisibility, Mode=OneWay}" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" IsHitTestVisible="False">
                                                         <Border CornerRadius="6" Loaded="BlurOverlay_Loaded" Unloaded="BlurOverlay_Unloaded" />
                                                     </Grid>
-                                                        <Grid Visibility="{x:Bind NsfwOverlayVisibility, Mode=OneWay}">
+                                                        <Grid Visibility="{x:Bind NsfwOverlayVisibility, Mode=OneWay}" IsHitTestVisible="False">
                                                             <Border Background="Black" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="6" />
                                                         </Grid>
-                                                        <Grid Visibility="{x:Bind MatureOverlayVisibility, Mode=OneWay}">
+                                                        <Grid Visibility="{x:Bind MatureOverlayVisibility, Mode=OneWay}" IsHitTestVisible="False">
                                                             <Border Background="Black" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="6" />
                                                         </Grid>
                                                     </Grid>
@@ -395,17 +395,17 @@
                                                         <ColumnDefinition Width="Auto" />
                                                         <ColumnDefinition Width="Auto" />
                                                     </Grid.ColumnDefinitions>
-                                                    <Grid Width="{x:Bind ListPreviewWidth, Mode=OneWay}" Height="{x:Bind ListPreviewHeight, Mode=OneWay}" Visibility="{x:Bind ListPreviewVisibility, Mode=OneWay}" PointerEntered="PreviewImage_PointerEntered" PointerExited="PreviewImage_PointerExited">
+                                                    <Grid Width="{x:Bind ListPreviewWidth, Mode=OneWay}" Height="{x:Bind ListPreviewHeight, Mode=OneWay}" Visibility="{x:Bind ListPreviewVisibility, Mode=OneWay}" Background="Transparent" PointerEntered="PreviewImage_PointerEntered" PointerExited="PreviewImage_PointerExited">
                                                         <Border Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="4">
                                                             <Image Source="{x:Bind PreviewImage}" Stretch="UniformToFill" Opacity="{x:Bind BlurOpacity, Mode=OneWay}" />
                                                         </Border>
-                                                    <Grid Visibility="{x:Bind BlurOverlayVisibility, Mode=OneWay}" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}">
+                                                    <Grid Visibility="{x:Bind BlurOverlayVisibility, Mode=OneWay}" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" IsHitTestVisible="False">
                                                         <Border CornerRadius="4" Loaded="BlurOverlay_Loaded" Unloaded="BlurOverlay_Unloaded" />
                                                     </Grid>
-                                                        <Grid Visibility="{x:Bind NsfwOverlayVisibility, Mode=OneWay}">
+                                                        <Grid Visibility="{x:Bind NsfwOverlayVisibility, Mode=OneWay}" IsHitTestVisible="False">
                                                             <Border Background="Black" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="4" />
                                                         </Grid>
-                                                        <Grid Visibility="{x:Bind MatureOverlayVisibility, Mode=OneWay}">
+                                                        <Grid Visibility="{x:Bind MatureOverlayVisibility, Mode=OneWay}" IsHitTestVisible="False">
                                                             <Border Background="Black" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="4" />
                                                         </Grid>
                                                     </Grid>
@@ -438,17 +438,17 @@
                                         <Border Width="{x:Bind CardWidth, Mode=OneWay}" Padding="12" Background="{x:Bind RowBackground, Mode=OneWay}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
                                             <Grid>
                                                 <StackPanel Spacing="10">
-                                                    <Grid Height="{x:Bind CardPreviewHeight, Mode=OneWay}" PointerEntered="PreviewImage_PointerEntered" PointerExited="PreviewImage_PointerExited">
+                                                    <Grid Height="{x:Bind CardPreviewHeight, Mode=OneWay}" Background="Transparent" PointerEntered="PreviewImage_PointerEntered" PointerExited="PreviewImage_PointerExited">
                                                         <Border Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="6">
                                                             <Image Source="{x:Bind PreviewImage}" Stretch="UniformToFill" Opacity="{x:Bind BlurOpacity, Mode=OneWay}" />
                                                         </Border>
-                                                    <Grid Visibility="{x:Bind BlurOverlayVisibility, Mode=OneWay}" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}">
+                                                    <Grid Visibility="{x:Bind BlurOverlayVisibility, Mode=OneWay}" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" IsHitTestVisible="False">
                                                         <Border CornerRadius="6" Loaded="BlurOverlay_Loaded" Unloaded="BlurOverlay_Unloaded" />
                                                     </Grid>
-                                                        <Grid Visibility="{x:Bind NsfwOverlayVisibility, Mode=OneWay}">
+                                                        <Grid Visibility="{x:Bind NsfwOverlayVisibility, Mode=OneWay}" IsHitTestVisible="False">
                                                             <Border Background="Black" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="6" />
                                                         </Grid>
-                                                        <Grid Visibility="{x:Bind MatureOverlayVisibility, Mode=OneWay}">
+                                                        <Grid Visibility="{x:Bind MatureOverlayVisibility, Mode=OneWay}" IsHitTestVisible="False">
                                                             <Border Background="Black" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="6" />
                                                         </Grid>
                                                     </Grid>
@@ -652,13 +652,11 @@
                                                   CanReorderItems="True" 
                                                   AllowDrop="True" 
                                                   DragItemsCompleted="CardButtons_DragItemsCompleted" 
-                                                  MaxWidth="600" 
-                                                  HorizontalAlignment="Left"
                                                   Padding="0,0,0,10">
                                             <ListView.ItemContainerStyle>
                                                 <Style TargetType="ListViewItem">
                                                     <Setter Property="Padding" Value="0" />
-                                                    <Setter Property="Margin" Value="18,4,18,0" />
+                                                    <Setter Property="Margin" Value="0,4,18,0" />
                                                     <Setter Property="MinHeight" Value="0" />
                                                     <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                                                     <Setter Property="Template">
@@ -718,11 +716,11 @@
                                             <StackPanel Orientation="Horizontal" Spacing="24">
                                                 <StackPanel Spacing="8">
                                                     <TextBlock Text="NSFW" Style="{StaticResource CaptionTextBlockStyle}" HorizontalAlignment="Center" />
-                                                    <Border Width="160" Height="90" Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="6" BorderThickness="1" BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}">
+                                                    <Border Width="160" Height="90" Background="Transparent" CornerRadius="6" BorderThickness="1" BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}" PointerEntered="PreviewImage_PointerEntered" PointerExited="PreviewImage_PointerExited">
                                                         <Grid>
                                                             <Image Source="{x:Bind NsfwPreviewItem.PreviewImage, Mode=OneWay}" Stretch="UniformToFill" Opacity="{x:Bind NsfwPreviewItem.BlurOpacity, Mode=OneWay}" />
-                                                            <Grid Visibility="{x:Bind NsfwPreviewItem.BlurOverlayVisibility, Mode=OneWay}" Opacity="{x:Bind NsfwPreviewItem.CensorshipOverlayOpacity, Mode=OneWay}"><Border CornerRadius="6" Loaded="BlurOverlay_Loaded" Unloaded="BlurOverlay_Unloaded" /></Grid>
-                                                            <Grid Visibility="{x:Bind NsfwPreviewItem.NsfwOverlayVisibility, Mode=OneWay}">
+                                                            <Grid Visibility="{x:Bind NsfwPreviewItem.BlurOverlayVisibility, Mode=OneWay}" Opacity="{x:Bind NsfwPreviewItem.CensorshipOverlayOpacity, Mode=OneWay}" IsHitTestVisible="False"><Border CornerRadius="6" Loaded="BlurOverlay_Loaded" Unloaded="BlurOverlay_Unloaded" /></Grid>
+                                                            <Grid Visibility="{x:Bind NsfwPreviewItem.NsfwOverlayVisibility, Mode=OneWay}" IsHitTestVisible="False">
                                                                 <Border Background="Black" Opacity="{x:Bind NsfwPreviewItem.CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="6" />
                                                             </Grid>
                                                         </Grid>
@@ -730,11 +728,11 @@
                                                 </StackPanel>
                                                 <StackPanel Spacing="8">
                                                     <TextBlock Text="Mature" Style="{StaticResource CaptionTextBlockStyle}" HorizontalAlignment="Center" />
-                                                    <Border Width="160" Height="90" Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="6" BorderThickness="1" BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}">
+                                                    <Border Width="160" Height="90" Background="Transparent" CornerRadius="6" BorderThickness="1" BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}" PointerEntered="PreviewImage_PointerEntered" PointerExited="PreviewImage_PointerExited">
                                                         <Grid>
                                                             <Image Source="{x:Bind MaturePreviewItem.PreviewImage, Mode=OneWay}" Stretch="UniformToFill" Opacity="{x:Bind MaturePreviewItem.BlurOpacity, Mode=OneWay}" />
-                                                            <Grid Visibility="{x:Bind MaturePreviewItem.BlurOverlayVisibility, Mode=OneWay}" Opacity="{x:Bind MaturePreviewItem.CensorshipOverlayOpacity, Mode=OneWay}"><Border CornerRadius="6" Loaded="BlurOverlay_Loaded" Unloaded="BlurOverlay_Unloaded" /></Grid>
-                                                            <Grid Visibility="{x:Bind MaturePreviewItem.MatureOverlayVisibility, Mode=OneWay}">
+                                                            <Grid Visibility="{x:Bind MaturePreviewItem.BlurOverlayVisibility, Mode=OneWay}" Opacity="{x:Bind MaturePreviewItem.CensorshipOverlayOpacity, Mode=OneWay}" IsHitTestVisible="False"><Border CornerRadius="6" Loaded="BlurOverlay_Loaded" Unloaded="BlurOverlay_Unloaded" /></Grid>
+                                                            <Grid Visibility="{x:Bind MaturePreviewItem.MatureOverlayVisibility, Mode=OneWay}" IsHitTestVisible="False">
                                                                 <Border Background="Black" Opacity="{x:Bind MaturePreviewItem.CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="6" />
                                                             </Grid>
                                                         </Grid>
