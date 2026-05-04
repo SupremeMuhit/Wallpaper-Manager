@@ -42,6 +42,7 @@ public sealed partial class MainWindow : Window
     private readonly WallpaperEngineService _engineService = new();
     private readonly WallpaperScanner _wallpaperScanner = new();
     private readonly SteamWorkshopService _workshopService = new();
+    private readonly WorkshopDownloadService _downloadService = new();
     private readonly DispatcherTimer _engineStatusTimer = new();
     private MicaBackdrop? _micaBackdrop;
     private bool _isLoadingSettings;
@@ -789,6 +790,150 @@ public sealed partial class MainWindow : Window
         RefreshSelectedWallpapers();
     }
 
+    private async void ExecuteDownload_Click(object sender, RoutedEventArgs e)
+    {
+        DownloadSuccessPanel.Visibility = Visibility.Collapsed;
+        ActiveDownloadPanel.Visibility = Visibility.Collapsed;
+        WorkshopPreviewPanel.Visibility = Visibility.Collapsed;
+        ActiveDownloadProgressBar.Value = 0;
+        ActiveDownloadStatusText.Text = string.Empty;
+
+        var input = WorkshopUrlInput.Text;
+        var workshopId = _downloadService.ExtractWorkshopId(input);
+
+        if (string.IsNullOrEmpty(workshopId))
+        {
+            ShowDownloadInfo("Invalid input", "Please enter a valid Steam Workshop URL or ID.", InfoBarSeverity.Error);
+            return;
+        }
+
+        var selectedRoot = DownloadPathSelector.SelectedItem as WallpaperLibraryRoot;
+        var downloadDir = selectedRoot?.Path;
+
+        if (string.IsNullOrEmpty(downloadDir))
+        {
+            ShowDownloadInfo("Path Error", "Please select a download directory.", InfoBarSeverity.Error);
+            return;
+        }
+
+        ExecuteDownloadButton.IsEnabled = false;
+        ActiveDownloadPanel.Visibility = Visibility.Visible;
+        ActiveDownloadStatusText.Text = "Starting...";
+        ShowDownloadInfo("Starting Download", $"Downloading Workshop ID {workshopId}...", InfoBarSeverity.Informational);
+
+        var success = await Task.Run(async () =>
+        {
+            return await _downloadService.DownloadAsync(workshopId, downloadDir, (progress, status) =>
+            {
+                DispatcherQueue.TryEnqueue(() =>
+                {
+                    ActiveDownloadProgressBar.IsIndeterminate = progress <= 0;
+                    ActiveDownloadProgressBar.Value = progress;
+                    ActiveDownloadStatusText.Text = status;
+                });
+            });
+        });
+
+        ExecuteDownloadButton.IsEnabled = true;
+
+        if (success)
+        {
+            try
+            {
+                var metadata = await _workshopService.FetchAsync(workshopId);
+                if (metadata != null)
+                {
+                    var metaPath = Path.Combine(downloadDir, workshopId, "meta.json");
+                    var json = System.Text.Json.JsonSerializer.Serialize(metadata, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                    await File.WriteAllTextAsync(metaPath, json);
+                }
+            }
+            catch { /* Ignore metadata errors */ }
+
+            DownloadSuccessPanel.Visibility = Visibility.Visible;
+            ActiveDownloadPanel.Visibility = Visibility.Collapsed;
+            WorkshopUrlInput.Text = string.Empty;
+            ShowDownloadInfo("Success", $"Wallpaper {workshopId} downloaded successfully.", InfoBarSeverity.Success);
+            await ScanLibraryAsync();
+        }
+        else
+        {
+            ShowDownloadInfo("Download Failed", "There was an error downloading the wallpaper. Check the logs or try again.", InfoBarSeverity.Error);
+        }
+    }
+
+    private string _lastPreviewId = string.Empty;
+    private async void WorkshopUrlInput_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        var input = WorkshopUrlInput.Text;
+        var workshopId = _downloadService.ExtractWorkshopId(input);
+
+        if (string.IsNullOrEmpty(workshopId))
+        {
+            WorkshopPreviewPanel.Visibility = Visibility.Collapsed;
+            WorkshopLoadingPanel.Visibility = Visibility.Collapsed;
+            _lastPreviewId = string.Empty;
+            return;
+        }
+
+        if (workshopId == _lastPreviewId) return;
+        _lastPreviewId = workshopId;
+
+        WorkshopPreviewPanel.Visibility = Visibility.Collapsed;
+        WorkshopLoadingPanel.Visibility = Visibility.Visible;
+
+        try
+        {
+            var metadata = await _workshopService.FetchAsync(workshopId);
+            if (metadata != null && workshopId == _lastPreviewId)
+            {
+                WorkshopPreviewTitle.Text = metadata.Title;
+                WorkshopPreviewDescription.Text = metadata.Description;
+                WorkshopPreviewTags.ItemsSource = metadata.Tags;
+                
+                if (!string.IsNullOrEmpty(metadata.PreviewUrl))
+                {
+                    WorkshopPreviewImage.Source = new BitmapImage(new Uri(metadata.PreviewUrl));
+                }
+
+                WorkshopPreviewPanel.Visibility = Visibility.Visible;
+            }
+            else if (workshopId == _lastPreviewId)
+            {
+                WorkshopPreviewPanel.Visibility = Visibility.Collapsed;
+            }
+        }
+        catch 
+        { 
+            if (workshopId == _lastPreviewId) WorkshopPreviewPanel.Visibility = Visibility.Collapsed;
+        }
+        finally
+        {
+            if (workshopId == _lastPreviewId)
+            {
+                WorkshopLoadingPanel.Visibility = Visibility.Collapsed;
+            }
+        }
+    }
+
+    private void ShowDownloadInfo(string title, string message, InfoBarSeverity severity)
+    {
+        DownloadInfoBar.Title = title;
+        DownloadInfoBar.Message = message;
+        DownloadInfoBar.Severity = severity;
+        DownloadInfoBar.IsOpen = true;
+    }
+
+    private void ShowInfoBar(string title, string message, InfoBarSeverity severity)
+    {
+        // We'll reuse the EmptyLibraryInfo for notifications if needed, or better, add a dedicated one
+        // For now let's just use EmptyLibraryInfo since it's already there
+        EmptyLibraryInfo.Title = title;
+        EmptyLibraryInfo.Message = message;
+        EmptyLibraryInfo.Severity = severity;
+        EmptyLibraryInfo.IsOpen = true;
+    }
+
     private async void ScanLibrary_Click(object sender, RoutedEventArgs e)
     {
         await ScanLibraryAsync();
@@ -1066,6 +1211,15 @@ public sealed partial class MainWindow : Window
         else
         {
             _showingNsfwTab = false;
+        }
+
+        if (page == "Downloader")
+        {
+            DownloadPathSelector.ItemsSource = LibraryRoots;
+            if (LibraryRoots.Count > 0 && DownloadPathSelector.SelectedIndex == -1)
+            {
+                DownloadPathSelector.SelectedIndex = 0;
+            }
         }
 
         ShowPage(page);
@@ -1529,6 +1683,7 @@ public sealed partial class MainWindow : Window
     {
         HomePage.Visibility = page == "Home" ? Visibility.Visible : Visibility.Collapsed;
         LibraryPage.Visibility = page == "Library" ? Visibility.Visible : Visibility.Collapsed;
+        DownloaderPage.Visibility = page == "Downloader" ? Visibility.Visible : Visibility.Collapsed;
         GuidePage.Visibility = page == "Guide" ? Visibility.Visible : Visibility.Collapsed;
         SettingsPage.Visibility = page == "Settings" ? Visibility.Visible : Visibility.Collapsed;
         if (page == "Settings")
@@ -1543,6 +1698,7 @@ public sealed partial class MainWindow : Window
         PageSubtitle.Text = page switch
         {
             "Library" => _showingNsfwTab ? "Your adult and mature wallpapers." : "All detected wallpapers within every configured directory.",
+            "Downloader" => "Directly download Steam Workshop wallpapers into your library.",
             "Guide" => "Folder naming, scanning rules, and practical usage notes.",
             "Settings" => "Engine and wallpaper, appearance, library, and tags.",
             _ => "Selected wallpapers from your local Wallpaper Engine library."

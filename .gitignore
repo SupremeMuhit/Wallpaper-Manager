@@ -13,7 +13,7 @@ bld/
 [Oo]bj/
 [Ll]og/
 [Ll]ogs/
-
+.userref/
 # Visual Studio files
 .vs/
 *.user
@@ -56,3 +56,6 @@ _pkginfo.txt
 # Temporary files
 *.tmp
 *.temp
+
+# Secrets
+.env

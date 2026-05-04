@@ -31,6 +31,7 @@
                 </NavigationViewItem>
             </NavigationView.MenuItems>
             <NavigationView.FooterMenuItems>
+                <NavigationViewItem Content="Downloader" Icon="Download" Tag="Downloader" />
                 <NavigationViewItem Content="Guide" Icon="Help" Tag="Guide" />
             </NavigationView.FooterMenuItems>
 
@@ -53,6 +54,11 @@
                         <TextBlock x:Name="EngineStatusGlyph" VerticalAlignment="Center" Style="{StaticResource BodyStrongTextBlockStyle}" />
                         <TextBlock x:Name="EngineStatusText" VerticalAlignment="Center" />
                         <Button x:Name="StartEngineButton" Content="Start Engine" Click="StartEngine_Click" />
+                        <InfoBar x:Name="DownloadInfoBar" Margin="10,0,0,0" IsOpen="False" VerticalAlignment="Center" MaxWidth="400" />
+                        <StackPanel x:Name="GlobalDownloadProgress" Visibility="Collapsed" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                            <ProgressBar x:Name="GlobalProgressBar" Width="100" Minimum="0" Maximum="100" />
+                            <TextBlock x:Name="GlobalStatusText" Style="{StaticResource CaptionTextBlockStyle}" />
+                        </StackPanel>
                     </StackPanel>
                 </Grid>
 
@@ -794,17 +800,92 @@
                                 </StackPanel>
                                 <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><FontIcon Glyph="&#xE715;" FontSize="18" VerticalAlignment="Top" Margin="0,6,0,0" /><StackPanel Grid.Column="1" Spacing="12"><TextBlock Text="Contact Form" FontSize="17" /><Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><TextBox x:Name="ContactMailTextBox" Header="Mail" PlaceholderText="name@example.com" /><TextBox x:Name="ContactDiscordTextBox" Grid.Column="1" Header="Discord username" PlaceholderText="username" /></Grid><TextBox x:Name="ContactMessageTextBox" Header="Message" PlaceholderText="Write your message" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="130" MaxLength="1500" /><StackPanel Orientation="Horizontal" Spacing="10"><Button x:Name="SendContactButton" Content="Send" Click="SendContact_Click" /><ProgressRing x:Name="ContactProgressRing" Width="28" Height="28" IsActive="False" Visibility="Collapsed" /></StackPanel><InfoBar x:Name="ContactInfoBar" IsOpen="False" /></StackPanel></Grid>
                             </StackPanel>
-                            </Grid>
-                        </ScrollViewer>
-                    </Grid>
+                        </Grid>
+                    </ScrollViewer>
+                </Grid>
+                    <StackPanel x:Name="DownloaderPage" Visibility="Collapsed" Spacing="24" MaxWidth="800" HorizontalAlignment="Left" Margin="48,24,0,0">
+                        <TextBlock Text="Steam Workshop Downloader" FontSize="28" FontWeight="SemiBold" />
+                        
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="24" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                            <StackPanel Spacing="16">
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="Workshop Item" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                    <TextBlock Text="Paste the Steam Workshop URL or ID below." Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <TextBox x:Name="WorkshopUrlInput" PlaceholderText="https://steamcommunity.com/sharedfiles/filedetails/?id=..." TextChanged="WorkshopUrlInput_TextChanged" />
+                                </StackPanel>
+
+                                <!-- Preview Panel -->
+                                <Grid x:Name="WorkshopPreviewPanel" Visibility="Collapsed" Padding="16" Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" CornerRadius="6" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="200" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+
+                                    <Border Grid.RowSpan="2" Height="112" CornerRadius="4" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                                        <Image x:Name="WorkshopPreviewImage" Stretch="UniformToFill" />
+                                    </Border>
+
+                                    <StackPanel Grid.Column="1" Margin="16,0,0,0" Spacing="4">
+                                        <TextBlock x:Name="WorkshopPreviewTitle" FontSize="18" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock x:Name="WorkshopPreviewAuthor" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        <ItemsControl x:Name="WorkshopPreviewTags" Margin="0,4,0,0">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <VariableSizedWrapGrid Orientation="Horizontal" ItemWidth="1" ItemHeight="1" />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="4" Padding="6,2" Margin="0,0,4,4">
+                                                        <TextBlock Text="{Binding}" FontSize="11" />
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+
+                                    <TextBlock x:Name="WorkshopPreviewDescription" Grid.Row="1" Grid.Column="1" Margin="16,8,0,0" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" MaxLines="2" TextTrimming="CharacterEllipsis" />
+                                </Grid>
+
+                                <Grid x:Name="WorkshopLoadingPanel" Visibility="Collapsed" Padding="12">
+                                    <StackPanel Orientation="Horizontal" Spacing="12">
+                                        <ProgressRing IsActive="True" Width="20" Height="20" />
+                                        <TextBlock Text="Fetching metadata..." VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                </Grid>
+
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="Download Location" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                    <TextBlock Text="Select which library folder to save the wallpaper into." Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <ComboBox x:Name="DownloadPathSelector" HorizontalAlignment="Stretch" DisplayMemberPath="Path" />
+                                </StackPanel>
+
+                                <Button x:Name="ExecuteDownloadButton" Content="Download Wallpaper" Style="{StaticResource AccentButtonStyle}" Click="ExecuteDownload_Click" HorizontalAlignment="Left" Padding="24,8" />
+                            </StackPanel>
+                        </Border>
+
+                        <StackPanel x:Name="ActiveDownloadPanel" Visibility="Collapsed" Spacing="12">
+                            <TextBlock Text="Downloading..." Style="{StaticResource SubtitleTextBlockStyle}" />
+                            <ProgressBar x:Name="ActiveDownloadProgressBar" Minimum="0" Maximum="100" Height="8" CornerRadius="4" />
+                            <TextBlock x:Name="ActiveDownloadStatusText" Style="{StaticResource BodyTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+
+                        <Border x:Name="DownloadSuccessPanel" Visibility="Collapsed" Background="{ThemeResource SystemFillColorSuccessBackgroundBrush}" CornerRadius="8" Padding="16">
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <FontIcon Glyph="&#xE73E;" Foreground="White" />
+                                <TextBlock Text="Wallpaper downloaded successfully and added to library." VerticalAlignment="Center" Foreground="White" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
                 </Grid>
             </Grid>
         </NavigationView>
+
     </Grid>
 </Window>
-
-
-
-
 
 

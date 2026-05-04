@@ -54,6 +54,31 @@ public sealed class WallpaperEngineService
         return true;
     }
 
+    public string? GetProjectDirectory(string executablePath)
+    {
+        if (string.IsNullOrWhiteSpace(executablePath) || !File.Exists(executablePath))
+        {
+            return null;
+        }
+
+        var installDir = Path.GetDirectoryName(executablePath);
+        if (string.IsNullOrWhiteSpace(installDir)) return null;
+
+        var target = Path.Combine(installDir, "projects", "myprojects");
+        try
+        {
+            if (!Directory.Exists(target))
+            {
+                Directory.CreateDirectory(target);
+            }
+            return target;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     private static string GetProcessName(string executablePath)
     {
         if (string.IsNullOrWhiteSpace(executablePath))
