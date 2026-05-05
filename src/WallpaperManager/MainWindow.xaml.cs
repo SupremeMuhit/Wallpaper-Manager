@@ -18,10 +18,6 @@ using Microsoft.UI.Composition;
 using Microsoft.UI.Xaml.Hosting;
 using Microsoft.Graphics.Canvas.Effects;
 using Windows.Graphics.Effects;
-using System.ComponentModel;
-using System.Threading;
-using System.Linq;
-using System.Runtime.CompilerServices;
 
 namespace WallpaperManager;
 
@@ -62,37 +58,6 @@ public sealed partial class MainWindow : Window
     public ObservableCollection<WallpaperTag> Tags { get; } = [];
 
     public ObservableCollection<WallpaperTag> VisibleTags { get; } = [];
-    private ObservableCollection<DownloadTaskInfo> _activeDownloads = new();
-
-    public class DownloadTaskInfo : INotifyPropertyChanged
-    {
-        private double _progress;
-        private string _status = string.Empty;
-        private bool _isIndeterminate;
-
-        public string WorkshopId { get; set; } = string.Empty;
-
-        public double Progress
-        {
-            get => _progress;
-            set { _progress = value; OnPropertyChanged(nameof(Progress)); }
-        }
-
-        public string Status
-        {
-            get => _status;
-            set { _status = value; OnPropertyChanged(nameof(Status)); }
-        }
-
-        public bool IsIndeterminate
-        {
-            get => _isIndeterminate;
-            set { _isIndeterminate = value; OnPropertyChanged(nameof(IsIndeterminate)); }
-        }
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-        protected void OnPropertyChanged([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-    }
     
     public ObservableCollection<CardButtonInfo> CardButtonsList { get; } = [];
 
@@ -120,8 +85,7 @@ public sealed partial class MainWindow : Window
         new() { Tag = "NsfwMature", Title = "NSFW / Mature", Icon = "\uE8D4" },
         new() { Tag = "Tags", Title = "Tags", Icon = "\uE8EC" },
         new() { Tag = "About", Title = "About", Icon = "\uE946" },
-        new() { Tag = "Contact", Title = "Contact", Icon = "\uE715" },
-        new() { Tag = "Advanced", Title = "Advanced", Icon = "\uE713" }
+        new() { Tag = "Contact", Title = "Contact", Icon = "\uE715" }
     ];
 
     public MainWindow()
@@ -232,10 +196,6 @@ public sealed partial class MainWindow : Window
         ApplyHomeSortMode();
         RefreshVisibleTags();
         UpdateEngineStatus();
-        
-        UpdateDevModeUI();
-        ConcurrentDownloadsSlider.Value = CurrentSettings.ConcurrentDownloads;
-
         _isLoadingSettings = false;
 
         await ScanLibraryAsync();
@@ -832,112 +792,74 @@ public sealed partial class MainWindow : Window
 
     private async void ExecuteDownload_Click(object sender, RoutedEventArgs e)
     {
+        DownloadSuccessPanel.Visibility = Visibility.Collapsed;
+        ActiveDownloadPanel.Visibility = Visibility.Collapsed;
+        WorkshopPreviewPanel.Visibility = Visibility.Collapsed;
+        ActiveDownloadProgressBar.Value = 0;
+        ActiveDownloadStatusText.Text = string.Empty;
+
         var input = WorkshopUrlInput.Text;
-        if (string.IsNullOrWhiteSpace(input)) return;
+        var workshopId = _downloadService.ExtractWorkshopId(input);
 
-        var lines = input.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-        var workshopIds = lines
-            .Select(l => _downloadService.ExtractWorkshopId(l))
-            .Where(id => !string.IsNullOrEmpty(id))
-            .Distinct()
-            .ToList();
-
-        if (workshopIds.Count == 0)
+        if (string.IsNullOrEmpty(workshopId))
         {
-            ShowDownloadInfo("Error", "No valid Workshop URLs or IDs found.", InfoBarSeverity.Error);
+            ShowDownloadInfo("Invalid input", "Please enter a valid Steam Workshop URL or ID.", InfoBarSeverity.Error);
             return;
         }
 
-        var libraryFolder = DownloadPathSelector.SelectedItem as WallpaperLibraryRoot;
-        if (libraryFolder == null)
+        var selectedRoot = DownloadPathSelector.SelectedItem as WallpaperLibraryRoot;
+        var downloadDir = selectedRoot?.Path;
+
+        if (string.IsNullOrEmpty(downloadDir))
         {
-            ShowDownloadInfo("Error", "Please select a download location.", InfoBarSeverity.Error);
+            ShowDownloadInfo("Path Error", "Please select a download directory.", InfoBarSeverity.Error);
             return;
         }
-
-        var downloadDir = libraryFolder.Path;
-        var maxConcurrency = CurrentSettings.ConcurrentDownloads;
 
         ExecuteDownloadButton.IsEnabled = false;
-        DownloadSuccessPanel.Visibility = Visibility.Collapsed;
         ActiveDownloadPanel.Visibility = Visibility.Visible;
-        WorkshopPreviewPanel.Visibility = Visibility.Collapsed;
-        BatchStatusPanel.Visibility = workshopIds.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
-        
-        _activeDownloads.Clear();
-        ActiveDownloadList.ItemsSource = _activeDownloads;
+        ActiveDownloadStatusText.Text = "Starting...";
+        ShowDownloadInfo("Starting Download", $"Downloading Workshop ID {workshopId}...", InfoBarSeverity.Informational);
 
-        int successfulCount = 0;
-        int completedCount = 0;
-        
-        using var semaphore = new SemaphoreSlim(maxConcurrency);
-        var tasks = workshopIds.Select(async (workshopId) =>
+        var success = await Task.Run(async () =>
         {
-            await semaphore.WaitAsync();
-            
-            var taskInfo = new DownloadTaskInfo { WorkshopId = workshopId, Status = $"Waiting...", IsIndeterminate = true };
-            DispatcherQueue.TryEnqueue(() => _activeDownloads.Add(taskInfo));
-
-            try
+            return await _downloadService.DownloadAsync(workshopId, downloadDir, (progress, status) =>
             {
-                var success = await _downloadService.DownloadAsync(workshopId, downloadDir, (progress, status) =>
+                DispatcherQueue.TryEnqueue(() =>
                 {
-                    DispatcherQueue.TryEnqueue(() =>
-                    {
-                        taskInfo.IsIndeterminate = progress <= 0;
-                        taskInfo.Progress = progress;
-                        taskInfo.Status = $"[{workshopId}] {status}";
-                    });
-                }, CurrentSettings.IsDevMode);
-
-                if (success)
-                {
-                    Interlocked.Increment(ref successfulCount);
-                    try
-                    {
-                        var metadata = await _workshopService.FetchAsync(workshopId);
-                        if (metadata != null)
-                        {
-                            var targetPath = Path.Combine(downloadDir, workshopId);
-                            var metaPath = Path.Combine(targetPath, "meta.json");
-                            var json = System.Text.Json.JsonSerializer.Serialize(metadata, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
-                            await File.WriteAllTextAsync(metaPath, json);
-                        }
-                    }
-                    catch { }
-                }
-            }
-            finally
-            {
-                Interlocked.Increment(ref completedCount);
-                DispatcherQueue.TryEnqueue(() => 
-                {
-                    if (workshopIds.Count > 1)
-                        BatchStatusText.Text = $"Completed {completedCount} of {workshopIds.Count}";
+                    ActiveDownloadProgressBar.IsIndeterminate = progress <= 0;
+                    ActiveDownloadProgressBar.Value = progress;
+                    ActiveDownloadStatusText.Text = status;
                 });
-                semaphore.Release();
-            }
+            });
         });
 
-        await Task.WhenAll(tasks);
-
         ExecuteDownloadButton.IsEnabled = true;
-        ActiveDownloadPanel.Visibility = Visibility.Collapsed;
-        BatchStatusPanel.Visibility = Visibility.Collapsed;
 
-        if (successfulCount > 0)
+        if (success)
         {
-            DownloadSuccessPanel.Visibility = Visibility.Visible;
-            if (workshopIds.Count == 1)
+            try
             {
-                WorkshopUrlInput.Text = string.Empty;
+                var metadata = await _workshopService.FetchAsync(workshopId);
+                if (metadata != null)
+                {
+                    var metaPath = Path.Combine(downloadDir, workshopId, "meta.json");
+                    var json = System.Text.Json.JsonSerializer.Serialize(metadata, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                    await File.WriteAllTextAsync(metaPath, json);
+                }
             }
-            ShowDownloadInfo("Success", $"Successfully downloaded {successfulCount} of {workshopIds.Count} wallpapers.", InfoBarSeverity.Success);
+            catch { /* Ignore metadata errors */ }
+
+            DownloadSuccessPanel.Visibility = Visibility.Visible;
+            ActiveDownloadPanel.Visibility = Visibility.Collapsed;
+            WorkshopUrlInput.Text = string.Empty;
+            WorkshopPreviewPanel.Visibility = Visibility.Collapsed;
+            ShowDownloadInfo("Success", $"Wallpaper {workshopId} downloaded successfully.", InfoBarSeverity.Success);
             await ScanLibraryAsync();
         }
         else
         {
-            ShowDownloadInfo("Download Failed", "No wallpapers were successfully downloaded.", InfoBarSeverity.Error);
+            ShowDownloadInfo("Download Failed", "There was an error downloading the wallpaper. Check the logs or try again.", InfoBarSeverity.Error);
         }
     }
 
@@ -1798,7 +1720,6 @@ public sealed partial class MainWindow : Window
         TagSettingsPanel.Visibility = section == "Tags" ? Visibility.Visible : Visibility.Collapsed;
         AboutSettingsPanel.Visibility = section == "About" ? Visibility.Visible : Visibility.Collapsed;
         ContactSettingsPanel.Visibility = section == "Contact" ? Visibility.Visible : Visibility.Collapsed;
-        AdvancedSettingsPanel.Visibility = section == "Advanced" ? Visibility.Visible : Visibility.Collapsed;
 
         if (section == "NsfwMature")
         {
@@ -2996,43 +2917,6 @@ public sealed partial class MainWindow : Window
 
         RefreshSelectedWallpapers();
         TriggerSaveSettings();
-    }
-
-    private void ConcurrentDownloads_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
-    {
-        if (CurrentSettings != null)
-        {
-            CurrentSettings.ConcurrentDownloads = (int)e.NewValue;
-            TriggerSaveSettings();
-        }
-    }
-
-    private void UnlockDevMode_Click(object sender, RoutedEventArgs e)
-    {
-        if (WorkshopDownloadService.CheckDevModePassword(DevModePasswordInput.Password))
-        {
-            CurrentSettings.IsDevMode = true;
-            UpdateDevModeUI();
-            TriggerSaveSettings();
-        }
-        else
-        {
-            DevModePasswordInput.Password = string.Empty;
-            // Optionally show error
-        }
-    }
-
-    private void DisableDevMode_Click(object sender, RoutedEventArgs e)
-    {
-        CurrentSettings.IsDevMode = false;
-        UpdateDevModeUI();
-        TriggerSaveSettings();
-    }
-
-    private void UpdateDevModeUI()
-    {
-        DevModeLockedPanel.Visibility = CurrentSettings.IsDevMode ? Visibility.Collapsed : Visibility.Visible;
-        DevModeActivePanel.Visibility = CurrentSettings.IsDevMode ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private string FormatSize(long bytes)

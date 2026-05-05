@@ -798,33 +798,7 @@
                                 <StackPanel Orientation="Horizontal" Spacing="10">
                                     <TextBlock Text="Contact" FontSize="28" FontWeight="SemiBold" />
                                 </StackPanel>
-<Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><FontIcon Glyph="&#xE715;" FontSize="18" VerticalAlignment="Top" Margin="0,6,0,0" /><StackPanel Grid.Column="1" Spacing="12"><TextBlock Text="Contact Form" FontSize="17" /><Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><TextBox x:Name="ContactMailTextBox" Header="Mail" PlaceholderText="name@example.com" /><TextBox x:Name="ContactDiscordTextBox" Grid.Column="1" Header="Discord username" PlaceholderText="username" /></Grid><TextBox x:Name="ContactMessageTextBox" Header="Message" PlaceholderText="Write your message" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="130" MaxLength="1500" /><StackPanel Orientation="Horizontal" Spacing="10"><Button x:Name="SendContactButton" Content="Send" Click="SendContact_Click" /><ProgressRing x:Name="ContactProgressRing" Width="28" Height="28" IsActive="False" Visibility="Collapsed" /></StackPanel><InfoBar x:Name="ContactInfoBar" IsOpen="False" /></StackPanel></Grid>
-                            </StackPanel>
-
-                            <StackPanel x:Name="AdvancedSettingsPanel" Visibility="Collapsed" Spacing="20">
-                                <StackPanel Orientation="Horizontal" Spacing="10">
-                                    <TextBlock Text="Advanced" FontSize="28" FontWeight="SemiBold" />
-                                </StackPanel>
-                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18">
-                                        <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                        <FontIcon Glyph="&#xE945;" FontSize="18" VerticalAlignment="Top" Margin="0,6,0,0" />
-                                        <StackPanel Grid.Column="1" Spacing="12">
-                                            <TextBlock Text="Developer Mode" FontSize="17" />
-                                            <StackPanel x:Name="DevModeLockedPanel" Spacing="8">
-                                                <TextBlock Text="Unlock Dev Mode" Style="{StaticResource BodyStrongTextBlockStyle}" />
-                                                <TextBlock Text="Enter the developer password to unlock advanced debugging features." Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                                <StackPanel Orientation="Horizontal" Spacing="12">
-                                                    <PasswordBox x:Name="DevModePasswordInput" Width="200" PlaceholderText="Password" />
-                                                    <Button Content="Unlock" Click="UnlockDevMode_Click" />
-                                                </StackPanel>
-                                            </StackPanel>
-                                            <StackPanel x:Name="DevModeActivePanel" Visibility="Collapsed" Spacing="8">
-                                                <TextBlock Text="Developer Mode is Active" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" FontWeight="SemiBold" />
-                                                <TextBlock Text="You can now see full account usernames in the Downloader status." Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                                <Button Content="Disable Dev Mode" Click="DisableDevMode_Click" />
-                                            </StackPanel>
-                                        </StackPanel>
-                                    </Grid>
+                                <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><FontIcon Glyph="&#xE715;" FontSize="18" VerticalAlignment="Top" Margin="0,6,0,0" /><StackPanel Grid.Column="1" Spacing="12"><TextBlock Text="Contact Form" FontSize="17" /><Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><TextBox x:Name="ContactMailTextBox" Header="Mail" PlaceholderText="name@example.com" /><TextBox x:Name="ContactDiscordTextBox" Grid.Column="1" Header="Discord username" PlaceholderText="username" /></Grid><TextBox x:Name="ContactMessageTextBox" Header="Message" PlaceholderText="Write your message" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="130" MaxLength="1500" /><StackPanel Orientation="Horizontal" Spacing="10"><Button x:Name="SendContactButton" Content="Send" Click="SendContact_Click" /><ProgressRing x:Name="ContactProgressRing" Width="28" Height="28" IsActive="False" Visibility="Collapsed" /></StackPanel><InfoBar x:Name="ContactInfoBar" IsOpen="False" /></StackPanel></Grid>
                             </StackPanel>
                         </Grid>
                     </ScrollViewer>
@@ -841,21 +815,9 @@
                                 <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="24" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
                                     <StackPanel Spacing="20">
                                         <StackPanel Spacing="8">
-                                            <TextBlock Text="Workshop Items" Style="{StaticResource BodyStrongTextBlockStyle}" />
-                                            <TextBlock Text="Paste Steam Workshop URLs or IDs (one per line)." Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                            <TextBox x:Name="WorkshopUrlInput" PlaceholderText="Paste links here..." 
-                                                     AcceptsReturn="True" TextWrapping="Wrap" MinHeight="100" MaxHeight="200"
-                                                     TextChanged="WorkshopUrlInput_TextChanged" />
-                                        </StackPanel>
-
-                                        <StackPanel Spacing="8">
-                                            <TextBlock Text="Parallel Downloads" Style="{StaticResource BodyStrongTextBlockStyle}" />
-                                            <TextBlock Text="Download up to 3 wallpapers at once" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" />
-                                            <Slider x:Name="ConcurrentDownloadsSlider" Minimum="1" Maximum="3" StepFrequency="1" TickFrequency="1" SnapsTo="StepValues" Width="200" HorizontalAlignment="Left" ValueChanged="ConcurrentDownloads_ValueChanged" />
-                                        </StackPanel>
-
-                                        <StackPanel x:Name="BatchStatusPanel" Visibility="Collapsed" Spacing="4">
-                                            <TextBlock x:Name="BatchStatusText" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                                            <TextBlock Text="Workshop Item" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                            <TextBlock Text="Paste the Steam Workshop URL or ID below." Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                            <TextBox x:Name="WorkshopUrlInput" PlaceholderText="https://steamcommunity.com/sharedfiles/filedetails/?id=..." TextChanged="WorkshopUrlInput_TextChanged" />
                                         </StackPanel>
 
                                         <StackPanel Spacing="8">
@@ -864,26 +826,17 @@
                                             <ComboBox x:Name="DownloadPathSelector" HorizontalAlignment="Stretch" DisplayMemberPath="Path" />
                                         </StackPanel>
 
-                                        <Button x:Name="ExecuteDownloadButton" Content="Download Wallpapers" Style="{StaticResource AccentButtonStyle}" Click="ExecuteDownload_Click" HorizontalAlignment="Left" Padding="24,8" />
+                                        <Button x:Name="ExecuteDownloadButton" Content="Download Wallpaper" Style="{StaticResource AccentButtonStyle}" Click="ExecuteDownload_Click" HorizontalAlignment="Left" Padding="24,8" />
                                     </StackPanel>
                                 </Border>
 
-                                <StackPanel x:Name="ActiveDownloadPanel" Visibility="Collapsed" Spacing="16">
+                                <StackPanel x:Name="ActiveDownloadPanel" Visibility="Collapsed" Spacing="12">
                                     <Grid>
-                                        <TextBlock Text="Active Downloads" Style="{StaticResource SubtitleTextBlockStyle}" />
-                                        <Button Content="Skip Current" HorizontalAlignment="Right" Style="{StaticResource SubtleButtonStyle}" Click="SkipAccount_Click" Padding="8,4" />
+                                        <TextBlock Text="Active Download" Style="{StaticResource SubtitleTextBlockStyle}" />
+                                        <Button Content="Skip Account" HorizontalAlignment="Right" Style="{StaticResource SubtleButtonStyle}" Click="SkipAccount_Click" Padding="8,4" />
                                     </Grid>
-                                    
-                                    <ItemsControl x:Name="ActiveDownloadList">
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                                <StackPanel Spacing="8" Margin="0,0,0,16">
-                                                    <TextBlock Text="{Binding Status}" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                                    <ProgressBar Value="{Binding Progress}" IsIndeterminate="{Binding IsIndeterminate}" Height="4" CornerRadius="2" />
-                                                </StackPanel>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
+                                    <ProgressBar x:Name="ActiveDownloadProgressBar" Minimum="0" Maximum="100" Height="8" CornerRadius="4" />
+                                    <TextBlock x:Name="ActiveDownloadStatusText" Style="{StaticResource BodyTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                 </StackPanel>
 
                                 <Border x:Name="DownloadSuccessPanel" Visibility="Collapsed" Background="{ThemeResource SystemFillColorSuccessBackgroundBrush}" CornerRadius="8" Padding="16">

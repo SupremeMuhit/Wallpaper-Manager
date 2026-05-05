@@ -68,9 +68,6 @@ public sealed class AppSettings
     public string HomeSortMode { get; set; } = "Free Movement";
     public LibraryHideMode LibraryHideMode { get; set; } = LibraryHideMode.Off;
     public List<string> CardButtons { get; set; } = ["ThreeDot", "AddToHome", "Details"];
-    
-    public int ConcurrentDownloads { get; set; } = 1;
-    public bool IsDevMode { get; set; } = false;
 }
 
 public static class CardButtonIds
