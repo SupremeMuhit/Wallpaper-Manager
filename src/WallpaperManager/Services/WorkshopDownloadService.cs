@@ -87,7 +87,7 @@ public sealed class WorkshopDownloadService
         }
 
         // Try URL
-        var match = Regex.Match(input, @"id=(\d+)");
+        var match = Regex.Match(input, @"(?:id=|filedetails/)(\d+)");
         if (match.Success)
         {
             return match.Groups[1].Value;

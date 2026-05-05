@@ -816,8 +816,8 @@
                                     <StackPanel Spacing="20">
                                         <StackPanel Spacing="8">
                                             <TextBlock Text="Workshop Item" Style="{StaticResource BodyStrongTextBlockStyle}" />
-                                            <TextBlock Text="Paste the Steam Workshop URL or ID below." Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                            <TextBox x:Name="WorkshopUrlInput" PlaceholderText="https://steamcommunity.com/sharedfiles/filedetails/?id=..." TextChanged="WorkshopUrlInput_TextChanged" />
+                                            <TextBlock Text="Paste the Steam Workshop URL or ID below (one per line for batch)." Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                            <TextBox x:Name="WorkshopUrlInput" PlaceholderText="https://steamcommunity.com/sharedfiles/filedetails/?id=..." TextChanged="WorkshopUrlInput_TextChanged" AcceptsReturn="True" Height="120" VerticalContentAlignment="Top" />
                                         </StackPanel>
 
                                         <StackPanel Spacing="8">
@@ -849,6 +849,7 @@
 
                             <!-- Metadata Preview (Right Side) -->
                             <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
+                                <Grid>
                                 <StackPanel x:Name="WorkshopPreviewPanel" Visibility="Collapsed" Spacing="24">
                                     <TextBlock x:Name="WorkshopPreviewTitle" FontSize="32" FontWeight="Bold" TextWrapping="Wrap" />
                                     
@@ -896,6 +897,45 @@
                                         <TextBlock x:Name="WorkshopPreviewDescription" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" LineHeight="20" />
                                     </StackPanel>
                                 </StackPanel>
+
+                                <ListView x:Name="BatchDownloadListView" ItemsSource="{x:Bind BatchDownloadItems, Mode=OneWay}" SelectionMode="None" Visibility="Collapsed">
+                                    <ListView.ItemContainerStyle>
+                                        <Style TargetType="ListViewItem">
+                                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                            <Setter Property="Padding" Value="0" />
+                                            <Setter Property="Margin" Value="0,0,0,8" />
+                                        </Style>
+                                    </ListView.ItemContainerStyle>
+                                    <ListView.ItemTemplate>
+                                        <DataTemplate x:DataType="models:WorkshopDownloadItem">
+                                            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12">
+                                                <Grid ColumnSpacing="16">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="64" />
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    
+                                                    <Border Width="64" Height="64" CornerRadius="4" Background="{ThemeResource LayerFillColorDefaultBrush}">
+                                                        <Image Source="{x:Bind PreviewImage, Mode=OneWay}" Stretch="UniformToFill" />
+                                                    </Border>
+
+                                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+                                                        <TextBlock Text="{x:Bind DisplayName, Mode=OneWay}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                        <StackPanel Orientation="Horizontal" Spacing="16">
+                                                            <TextBlock Text="{x:Bind WorkshopId}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" />
+                                                            <TextBlock Text="{x:Bind SizeText, Mode=OneWay}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" />
+                                                        </StackPanel>
+                                                        <ProgressBar Value="{x:Bind Progress, Mode=OneWay}" Maximum="100" MinHeight="4" Visibility="{x:Bind ProgressVisibility, Mode=OneWay}" Margin="0,4,0,0" />
+                                                    </StackPanel>
+
+                                                    <TextBlock Grid.Column="2" Text="{x:Bind Status, Mode=OneWay}" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Visibility="{x:Bind StatusVisibility, Mode=OneWay}" />
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ListView.ItemTemplate>
+                                </ListView>
+                                </Grid>
                             </ScrollViewer>
 
                             <Grid x:Name="WorkshopLoadingPanel" Grid.Column="1" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center">

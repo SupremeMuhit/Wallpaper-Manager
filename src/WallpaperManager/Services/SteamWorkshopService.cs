@@ -64,7 +64,7 @@ public sealed class SteamWorkshopService
 
         foreach (var item in details.EnumerateArray())
         {
-            var id = item.TryGetProperty("publishedfileid", out var idProp) ? idProp.GetString() ?? "" : "";
+            var id = item.TryGetProperty("publishedfileid", out var idProp) ? SafeGetString(idProp) : "";
             if (string.IsNullOrWhiteSpace(id))
             {
                 continue;
@@ -143,6 +143,16 @@ public sealed class SteamWorkshopService
         }
 
         return result;
+    }
+
+    private static string SafeGetString(JsonElement element)
+    {
+        return element.ValueKind switch
+        {
+            JsonValueKind.String => element.GetString() ?? "",
+            JsonValueKind.Number => element.GetInt64().ToString(),
+            _ => ""
+        };
     }
 
     /// <summary>

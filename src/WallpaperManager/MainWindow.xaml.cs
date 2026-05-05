@@ -55,6 +55,8 @@ public sealed partial class MainWindow : Window
 
     public ObservableCollection<WallpaperItem> SelectedWallpapers { get; } = [];
 
+    public ObservableCollection<WorkshopDownloadItem> BatchDownloadItems { get; } = [];
+
     public ObservableCollection<WallpaperTag> Tags { get; } = [];
 
     public ObservableCollection<WallpaperTag> VisibleTags { get; } = [];
@@ -794,19 +796,7 @@ public sealed partial class MainWindow : Window
     {
         DownloadSuccessPanel.Visibility = Visibility.Collapsed;
         ActiveDownloadPanel.Visibility = Visibility.Collapsed;
-        WorkshopPreviewPanel.Visibility = Visibility.Collapsed;
-        ActiveDownloadProgressBar.Value = 0;
-        ActiveDownloadStatusText.Text = string.Empty;
-
-        var input = WorkshopUrlInput.Text;
-        var workshopId = _downloadService.ExtractWorkshopId(input);
-
-        if (string.IsNullOrEmpty(workshopId))
-        {
-            ShowDownloadInfo("Invalid input", "Please enter a valid Steam Workshop URL or ID.", InfoBarSeverity.Error);
-            return;
-        }
-
+        
         var selectedRoot = DownloadPathSelector.SelectedItem as WallpaperLibraryRoot;
         var downloadDir = selectedRoot?.Path;
 
@@ -816,50 +806,136 @@ public sealed partial class MainWindow : Window
             return;
         }
 
+        var input = WorkshopUrlInput.Text.Trim();
+        var lines = input.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
+        var ids = lines.Select(line => _downloadService.ExtractWorkshopId(line))
+                      .Where(id => !string.IsNullOrEmpty(id))
+                      .Distinct()
+                      .ToList();
+
+        if (ids.Count == 0)
+        {
+            ShowDownloadInfo("Invalid input", "Please enter valid Steam Workshop URLs or IDs.", InfoBarSeverity.Error);
+            return;
+        }
+
         ExecuteDownloadButton.IsEnabled = false;
         ActiveDownloadPanel.Visibility = Visibility.Visible;
+        ActiveDownloadProgressBar.Value = 0;
         ActiveDownloadStatusText.Text = "Starting...";
-        ShowDownloadInfo("Starting Download", $"Downloading Workshop ID {workshopId}...", InfoBarSeverity.Informational);
 
-        var success = await Task.Run(async () =>
+        int successCount = 0;
+
+        if (ids.Count > 1)
         {
-            return await _downloadService.DownloadAsync(workshopId, downloadDir, (progress, status) =>
+            // Ensure BatchDownloadItems is in sync if text was changed but preview didn't update yet (unlikely but safe)
+            if (BatchDownloadItems.Count != ids.Count)
             {
-                DispatcherQueue.TryEnqueue(() =>
+                // This shouldn't happen normally as TextChanged should have handled it
+            }
+
+            foreach (var item in BatchDownloadItems)
+            {
+                if (item.IsCompleted) continue;
+
+                item.IsDownloading = true;
+                item.Status = "Downloading...";
+                item.Progress = 0;
+
+                var workshopId = item.WorkshopId;
+                ActiveDownloadStatusText.Text = $"Downloading {item.DisplayName}...";
+
+                var success = await Task.Run(async () =>
                 {
-                    ActiveDownloadProgressBar.IsIndeterminate = progress <= 0;
-                    ActiveDownloadProgressBar.Value = progress;
-                    ActiveDownloadStatusText.Text = status;
+                    return await _downloadService.DownloadAsync(workshopId, downloadDir, (progress, status) =>
+                    {
+                        DispatcherQueue.TryEnqueue(() =>
+                        {
+                            item.Progress = progress;
+                            ActiveDownloadProgressBar.IsIndeterminate = progress <= 0;
+                            ActiveDownloadProgressBar.Value = progress;
+                        });
+                    });
                 });
-            });
-        });
 
-        ExecuteDownloadButton.IsEnabled = true;
-
-        if (success)
-        {
-            try
-            {
-                var metadata = await _workshopService.FetchAsync(workshopId);
-                if (metadata != null)
+                item.IsDownloading = false;
+                if (success)
                 {
-                    var metaPath = Path.Combine(downloadDir, workshopId, "meta.json");
-                    var json = System.Text.Json.JsonSerializer.Serialize(metadata, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
-                    await File.WriteAllTextAsync(metaPath, json);
+                    successCount++;
+                    item.IsCompleted = true;
+                    item.Status = "Completed";
+                    item.Progress = 100;
+                    
+                    try
+                    {
+                        if (item.Metadata != null)
+                        {
+                            var metaPath = Path.Combine(downloadDir, workshopId, "meta.json");
+                            var json = System.Text.Json.JsonSerializer.Serialize(item.Metadata, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                            await File.WriteAllTextAsync(metaPath, json);
+                        }
+                    }
+                    catch { }
+                }
+                else
+                {
+                    item.IsFailed = true;
+                    item.Status = "Failed";
                 }
             }
-            catch { /* Ignore metadata errors */ }
-
-            DownloadSuccessPanel.Visibility = Visibility.Visible;
-            ActiveDownloadPanel.Visibility = Visibility.Collapsed;
-            WorkshopUrlInput.Text = string.Empty;
-            WorkshopPreviewPanel.Visibility = Visibility.Collapsed;
-            ShowDownloadInfo("Success", $"Wallpaper {workshopId} downloaded successfully.", InfoBarSeverity.Success);
-            await ScanLibraryAsync();
+            
+            ShowDownloadInfo("Batch Complete", $"Downloaded {successCount} of {ids.Count} wallpapers.", successCount == ids.Count ? InfoBarSeverity.Success : InfoBarSeverity.Warning);
         }
         else
         {
-            ShowDownloadInfo("Download Failed", "There was an error downloading the wallpaper. Check the logs or try again.", InfoBarSeverity.Error);
+            var workshopId = ids[0];
+            ActiveDownloadStatusText.Text = "Starting...";
+            ShowDownloadInfo("Starting Download", $"Downloading Workshop ID {workshopId}...", InfoBarSeverity.Informational);
+
+            var success = await Task.Run(async () =>
+            {
+                return await _downloadService.DownloadAsync(workshopId, downloadDir, (progress, status) =>
+                {
+                    DispatcherQueue.TryEnqueue(() =>
+                    {
+                        ActiveDownloadProgressBar.IsIndeterminate = progress <= 0;
+                        ActiveDownloadProgressBar.Value = progress;
+                        ActiveDownloadStatusText.Text = status;
+                    });
+                });
+            });
+
+            if (success)
+            {
+                successCount++;
+                try
+                {
+                    var metadata = await _workshopService.FetchAsync(workshopId);
+                    if (metadata != null)
+                    {
+                        var metaPath = Path.Combine(downloadDir, workshopId, "meta.json");
+                        var json = System.Text.Json.JsonSerializer.Serialize(metadata, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                        await File.WriteAllTextAsync(metaPath, json);
+                    }
+                }
+                catch { }
+
+                DownloadSuccessPanel.Visibility = Visibility.Visible;
+                WorkshopUrlInput.Text = string.Empty;
+                WorkshopPreviewPanel.Visibility = Visibility.Collapsed;
+                ShowDownloadInfo("Success", $"Wallpaper {workshopId} downloaded successfully.", InfoBarSeverity.Success);
+            }
+            else
+            {
+                ShowDownloadInfo("Download Failed", "There was an error downloading the wallpaper.", InfoBarSeverity.Error);
+            }
+        }
+
+        ExecuteDownloadButton.IsEnabled = true;
+        ActiveDownloadPanel.Visibility = Visibility.Collapsed;
+        if (successCount > 0)
+        {
+            await ScanLibraryAsync();
         }
     }
 
@@ -868,30 +944,106 @@ public sealed partial class MainWindow : Window
         _downloadService.SkipCurrentAccount();
     }
 
-    private string _lastPreviewId = string.Empty;
+    private string _lastPreviewInput = string.Empty;
     private async void WorkshopUrlInput_TextChanged(object sender, TextChangedEventArgs e)
     {
-        var input = WorkshopUrlInput.Text;
-        var workshopId = _downloadService.ExtractWorkshopId(input);
+        var input = WorkshopUrlInput.Text.Trim();
+        if (input == _lastPreviewInput) return;
+        _lastPreviewInput = input;
 
-        if (string.IsNullOrEmpty(workshopId))
+        if (string.IsNullOrEmpty(input))
         {
             WorkshopPreviewPanel.Visibility = Visibility.Collapsed;
+            BatchDownloadListView.Visibility = Visibility.Collapsed;
             WorkshopLoadingPanel.Visibility = Visibility.Collapsed;
-            _lastPreviewId = string.Empty;
+            BatchDownloadItems.Clear();
             return;
         }
 
-        if (workshopId == _lastPreviewId) return;
-        _lastPreviewId = workshopId;
+        var lines = input.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
+        var ids = lines.Select(line => _downloadService.ExtractWorkshopId(line))
+                      .Where(id => !string.IsNullOrEmpty(id))
+                      .Distinct()
+                      .ToList();
 
+        if (ids.Count == 0)
+        {
+            WorkshopPreviewPanel.Visibility = Visibility.Collapsed;
+            BatchDownloadListView.Visibility = Visibility.Collapsed;
+            WorkshopLoadingPanel.Visibility = Visibility.Collapsed;
+            BatchDownloadItems.Clear();
+            return;
+        }
+
+        if (ids.Count == 1)
+        {
+            BatchDownloadListView.Visibility = Visibility.Collapsed;
+            BatchDownloadItems.Clear();
+            await ShowSinglePreview(ids[0]);
+        }
+        else
+        {
+            WorkshopPreviewPanel.Visibility = Visibility.Collapsed;
+            WorkshopLoadingPanel.Visibility = Visibility.Visible;
+            BatchDownloadListView.Visibility = Visibility.Visible;
+            
+            BatchDownloadItems.Clear();
+            foreach (var id in ids)
+            {
+                BatchDownloadItems.Add(new WorkshopDownloadItem { WorkshopId = id });
+            }
+
+            try
+            {
+                var currentInput = input;
+                var metadataMap = await _workshopService.FetchBatchAsync(ids);
+                
+                // Only update if input hasn't changed and we are still in batch mode
+                var currentIds = GetCurrentWorkshopIds();
+                if (WorkshopUrlInput.Text.Trim() == currentInput && currentIds.Count > 1)
+                {
+                    foreach (var item in BatchDownloadItems)
+                    {
+                        if (metadataMap.TryGetValue(item.WorkshopId, out var meta))
+                        {
+                            item.Metadata = meta;
+                        }
+                    }
+                }
+            }
+            catch { }
+            finally
+            {
+                if (WorkshopUrlInput.Text.Trim() == input)
+                {
+                    WorkshopLoadingPanel.Visibility = Visibility.Collapsed;
+                }
+            }
+        }
+    }
+
+    private List<string> GetCurrentWorkshopIds()
+    {
+        var input = WorkshopUrlInput.Text.Trim();
+        var lines = input.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
+        return lines.Select(line => _downloadService.ExtractWorkshopId(line))
+                    .Where(id => !string.IsNullOrEmpty(id))
+                    .Distinct()
+                    .ToList();
+    }
+
+    private async Task ShowSinglePreview(string workshopId)
+    {
         WorkshopPreviewPanel.Visibility = Visibility.Collapsed;
         WorkshopLoadingPanel.Visibility = Visibility.Visible;
 
         try
         {
             var metadata = await _workshopService.FetchAsync(workshopId);
-            if (metadata != null && workshopId == _lastPreviewId)
+            var currentIds = GetCurrentWorkshopIds();
+            
+            // Only show if there is exactly one ID and it's the one we fetched
+            if (metadata != null && currentIds.Count == 1 && currentIds[0] == workshopId)
             {
                 WorkshopPreviewTitle.Text = metadata.Title;
                 WorkshopPreviewDescription.Text = metadata.Description;
@@ -905,19 +1057,14 @@ public sealed partial class MainWindow : Window
                 }
 
                 WorkshopPreviewPanel.Visibility = Visibility.Visible;
-            }
-            else if (workshopId == _lastPreviewId)
-            {
-                WorkshopPreviewPanel.Visibility = Visibility.Collapsed;
+                BatchDownloadListView.Visibility = Visibility.Collapsed;
             }
         }
-        catch 
-        { 
-            if (workshopId == _lastPreviewId) WorkshopPreviewPanel.Visibility = Visibility.Collapsed;
-        }
+        catch { }
         finally
         {
-            if (workshopId == _lastPreviewId)
+            var currentIds = GetCurrentWorkshopIds();
+            if (currentIds.Count == 1 && currentIds[0] == workshopId)
             {
                 WorkshopLoadingPanel.Visibility = Visibility.Collapsed;
             }
