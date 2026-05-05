@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Collections.Concurrent;
 using System.Threading.Tasks;
 
 namespace WallpaperManager.Services;
@@ -70,6 +71,11 @@ public sealed class WorkshopDownloadService
         }
     }
 
+    private static readonly ConcurrentDictionary<string, bool> _accountsInUse = new();
+    private static readonly string _devModePassword = Environment.GetEnvironmentVariable("DEV_MODE_PASSWORD") ?? "kazi-must-face-reveal";
+
+    public static bool CheckDevModePassword(string input) => input == _devModePassword;
+
     private bool _skipCurrentRequested = false;
     public void SkipCurrentAccount()
     {
@@ -96,7 +102,7 @@ public sealed class WorkshopDownloadService
         return null;
     }
 
-    public async Task<bool> DownloadAsync(string workshopId, string downloadDir, Action<double, string>? onProgress = null)
+    public async Task<bool> DownloadAsync(string workshopId, string downloadDir, Action<double, string>? onProgress = null, bool isDevMode = false)
     {
         if (string.IsNullOrWhiteSpace(workshopId)) return false;
 
@@ -127,56 +133,62 @@ public sealed class WorkshopDownloadService
         
         string lastError = "All accounts failed";
 
+        int accDisplayIndex = 0;
         foreach (var account in accounts)
         {
-            _skipCurrentRequested = false;
-            onProgress?.Invoke(0, $"Connecting to Steam as {account.Username}...");
+            accDisplayIndex++;
+            if (_accountsInUse.ContainsKey(account.Username)) continue;
 
-            var startInfo = new ProcessStartInfo
-            {
-                FileName = depotExe,
-                Arguments = $"-app {AppId} -pubfile {workshopId} -username {account.Username} -password {account.Password} -dir \"{targetPath}\" -max-servers 30 -max-downloads 10",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                WorkingDirectory = Path.GetDirectoryName(depotExe)
-            };
-
-            using var process = new Process { StartInfo = startInfo };
-            
-            var tcs = new TaskCompletionSource<bool>();
-
-            process.OutputDataReceived += (s, e) =>
-            {
-                if (string.IsNullOrEmpty(e.Data)) return;
-                
-                var progress = ParseProgress(e.Data);
-                if (progress.HasValue)
-                {
-                    onProgress?.Invoke(progress.Value, "Downloading...");
-                }
-                else if (e.Data.Contains("Login Key Failed", StringComparison.OrdinalIgnoreCase) || 
-                         e.Data.Contains("Invalid Password", StringComparison.OrdinalIgnoreCase) ||
-                         e.Data.Contains("Steam Guard", StringComparison.OrdinalIgnoreCase) ||
-                         e.Data.Contains("Two-factor", StringComparison.OrdinalIgnoreCase) ||
-                         e.Data.Contains("Authenticator", StringComparison.OrdinalIgnoreCase) ||
-                         e.Data.Contains("Captcha", StringComparison.OrdinalIgnoreCase))
-                {
-                    try { process.Kill(); } catch { }
-                }
-            };
-
-            process.ErrorDataReceived += (s, e) =>
-            {
-                if (!string.IsNullOrEmpty(e.Data))
-                {
-                    lastError = e.Data;
-                }
-            };
-
+            _accountsInUse.TryAdd(account.Username, true);
             try
             {
+                _skipCurrentRequested = false;
+                string displayName = isDevMode ? account.Username : $"Acc {accDisplayIndex}";
+                onProgress?.Invoke(0, $"Connecting to Steam as {displayName}...");
+
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = depotExe,
+                    Arguments = $"-app {AppId} -pubfile {workshopId} -username {account.Username} -password {account.Password} -dir \"{targetPath}\" -max-servers 30 -max-downloads 10",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    WorkingDirectory = Path.GetDirectoryName(depotExe)
+                };
+
+                using var process = new Process { StartInfo = startInfo };
+                
+                var tcs = new TaskCompletionSource<bool>();
+
+                process.OutputDataReceived += (s, e) =>
+                {
+                    if (string.IsNullOrEmpty(e.Data)) return;
+                    
+                    var progress = ParseProgress(e.Data);
+                    if (progress.HasValue)
+                    {
+                        onProgress?.Invoke(progress.Value, "Downloading...");
+                    }
+                    else if (e.Data.Contains("Login Key Failed", StringComparison.OrdinalIgnoreCase) || 
+                             e.Data.Contains("Invalid Password", StringComparison.OrdinalIgnoreCase) ||
+                             e.Data.Contains("Steam Guard", StringComparison.OrdinalIgnoreCase) ||
+                             e.Data.Contains("Two-factor", StringComparison.OrdinalIgnoreCase) ||
+                             e.Data.Contains("Authenticator", StringComparison.OrdinalIgnoreCase) ||
+                             e.Data.Contains("Captcha", StringComparison.OrdinalIgnoreCase))
+                    {
+                        try { process.Kill(); } catch { }
+                    }
+                };
+
+                process.ErrorDataReceived += (s, e) =>
+                {
+                    if (!string.IsNullOrEmpty(e.Data))
+                    {
+                        lastError = e.Data;
+                    }
+                };
+
                 process.Start();
                 process.BeginOutputReadLine();
                 process.BeginErrorReadLine();
@@ -204,7 +216,7 @@ public sealed class WorkshopDownloadService
                     if (!receivedAnyOutput && DateTime.Now - process.StartTime > TimeSpan.FromSeconds(30))
                     {
                         try { process.Kill(); } catch { }
-                        onProgress?.Invoke(0, $"Account {account.Username} unresponsive. Trying next...");
+                        onProgress?.Invoke(0, $"Account {displayName} unresponsive. Trying next...");
                         break;
                     }
                 }
@@ -228,13 +240,16 @@ public sealed class WorkshopDownloadService
                 }
                 else
                 {
-                    onProgress?.Invoke(0, $"Account {account.Username} failed. Trying next...");
+                    onProgress?.Invoke(0, $"Account {displayName} failed. Trying next...");
                 }
             }
             catch (Exception ex)
             {
                 lastError = ex.Message;
-                continue;
+            }
+            finally
+            {
+                _accountsInUse.TryRemove(account.Username, out _);
             }
         }
 
