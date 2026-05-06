@@ -43,9 +43,11 @@ public sealed partial class MainWindow : Window
     private readonly WallpaperScanner _wallpaperScanner = new();
     private readonly SteamWorkshopService _workshopService = new();
     private readonly WorkshopDownloadService _downloadService = new();
+    private readonly LocalMetadataStore _localMetadataStore = new();
     private readonly DispatcherTimer _engineStatusTimer = new();
     private MicaBackdrop? _micaBackdrop;
     private bool _isLoadingSettings;
+    private Dictionary<string, LocalMetadataFile> _localMetadataByRoot = new(StringComparer.OrdinalIgnoreCase);
 
     public ObservableCollection<WallpaperLibraryRoot> LibraryRoots { get; } = [];
 
@@ -176,7 +178,9 @@ public sealed partial class MainWindow : Window
         NsfwTabComboBox.SelectedIndex = (int)CurrentSettings.NsfwTabMode;
         RunOnStartupToggle.IsOn = CurrentSettings.RunOnStartup;
         MemoryUsageComboBox.SelectedItem = CurrentSettings.MemoryUsageProfile;
-        PrioritizeWorkshopNameToggle.IsOn = CurrentSettings.PrioritizeWorkshopName;
+        CurrentSettings.PrioritizeWorkshopName = true;
+        PrioritizeWorkshopNameToggle.IsOn = true;
+        PrioritizeWorkshopNameToggle.IsEnabled = false;
         AutoMarkNsfwToggle.IsOn = CurrentSettings.AutoMarkNsfwFromWorkshop;
         RemoveCensorOnHoverToggle.IsOn = CurrentSettings.RemoveCensorOnHover;
         NsfwModeComboBox.SelectedIndex = (int)CurrentSettings.NsfwMode;
@@ -187,7 +191,9 @@ public sealed partial class MainWindow : Window
 
         BlurIntensitySlider.Value = CurrentSettings.BlurIntensity;
         OverlayOpacitySlider.Value = CurrentSettings.OverlayOpacity;
-        UseWorkshopTagsToggle.IsOn = CurrentSettings.UseWorkshopTags;
+        CurrentSettings.UseWorkshopTags = true;
+        UseWorkshopTagsToggle.IsOn = true;
+        UseWorkshopTagsToggle.IsEnabled = false;
 
         ApplyTheme(CurrentSettings.Theme);
         CurrentSettings.UseMicaBackdrop = true;
@@ -197,6 +203,7 @@ public sealed partial class MainWindow : Window
         ApplyLibraryViewMode(CurrentSettings.LibraryViewMode);
         ApplyHomeViewMode(CurrentSettings.HomeViewMode);
         ApplyHomeSortMode();
+        UpdateDevModeUi();
         RefreshVisibleTags();
         UpdateEngineStatus();
         _isLoadingSettings = false;
@@ -448,7 +455,8 @@ public sealed partial class MainWindow : Window
     private void PrioritizeWorkshopNameToggle_Toggled(object sender, RoutedEventArgs e)
     {
         if (_isLoadingSettings) return;
-        CurrentSettings.PrioritizeWorkshopName = PrioritizeWorkshopNameToggle.IsOn;
+        CurrentSettings.PrioritizeWorkshopName = true;
+        PrioritizeWorkshopNameToggle.IsOn = true;
         ApplyWallpaperPresentation();
         RefreshVisibleWallpapers();
         TriggerSaveSettings();
@@ -624,7 +632,8 @@ public sealed partial class MainWindow : Window
     private void UseWorkshopTagsToggle_Toggled(object sender, RoutedEventArgs e)
     {
         if (_isLoadingSettings) return;
-        CurrentSettings.UseWorkshopTags = UseWorkshopTagsToggle.IsOn;
+        CurrentSettings.UseWorkshopTags = true;
+        UseWorkshopTagsToggle.IsOn = true;
         ApplyWallpaperPresentation();
         RefreshVisibleWallpapers();
         TriggerSaveSettings();
@@ -1457,16 +1466,19 @@ public sealed partial class MainWindow : Window
         {
         ScanLibraryFromSettings();
 
+        _localMetadataByRoot = await _localMetadataStore.LoadForRootsAsync(LibraryRoots.Select(root => root.Path));
+
         var scannedWallpapers = await _wallpaperScanner.ScanAsync(
             LibraryRoots,
             CurrentSettings.SelectedWallpaperKeys.ToHashSet(StringComparer.OrdinalIgnoreCase),
             CurrentSettings.NsfwWallpaperKeys.ToHashSet(StringComparer.OrdinalIgnoreCase),
             CurrentSettings.MatureWallpaperKeys.ToHashSet(StringComparer.OrdinalIgnoreCase),
-            CurrentSettings.WallpaperTags);
+            new Dictionary<string, List<string>>());
 
         Wallpapers.Clear();
         foreach (var wallpaper in scannedWallpapers)
         {
+            ApplyLocalMetadata(wallpaper);
             Wallpapers.Add(wallpaper);
         }
 
@@ -1643,8 +1655,8 @@ public sealed partial class MainWindow : Window
             wallpaper.SizeColumnWidth = GetColumnWidth(hiddenColumns, SizeColumn, new GridLength(110));
             wallpaper.TagsColumnWidth = GetColumnWidth(hiddenColumns, TagsColumn, new GridLength(180));
 
-            wallpaper.PrioritizeWorkshopName = CurrentSettings.PrioritizeWorkshopName;
-            wallpaper.UseWorkshopTags = CurrentSettings.UseWorkshopTags;
+            wallpaper.PrioritizeWorkshopName = true;
+            wallpaper.UseWorkshopTags = true;
 
             ApplyCensorship(wallpaper);
             ApplySizePresentation(wallpaper, hiddenColumns);
@@ -1742,6 +1754,7 @@ public sealed partial class MainWindow : Window
         {
             new() { Id = CardButtonIds.ThreeDot, Name = "More actions (Three Dot)", Glyph = "\uE712", IsEnabled = true },
             new() { Id = CardButtonIds.AddTag, Name = "Add Tag / Mark", Glyph = "\uE8EC" },
+            new() { Id = CardButtonIds.AddLocalName, Name = "Add Local Name", Glyph = "\uE70F" },
             new() { Id = CardButtonIds.AddToHome, Name = "Add to Home", Glyph = "\uE710" },
             new() { Id = CardButtonIds.Delete, Name = "Delete Wallpaper", Glyph = "\uE74D" },
             new() { Id = CardButtonIds.Details, Name = "Wallpaper Details", Glyph = "\uE946" }
@@ -1980,6 +1993,8 @@ public sealed partial class MainWindow : Window
             ForcedAccountComboBox.Items.Clear();
             ForcedAccountComboBox.Items.Add("Random (Default)");
             foreach (var account in accounts) ForcedAccountComboBox.Items.Add(account);
+
+            ForcedAccountComboBox.IsEnabled = accounts.Count > 0;
             
             if (!string.IsNullOrEmpty(currentSelection) && ForcedAccountComboBox.Items.Contains(currentSelection))
             {
@@ -2057,6 +2072,11 @@ public sealed partial class MainWindow : Window
                     // Update collection-based settings that aren't easily tracked by single handlers
                     CurrentSettings.Tags = Tags.ToList();
                     CurrentSettings.WallpaperDirectories = LibraryRoots.ToList();
+                    CurrentSettings.WallpaperTags = [];
+                    CurrentSettings.PrioritizeWorkshopName = true;
+                    CurrentSettings.UseWorkshopTags = true;
+
+                    await SaveLocalMetadataAsync();
 
                     await _settingsStore.SaveAsync(CurrentSettings);
                 }
@@ -2079,6 +2099,68 @@ public sealed partial class MainWindow : Window
         ApplyTheme(CurrentSettings.Theme);
         ApplyWallpaperPresentation();
         RefreshVisibleWallpapers();
+    }
+
+    private void ApplyLocalMetadata(WallpaperItem wallpaper)
+    {
+        if (string.IsNullOrWhiteSpace(wallpaper.LibraryRootPath) || string.IsNullOrWhiteSpace(wallpaper.SteamId))
+        {
+            return;
+        }
+
+        if (!_localMetadataByRoot.TryGetValue(wallpaper.LibraryRootPath, out var rootMetadata))
+        {
+            return;
+        }
+
+        if (!rootMetadata.Wallpapers.TryGetValue(wallpaper.SteamId, out var localMeta))
+        {
+            return;
+        }
+
+        wallpaper.LocalName = localMeta.LocalName ?? string.Empty;
+        wallpaper.Tags = localMeta.LocalTags?.Distinct(StringComparer.OrdinalIgnoreCase).ToList() ?? [];
+    }
+
+    private async Task SaveLocalMetadataAsync()
+    {
+        var byRoot = Wallpapers
+            .Where(w => !string.IsNullOrWhiteSpace(w.LibraryRootPath))
+            .GroupBy(w => w.LibraryRootPath, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var rootGroup in byRoot)
+        {
+            var rootPath = rootGroup.Key;
+            var file = new LocalMetadataFile();
+
+            foreach (var wallpaper in rootGroup.Where(w => !string.IsNullOrWhiteSpace(w.SteamId)))
+            {
+                var localName = wallpaper.LocalName?.Trim() ?? string.Empty;
+                var localTags = wallpaper.Tags
+                    .Where(tag => !string.IsNullOrWhiteSpace(tag))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                if (string.IsNullOrWhiteSpace(localName) && localTags.Count == 0)
+                {
+                    continue;
+                }
+
+                file.Wallpapers[wallpaper.SteamId] = new LocalWallpaperMetadata
+                {
+                    LocalName = localName,
+                    LocalTags = localTags
+                };
+            }
+
+            await _localMetadataStore.SaveForRootAsync(rootPath, file);
+            _localMetadataByRoot[rootPath] = file;
+        }
+
+        foreach (var root in LibraryRoots)
+        {
+            _localMetadataStore.EnsureCarbonDirectories(root.Path);
+        }
     }
     private void UpdateEmptyStates()
     {
@@ -3033,6 +3115,9 @@ public sealed partial class MainWindow : Window
                 case CardButtonIds.AddTag:
                     ShowAddTagFlyout(btn, item);
                     break;
+                case CardButtonIds.AddLocalName:
+                    await EditLocalNameAsync(item);
+                    break;
                 case CardButtonIds.AddToHome:
                     ToggleHomeStatus(item);
                     break;
@@ -3053,6 +3138,7 @@ public sealed partial class MainWindow : Window
         // Always include basic actions if they aren't already visible on the card
         AddDynamicMenuItem(menu, CardButtonIds.AddToHome, item);
         AddDynamicMenuItem(menu, CardButtonIds.Details, item);
+        AddDynamicMenuItem(menu, CardButtonIds.AddLocalName, item);
         AddDynamicMenuItem(menu, CardButtonIds.AddTag, item);
 
         if (item.OverflowButtons.Count > 0)
@@ -3061,7 +3147,7 @@ public sealed partial class MainWindow : Window
             foreach (var btnId in item.OverflowButtons)
             {
                 // Avoid duplicates if we already added them above as basic actions
-                if (btnId == CardButtonIds.ThreeDot || btnId == CardButtonIds.AddToHome || btnId == CardButtonIds.Details || btnId == CardButtonIds.AddTag)
+                if (btnId == CardButtonIds.ThreeDot || btnId == CardButtonIds.AddToHome || btnId == CardButtonIds.Details || btnId == CardButtonIds.AddTag || btnId == CardButtonIds.AddLocalName)
                     continue;
 
                 AddDynamicMenuItem(menu, btnId, item);
@@ -3094,6 +3180,7 @@ public sealed partial class MainWindow : Window
         {
             CardButtonIds.AddToHome => item.IsSelected ? "Remove from Home" : "Add to Home",
             CardButtonIds.AddTag => "Mark / Add Tags",
+            CardButtonIds.AddLocalName => "Add Local Name",
             CardButtonIds.Delete => "Delete Wallpaper",
             CardButtonIds.Details => "Wallpaper Details",
             _ => string.Empty
@@ -3105,6 +3192,7 @@ public sealed partial class MainWindow : Window
         {
             CardButtonIds.AddToHome => new FontIcon { Glyph = item.HomeActionGlyph },
             CardButtonIds.AddTag => new SymbolIcon(Symbol.Tag),
+            CardButtonIds.AddLocalName => new SymbolIcon(Symbol.Edit),
             CardButtonIds.Delete => new SymbolIcon(Symbol.Delete),
             CardButtonIds.Details => new SymbolIcon(Symbol.List),
             _ => null
@@ -3118,6 +3206,7 @@ public sealed partial class MainWindow : Window
             switch (buttonId)
             {
                 case CardButtonIds.AddTag: ShowAddTagFlyout(anchor: null!, item); break; // Anchor is used for flyout positioning, might need care
+                case CardButtonIds.AddLocalName: await EditLocalNameAsync(item); break;
                 case CardButtonIds.AddToHome: ToggleHomeStatus(item); break;
                 case CardButtonIds.Delete: await DeleteWallpaperAsync(item); break;
                 case CardButtonIds.Details: ShowWallpaperDetails(item); break;
@@ -3157,7 +3246,13 @@ public sealed partial class MainWindow : Window
         tagSearch.ItemsSource = Tags.Select(t => t.Name).ToList();
         tagSearch.SuggestionChosen += (s, a) => { 
             var tagName = a.SelectedItem?.ToString();
-            if (!string.IsNullOrEmpty(tagName) && !item.Tags.Contains(tagName)) { item.Tags.Add(tagName); TriggerSaveSettings(); ApplyWallpaperPresentation(); }
+            if (!string.IsNullOrEmpty(tagName) && !item.Tags.Contains(tagName, StringComparer.OrdinalIgnoreCase))
+            {
+                item.Tags.Add(tagName);
+                item.OnPropertyChanged(nameof(WallpaperItem.TagsText));
+                TriggerSaveSettings();
+                ApplyWallpaperPresentation();
+            }
             flyout.Hide();
         };
 
@@ -3170,6 +3265,38 @@ public sealed partial class MainWindow : Window
     private void ShowWallpaperDetails(WallpaperItem item)
     {
         WallpaperDetails_Click(new Button { Tag = item }, new RoutedEventArgs());
+    }
+
+    private async Task EditLocalNameAsync(WallpaperItem item)
+    {
+        var input = new TextBox
+        {
+            PlaceholderText = "Custom local name",
+            Text = item.LocalName ?? string.Empty
+        };
+
+        var dialog = new ContentDialog
+        {
+            Title = "Add Local Name",
+            Content = input,
+            PrimaryButtonText = "Save",
+            CloseButtonText = "Cancel",
+            DefaultButton = ContentDialogButton.Primary,
+            XamlRoot = RootGrid.XamlRoot
+        };
+
+        if (await dialog.ShowAsync() != ContentDialogResult.Primary)
+        {
+            return;
+        }
+
+        item.LocalName = input.Text.Trim();
+        item.OnPropertyChanged(nameof(WallpaperItem.LocalName));
+        item.OnPropertyChanged(nameof(WallpaperItem.DisplayName));
+
+        RefreshVisibleWallpapers();
+        RefreshSelectedWallpapers();
+        TriggerSaveSettings();
     }
 
     private async Task DeleteWallpaperAsync(WallpaperItem item)

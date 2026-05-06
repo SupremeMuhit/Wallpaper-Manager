@@ -41,7 +41,7 @@ public sealed partial class WallpaperScanner
                         continue;
                     }
 
-                    var item = CreateWallpaperItem(directory);
+                    var item = CreateWallpaperItem(directory, root.Path);
                     item.IsSelected = selectedKeys.Contains(item.Key);
                     item.IsNsfw = nsfwKeys.Contains(item.Key);
                     item.IsMature = matureKeys.Contains(item.Key);
@@ -100,19 +100,20 @@ public sealed partial class WallpaperScanner
         return hasMetadata || hasScene || hasHtml || (hasPreview && hasVideo);
     }
 
-    private static WallpaperItem CreateWallpaperItem(string directory)
+    private static WallpaperItem CreateWallpaperItem(string directory, string libraryRootPath)
     {
         var files = GetFiles(directory);
-        var (steamId, localName) = ParseFolderName(Path.GetFileName(directory));
+        var steamId = ParseFolderName(Path.GetFileName(directory));
 
         return new WallpaperItem
         {
             DirectoryPath = directory,
+            LibraryRootPath = libraryRootPath,
             PreviewPath = files.FirstOrDefault(file => string.Equals(Path.GetFileNameWithoutExtension(file), "preview", StringComparison.OrdinalIgnoreCase)
                 && PreviewExtensions.Contains(Path.GetExtension(file))) ?? string.Empty,
             LaunchPath = GetLaunchPath(directory, files),
             DateModified = Directory.GetCreationTimeUtc(directory),
-            LocalName = localName,
+            LocalName = string.Empty,
             SteamId = steamId,
             SizeBytes = GetDirectorySize(directory)
         };
@@ -127,17 +128,11 @@ public sealed partial class WallpaperScanner
             ?? directory;
     }
 
-    private static (string SteamId, string LocalName) ParseFolderName(string folderName)
+    private static string ParseFolderName(string folderName)
     {
-        var preferredMatch = PreferredNamePattern().Match(folderName);
-        if (preferredMatch.Success)
-        {
-            return (preferredMatch.Groups["id"].Value, preferredMatch.Groups["name"].Value.Trim());
-        }
-
         return SteamIdOnlyPattern().IsMatch(folderName)
-            ? (folderName, string.Empty)
-            : (string.Empty, folderName);
+            ? folderName
+            : string.Empty;
     }
 
     private static string[] GetFiles(string directory)
@@ -190,9 +185,6 @@ public sealed partial class WallpaperScanner
     {
         return string.Equals(Path.GetFileName(path), fileName, StringComparison.OrdinalIgnoreCase);
     }
-
-    [GeneratedRegex(@"^\[(?<id>\d+)\]\s*(?<name>.+)$")]
-    private static partial Regex PreferredNamePattern();
 
     [GeneratedRegex(@"^\d+$")]
     private static partial Regex SteamIdOnlyPattern();

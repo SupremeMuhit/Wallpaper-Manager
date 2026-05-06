@@ -20,6 +20,7 @@ public sealed class WallpaperItem : INotifyPropertyChanged
         : DirectoryPath;
 
     public string DirectoryPath { get; set; } = string.Empty;
+    public string LibraryRootPath { get; set; } = string.Empty;
 
     public string PreviewPath { get; set; } = string.Empty;
 
@@ -302,9 +303,23 @@ public sealed class WallpaperItem : INotifyPropertyChanged
         set { if (_tagsColumnWidth != value) { _tagsColumnWidth = value; OnPropertyChanged(); } }
     }
 
-    public string DisplayName => PrioritizeWorkshopName && WorkshopMetadata != null && !string.IsNullOrWhiteSpace(WorkshopMetadata.Title)
-        ? WorkshopMetadata.Title
-        : LocalName;
+    public string DisplayName
+    {
+        get
+        {
+            if (WorkshopMetadata != null && !string.IsNullOrWhiteSpace(WorkshopMetadata.Title))
+            {
+                return WorkshopMetadata.Title;
+            }
+
+            if (!string.IsNullOrWhiteSpace(LocalName))
+            {
+                return LocalName;
+            }
+
+            return !string.IsNullOrWhiteSpace(SteamId) ? SteamId : "Unknown";
+        }
+    }
 
     public string IdText => string.IsNullOrWhiteSpace(SteamId) ? "Local" : SteamId;
 
@@ -315,7 +330,7 @@ public sealed class WallpaperItem : INotifyPropertyChanged
         get
         {
             var displayTags = new List<string>(Tags);
-            if (UseWorkshopTags && WorkshopMetadata != null)
+            if (WorkshopMetadata != null)
             {
                 displayTags.AddRange(WorkshopMetadata.Tags);
                 displayTags = displayTags.Distinct().ToList();
@@ -359,6 +374,7 @@ public sealed class WallpaperItem : INotifyPropertyChanged
     {
         CardButtonIds.ThreeDot => "\uE712",
         CardButtonIds.AddTag => "\uE8EC", // Tag
+        CardButtonIds.AddLocalName => "\uE70F", // Edit
         CardButtonIds.AddToHome => HomeActionGlyph,
         CardButtonIds.Delete => "\uE74D", // Delete
         CardButtonIds.Details => "\uE946", // Info
@@ -369,6 +385,7 @@ public sealed class WallpaperItem : INotifyPropertyChanged
     {
         CardButtonIds.ThreeDot => "More actions",
         CardButtonIds.AddTag => "Add tags",
+        CardButtonIds.AddLocalName => "Add local name",
         CardButtonIds.AddToHome => HomeActionTooltip,
         CardButtonIds.Delete => "Delete wallpaper",
         CardButtonIds.Details => "Wallpaper details",

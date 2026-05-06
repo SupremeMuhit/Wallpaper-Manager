@@ -55,19 +55,6 @@ public sealed class WorkshopDownloadService
         }
         catch { /* Fallback or ignore */ }
         
-        // Fallback if env is empty/missing
-        if (EncryptedAccounts.Count == 0)
-        {
-            EncryptedAccounts.Add(("ruiiixx", "JFdbKzI1Ml1BaVY3"));
-            EncryptedAccounts.Add(("vAbuDy", "NQ4DAAFZBgwC"));
-            EncryptedAccounts.Add(("adgjl1182", "JiQ4OT9YSVxLFA=="));
-            EncryptedAccounts.Add(("gobjj16182", "DRQDDhkAH11AH1c="));
-            EncryptedAccounts.Add(("787109690", "PxQPOQg4PTQbSlRb"));
-            EncryptedAccounts.Add(("workshop01", "DRQDAw8WA19f"));
-            EncryptedAccounts.Add(("workshop02", "DRQDAw8WA19c"));
-            EncryptedAccounts.Add(("workshop03", "DRQDAw8WA19e"));
-            EncryptedAccounts.Add(("premexilmenledgconis", "RBE0Djg7Ogk2Tw==")); // Move to end as requested
-        }
     }
 
     private bool _skipCurrentAccountRequested = false;
@@ -161,6 +148,12 @@ public sealed class WorkshopDownloadService
             .Select(a => (a.Username, Password: Decrypt(a.EncryptedPassword)))
             .ToList();
 
+        if (accounts.Count == 0)
+        {
+            onProgress?.Invoke(0, "Error: No Steam accounts configured.");
+            return false;
+        }
+
         if (!string.IsNullOrEmpty(forcedUsername))
         {
             accounts = accounts.Where(a => string.Equals(a.Username, forcedUsername, StringComparison.OrdinalIgnoreCase)).ToList();
@@ -178,7 +171,7 @@ public sealed class WorkshopDownloadService
             if (_cancelCurrentDownloadRequested) break;
             if (_skipCurrentDownloadRequested) break;
             _skipCurrentAccountRequested = false;
-            onProgress?.Invoke(0, $"Connecting to Steam as {account.Username}...");
+            onProgress?.Invoke(0, "Connecting to Steam...");
 
             var startInfo = new ProcessStartInfo
             {
@@ -257,7 +250,7 @@ public sealed class WorkshopDownloadService
                     if (!receivedAnyOutput && DateTime.Now - process.StartTime > TimeSpan.FromSeconds(30))
                     {
                         try { process.Kill(); } catch { }
-                        onProgress?.Invoke(0, $"Account {account.Username} unresponsive. Trying next...");
+                        onProgress?.Invoke(0, "Connection unresponsive. Trying next account...");
                         break;
                     }
                 }
@@ -283,7 +276,7 @@ public sealed class WorkshopDownloadService
                 }
                 else
                 {
-                    onProgress?.Invoke(0, $"Account {account.Username} failed. Trying next...");
+                    onProgress?.Invoke(0, "Account failed. Trying next...");
                 }
             }
             catch (Exception ex)

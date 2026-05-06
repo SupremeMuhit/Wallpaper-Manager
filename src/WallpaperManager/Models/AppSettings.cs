@@ -67,7 +67,7 @@ public sealed class AppSettings
 
     public string HomeSortMode { get; set; } = "Free Movement";
     public LibraryHideMode LibraryHideMode { get; set; } = LibraryHideMode.Off;
-    public List<string> CardButtons { get; set; } = ["ThreeDot", "AddToHome", "Details"];
+    public List<string> CardButtons { get; set; } = ["ThreeDot", "AddToHome", "AddLocalName", "Details"];
 
     public bool IsDevMode { get; set; }
 }
@@ -76,6 +76,7 @@ public static class CardButtonIds
 {
     public const string ThreeDot = "ThreeDot";
     public const string AddTag = "AddTag";
+    public const string AddLocalName = "AddLocalName";
     public const string AddToHome = "AddToHome";
     public const string Delete = "Delete";
     public const string Details = "Details";
