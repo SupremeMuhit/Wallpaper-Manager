@@ -86,6 +86,7 @@ public sealed partial class MainWindow : Window
         new() { Tag = "Library", Title = "Library", Icon = "\uE8B7" },
         new() { Tag = "NsfwMature", Title = "NSFW / Mature", Icon = "\uE8D4" },
         new() { Tag = "Tags", Title = "Tags", Icon = "\uE8EC" },
+        new() { Tag = "AdvanceSettings", Title = "Advance Settings", Icon = "\uE713" },
         new() { Tag = "About", Title = "About", Icon = "\uE946" },
         new() { Tag = "Contact", Title = "Contact", Icon = "\uE715" }
     ];
@@ -794,8 +795,10 @@ public sealed partial class MainWindow : Window
 
     private async void ExecuteDownload_Click(object sender, RoutedEventArgs e)
     {
+        _downloadService.ResetCancellation();
         DownloadSuccessPanel.Visibility = Visibility.Collapsed;
         ActiveDownloadPanel.Visibility = Visibility.Collapsed;
+        SkipCurrentDownloadButton.Visibility = Visibility.Collapsed;
         
         var selectedRoot = DownloadPathSelector.SelectedItem as WallpaperLibraryRoot;
         var downloadDir = selectedRoot?.Path;
@@ -809,7 +812,7 @@ public sealed partial class MainWindow : Window
         var input = WorkshopUrlInput.Text.Trim();
         var lines = input.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
         var ids = lines.Select(line => _downloadService.ExtractWorkshopId(line))
-                      .Where(id => !string.IsNullOrEmpty(id))
+                      .OfType<string>()
                       .Distinct()
                       .ToList();
 
@@ -820,30 +823,66 @@ public sealed partial class MainWindow : Window
         }
 
         ExecuteDownloadButton.IsEnabled = false;
+        CancelDownloadButton.IsEnabled = true;
+        CancelDownloadButton.Visibility = Visibility.Visible;
+        SkipCurrentDownloadButton.IsEnabled = true;
+        SkipCurrentDownloadButton.Visibility = Visibility.Visible;
         ActiveDownloadPanel.Visibility = Visibility.Visible;
+        ActiveDownloadProgressBar.IsIndeterminate = false;
         ActiveDownloadProgressBar.Value = 0;
         ActiveDownloadStatusText.Text = "Starting...";
 
         int successCount = 0;
+        string? forcedAccount = null;
+        if (CurrentSettings.IsDevMode && ForcedAccountComboBox.SelectedIndex > 0)
+        {
+            forcedAccount = ForcedAccountComboBox.SelectedItem as string;
+        }
 
         if (ids.Count > 1)
         {
-            // Ensure BatchDownloadItems is in sync if text was changed but preview didn't update yet (unlikely but safe)
-            if (BatchDownloadItems.Count != ids.Count)
+            var batchItems = BatchDownloadItems
+                .Where(item => ids.Contains(item.WorkshopId))
+                .ToList();
+
+            if (batchItems.Count != ids.Count)
             {
-                // This shouldn't happen normally as TextChanged should have handled it
+                BatchDownloadItems.Clear();
+                foreach (var id in ids)
+                {
+                    BatchDownloadItems.Add(new WorkshopDownloadItem { WorkshopId = id });
+                }
+
+                batchItems = BatchDownloadItems.ToList();
+                BatchDownloadListView.Visibility = Visibility.Visible;
+                WorkshopPreviewPanel.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                ids = batchItems.Select(item => item.WorkshopId).ToList();
             }
 
-            foreach (var item in BatchDownloadItems)
+            foreach (var item in batchItems)
             {
-                if (item.IsCompleted) continue;
+                item.IsDownloading = false;
+                item.IsCompleted = false;
+                item.IsFailed = false;
+                item.Progress = 0;
+                item.Status = "Pending";
+            }
 
+            foreach (var item in batchItems)
+            {
+                if (_downloadService.IsCancelled()) break;
+
+                SkipCurrentDownloadButton.IsEnabled = true;
                 item.IsDownloading = true;
                 item.Status = "Downloading...";
                 item.Progress = 0;
 
                 var workshopId = item.WorkshopId;
-                ActiveDownloadStatusText.Text = $"Downloading {item.DisplayName}...";
+                var accountInfo = CurrentSettings.IsDevMode ? " (Dev Mode)" : "";
+                ActiveDownloadStatusText.Text = $"Downloading {item.DisplayName}{accountInfo}...";
 
                 var success = await Task.Run(async () =>
                 {
@@ -854,8 +893,13 @@ public sealed partial class MainWindow : Window
                             item.Progress = progress;
                             ActiveDownloadProgressBar.IsIndeterminate = progress <= 0;
                             ActiveDownloadProgressBar.Value = progress;
+                            
+                            if (CurrentSettings.IsDevMode && status.Contains("as "))
+                            {
+                                ActiveDownloadStatusText.Text = $"{item.DisplayName} - {status}";
+                            }
                         });
-                    });
+                    }, forcedAccount);
                 });
 
                 item.IsDownloading = false;
@@ -879,9 +923,12 @@ public sealed partial class MainWindow : Window
                 }
                 else
                 {
-                    item.IsFailed = true;
-                    item.Status = "Failed";
+                    var wasSkipped = _downloadService.IsCurrentDownloadSkipped();
+                    item.IsFailed = !_downloadService.IsCancelled() && !wasSkipped;
+                    item.Status = _downloadService.IsCancelled() ? "Cancelled" : wasSkipped ? "Skipped" : "Failed";
                 }
+
+                if (_downloadService.IsCancelled()) break;
             }
             
             ShowDownloadInfo("Batch Complete", $"Downloaded {successCount} of {ids.Count} wallpapers.", successCount == ids.Count ? InfoBarSeverity.Success : InfoBarSeverity.Warning);
@@ -889,6 +936,7 @@ public sealed partial class MainWindow : Window
         else
         {
             var workshopId = ids[0];
+            SkipCurrentDownloadButton.IsEnabled = true;
             ActiveDownloadStatusText.Text = "Starting...";
             ShowDownloadInfo("Starting Download", $"Downloading Workshop ID {workshopId}...", InfoBarSeverity.Informational);
 
@@ -900,9 +948,17 @@ public sealed partial class MainWindow : Window
                     {
                         ActiveDownloadProgressBar.IsIndeterminate = progress <= 0;
                         ActiveDownloadProgressBar.Value = progress;
-                        ActiveDownloadStatusText.Text = status;
+                        
+                        if (CurrentSettings.IsDevMode && status.Contains("as "))
+                        {
+                            ActiveDownloadStatusText.Text = status;
+                        }
+                        else
+                        {
+                            ActiveDownloadStatusText.Text = status;
+                        }
                     });
-                });
+                }, forcedAccount);
             });
 
             if (success)
@@ -927,12 +983,15 @@ public sealed partial class MainWindow : Window
             }
             else
             {
-                ShowDownloadInfo("Download Failed", "There was an error downloading the wallpaper.", InfoBarSeverity.Error);
+                ShowDownloadInfo("Download Failed", _downloadService.IsCancelled() ? "Download was cancelled." : "There was an error downloading the wallpaper.", InfoBarSeverity.Error);
             }
         }
 
         ExecuteDownloadButton.IsEnabled = true;
+        CancelDownloadButton.Visibility = Visibility.Collapsed;
+        SkipCurrentDownloadButton.Visibility = Visibility.Collapsed;
         ActiveDownloadPanel.Visibility = Visibility.Collapsed;
+        ActiveDownloadProgressBar.IsIndeterminate = false;
         if (successCount > 0)
         {
             await ScanLibraryAsync();
@@ -942,6 +1001,13 @@ public sealed partial class MainWindow : Window
     private void SkipAccount_Click(object sender, RoutedEventArgs e)
     {
         _downloadService.SkipCurrentAccount();
+    }
+
+    private void SkipCurrentDownload_Click(object sender, RoutedEventArgs e)
+    {
+        _downloadService.SkipCurrentDownload();
+        SkipCurrentDownloadButton.IsEnabled = false;
+        ActiveDownloadStatusText.Text = "Skipping current download...";
     }
 
     private string _lastPreviewInput = string.Empty;
@@ -962,7 +1028,7 @@ public sealed partial class MainWindow : Window
 
         var lines = input.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
         var ids = lines.Select(line => _downloadService.ExtractWorkshopId(line))
-                      .Where(id => !string.IsNullOrEmpty(id))
+                      .OfType<string>()
                       .Distinct()
                       .ToList();
 
@@ -1027,7 +1093,7 @@ public sealed partial class MainWindow : Window
         var input = WorkshopUrlInput.Text.Trim();
         var lines = input.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
         return lines.Select(line => _downloadService.ExtractWorkshopId(line))
-                    .Where(id => !string.IsNullOrEmpty(id))
+                    .OfType<string>()
                     .Distinct()
                     .ToList();
     }
@@ -1858,6 +1924,101 @@ public sealed partial class MainWindow : Window
         };
     }
 
+    private async void DevModeToggle_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (DevModeToggle.IsOn)
+        {
+            if (CurrentSettings.IsDevMode) return;
+
+            var passwordBox = new PasswordBox { PlaceholderText = "Enter developer password" };
+            var dialog = new ContentDialog
+            {
+                Title = "Dev Mode Access",
+                Content = passwordBox,
+                PrimaryButtonText = "Unlock",
+                CloseButtonText = "Cancel",
+                DefaultButton = ContentDialogButton.Primary,
+                XamlRoot = RootGrid.XamlRoot
+            };
+
+            var result = await dialog.ShowAsync();
+            var password = Environment.GetEnvironmentVariable("DEV_MODE_PASSWORD") ?? "red-sucks-kazi-kucks";
+
+            if (result == ContentDialogResult.Primary && passwordBox.Password == password)
+            {
+                CurrentSettings.IsDevMode = true;
+                UpdateDevModeUi();
+                TriggerSaveSettings();
+            }
+            else
+            {
+                DevModeToggle.IsOn = false;
+                if (result == ContentDialogResult.Primary)
+                {
+                    ShowDownloadInfo("Access Denied", "Incorrect developer password.", InfoBarSeverity.Error);
+                }
+            }
+        }
+        else
+        {
+            CurrentSettings.IsDevMode = false;
+            UpdateDevModeUi();
+            TriggerSaveSettings();
+        }
+    }
+
+    private void UpdateDevModeUi()
+    {
+        if (DevAccountSelectorPanel == null) return;
+        
+        DevAccountSelectorPanel.Visibility = CurrentSettings.IsDevMode ? Visibility.Visible : Visibility.Collapsed;
+        if (CurrentSettings.IsDevMode)
+        {
+            var accounts = _downloadService.GetAvailableAccounts();
+            var currentSelection = ForcedAccountComboBox.SelectedItem as string;
+            
+            ForcedAccountComboBox.Items.Clear();
+            ForcedAccountComboBox.Items.Add("Random (Default)");
+            foreach (var account in accounts) ForcedAccountComboBox.Items.Add(account);
+            
+            if (!string.IsNullOrEmpty(currentSelection) && ForcedAccountComboBox.Items.Contains(currentSelection))
+            {
+                ForcedAccountComboBox.SelectedItem = currentSelection;
+            }
+            else
+            {
+                ForcedAccountComboBox.SelectedIndex = 0;
+            }
+        }
+    }
+
+    private void CancelDownload_Click(object sender, RoutedEventArgs e)
+    {
+        _downloadService.CancelDownload();
+        CancelDownloadButton.IsEnabled = false;
+        SkipCurrentDownloadButton.IsEnabled = false;
+        ActiveDownloadStatusText.Text = "Cancelling downloads...";
+    }
+
+    private void RemoveFromBatch_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as Button)?.DataContext is WorkshopDownloadItem item)
+        {
+            BatchDownloadItems.Remove(item);
+            
+            // Update the input box to reflect the removal
+            var ids = BatchDownloadItems.Select(i => i.WorkshopId).ToList();
+            if (ids.Count > 0)
+            {
+                WorkshopUrlInput.Text = string.Join(Environment.NewLine, ids);
+            }
+            else
+            {
+                WorkshopUrlInput.Text = string.Empty;
+            }
+        }
+    }
+
     private void ShowSettingsSection(string? section)
     {
         EngineWallpaperSettingsPanel.Visibility = section == "EngineWallpaper" ? Visibility.Visible : Visibility.Collapsed;
@@ -1865,6 +2026,7 @@ public sealed partial class MainWindow : Window
         LibrarySettingsPanel.Visibility = section == "Library" ? Visibility.Visible : Visibility.Collapsed;
         NsfwMatureSettingsPanel.Visibility = section == "NsfwMature" ? Visibility.Visible : Visibility.Collapsed;
         TagSettingsPanel.Visibility = section == "Tags" ? Visibility.Visible : Visibility.Collapsed;
+        AdvanceSettingsPanel.Visibility = section == "AdvanceSettings" ? Visibility.Visible : Visibility.Collapsed;
         AboutSettingsPanel.Visibility = section == "About" ? Visibility.Visible : Visibility.Collapsed;
         ContactSettingsPanel.Visibility = section == "Contact" ? Visibility.Visible : Visibility.Collapsed;
 
@@ -1872,6 +2034,11 @@ public sealed partial class MainWindow : Window
         {
             UpdatePreviewWallpapers();
             ApplyWallpaperPresentation();
+        }
+
+        if (section == "AdvanceSettings")
+        {
+            DevModeToggle.IsOn = CurrentSettings.IsDevMode;
         }
     }
 

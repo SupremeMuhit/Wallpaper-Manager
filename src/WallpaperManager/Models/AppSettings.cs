@@ -68,6 +68,8 @@ public sealed class AppSettings
     public string HomeSortMode { get; set; } = "Free Movement";
     public LibraryHideMode LibraryHideMode { get; set; } = LibraryHideMode.Off;
     public List<string> CardButtons { get; set; } = ["ThreeDot", "AddToHome", "Details"];
+
+    public bool IsDevMode { get; set; }
 }
 
 public static class CardButtonIds

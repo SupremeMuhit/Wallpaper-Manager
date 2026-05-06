@@ -70,10 +70,44 @@ public sealed class WorkshopDownloadService
         }
     }
 
-    private bool _skipCurrentRequested = false;
+    private bool _skipCurrentAccountRequested = false;
     public void SkipCurrentAccount()
     {
-        _skipCurrentRequested = true;
+        _skipCurrentAccountRequested = true;
+    }
+
+    private bool _skipCurrentDownloadRequested = false;
+    public void SkipCurrentDownload()
+    {
+        _skipCurrentDownloadRequested = true;
+    }
+
+    private bool _cancelCurrentDownloadRequested = false;
+    public void CancelDownload()
+    {
+        _cancelCurrentDownloadRequested = true;
+    }
+
+    public void ResetCancellation()
+    {
+        _cancelCurrentDownloadRequested = false;
+        _skipCurrentAccountRequested = false;
+        _skipCurrentDownloadRequested = false;
+    }
+
+    public bool IsCancelled()
+    {
+        return _cancelCurrentDownloadRequested;
+    }
+
+    public bool IsCurrentDownloadSkipped()
+    {
+        return _skipCurrentDownloadRequested;
+    }
+
+    public List<string> GetAvailableAccounts()
+    {
+        return EncryptedAccounts.Select(a => a.Username).ToList();
     }
 
     public string? ExtractWorkshopId(string input)
@@ -96,9 +130,12 @@ public sealed class WorkshopDownloadService
         return null;
     }
 
-    public async Task<bool> DownloadAsync(string workshopId, string downloadDir, Action<double, string>? onProgress = null)
+    public async Task<bool> DownloadAsync(string workshopId, string downloadDir, Action<double, string>? onProgress = null, string? forcedUsername = null)
     {
         if (string.IsNullOrWhiteSpace(workshopId)) return false;
+
+        _skipCurrentAccountRequested = false;
+        _skipCurrentDownloadRequested = false;
 
         // Ensure download directory exists
         var targetPath = Path.Combine(downloadDir, workshopId);
@@ -120,16 +157,27 @@ public sealed class WorkshopDownloadService
             }
         }
 
-        _skipCurrentRequested = false;
         var accounts = EncryptedAccounts
             .Select(a => (a.Username, Password: Decrypt(a.EncryptedPassword)))
             .ToList();
+
+        if (!string.IsNullOrEmpty(forcedUsername))
+        {
+            accounts = accounts.Where(a => string.Equals(a.Username, forcedUsername, StringComparison.OrdinalIgnoreCase)).ToList();
+            if (accounts.Count == 0)
+            {
+                onProgress?.Invoke(0, $"Error: Account {forcedUsername} not found.");
+                return false;
+            }
+        }
         
         string lastError = "All accounts failed";
 
         foreach (var account in accounts)
         {
-            _skipCurrentRequested = false;
+            if (_cancelCurrentDownloadRequested) break;
+            if (_skipCurrentDownloadRequested) break;
+            _skipCurrentAccountRequested = false;
             onProgress?.Invoke(0, $"Connecting to Steam as {account.Username}...");
 
             var startInfo = new ProcessStartInfo
@@ -190,10 +238,15 @@ public sealed class WorkshopDownloadService
 
                 while (!processTask.IsCompleted)
                 {
-                    if (_skipCurrentRequested)
+                    if (_skipCurrentAccountRequested || _skipCurrentDownloadRequested || _cancelCurrentDownloadRequested)
                     {
                         try { process.Kill(); } catch { }
-                        onProgress?.Invoke(0, "Skipping current account...");
+                        var status = _cancelCurrentDownloadRequested
+                            ? "Cancelling..."
+                            : _skipCurrentDownloadRequested
+                                ? "Skipping current download..."
+                                : "Skipping current account...";
+                        onProgress?.Invoke(0, status);
                         break;
                     }
                     
@@ -209,7 +262,9 @@ public sealed class WorkshopDownloadService
                     }
                 }
 
-                if (_skipCurrentRequested) continue;
+                if (_cancelCurrentDownloadRequested) break;
+                if (_skipCurrentDownloadRequested) break;
+                if (_skipCurrentAccountRequested) continue;
 
                 var timeoutTask = Task.Delay(TimeSpan.FromMinutes(5));
                 var completedTask = await Task.WhenAny(processTask, timeoutTask);
@@ -236,6 +291,18 @@ public sealed class WorkshopDownloadService
                 lastError = ex.Message;
                 continue;
             }
+        }
+
+        if (_cancelCurrentDownloadRequested)
+        {
+            onProgress?.Invoke(0, "Download cancelled.");
+            return false;
+        }
+
+        if (_skipCurrentDownloadRequested)
+        {
+            onProgress?.Invoke(0, "Download skipped.");
+            return false;
         }
 
         onProgress?.Invoke(0, $"Error: {lastError}");

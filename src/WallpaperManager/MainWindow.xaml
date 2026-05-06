@@ -794,6 +794,20 @@
                                     <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><FontIcon Glyph="&#xE72E;" FontSize="18" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="License" FontSize="17" /><TextBlock Text="Open source license will be added later." Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" /></StackPanel></Grid>
                                 </StackPanel>
                             </StackPanel>
+
+                            <StackPanel x:Name="AdvanceSettingsPanel" Visibility="Collapsed" Spacing="20">
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <TextBlock Text="Advance Settings" FontSize="28" FontWeight="SemiBold" />
+                                </StackPanel>
+                                <StackPanel Spacing="5">
+                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                        <FontIcon Glyph="&#xE9CC;" FontSize="18" VerticalAlignment="Center" />
+                                        <StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Dev Mode" FontSize="17" /><TextBlock Text="Enable developer features (requires password)" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel>
+                                        <ToggleSwitch x:Name="DevModeToggle" Grid.Column="2" Toggled="DevModeToggle_Toggled" />
+                                    </Grid>
+                                </StackPanel>
+                            </StackPanel>
                             <StackPanel x:Name="ContactSettingsPanel" Visibility="Collapsed" Spacing="20">
                                 <StackPanel Orientation="Horizontal" Spacing="10">
                                     <TextBlock Text="Contact" FontSize="28" FontWeight="SemiBold" />
@@ -805,35 +819,41 @@
                 </Grid>
                         <Grid x:Name="DownloaderPage" Visibility="Collapsed" Margin="0,14,0,0">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="400" />
+                                <ColumnDefinition Width="420" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
 
-                            <StackPanel Spacing="24" Padding="0,0,32,0">
-                                <TextBlock Text="Steam Workshop Downloader" FontSize="28" FontWeight="SemiBold" />
-                                
-                                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="24" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
-                                    <StackPanel Spacing="20">
-                                        <StackPanel Spacing="8">
-                                            <TextBlock Text="Workshop Item" Style="{StaticResource BodyStrongTextBlockStyle}" />
-                                            <TextBlock Text="Paste the Steam Workshop URL or ID below (one per line for batch)." Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                            <TextBox x:Name="WorkshopUrlInput" PlaceholderText="https://steamcommunity.com/sharedfiles/filedetails/?id=..." TextChanged="WorkshopUrlInput_TextChanged" AcceptsReturn="True" Height="120" VerticalContentAlignment="Top" />
-                                        </StackPanel>
+                            <StackPanel Spacing="16" Padding="0,0,28,0">
+                                <TextBlock Text="Downloader" FontSize="24" FontWeight="SemiBold" />
 
-                                        <StackPanel Spacing="8">
-                                            <TextBlock Text="Download Location" Style="{StaticResource BodyStrongTextBlockStyle}" />
-                                            <TextBlock Text="Select which library folder to save the wallpaper into." Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                            <ComboBox x:Name="DownloadPathSelector" HorizontalAlignment="Stretch" DisplayMemberPath="Path" />
-                                        </StackPanel>
+                                <StackPanel Spacing="14">
+                                    <TextBox x:Name="WorkshopUrlInput" Header="Workshop URLs or IDs" PlaceholderText="One item per line" TextChanged="WorkshopUrlInput_TextChanged" AcceptsReturn="True" Height="132" VerticalContentAlignment="Top" />
+                                    <ComboBox x:Name="DownloadPathSelector" Header="Save to" HorizontalAlignment="Stretch" DisplayMemberPath="Path" />
 
-                                        <Button x:Name="ExecuteDownloadButton" Content="Download Wallpaper" Style="{StaticResource AccentButtonStyle}" Click="ExecuteDownload_Click" HorizontalAlignment="Left" Padding="24,8" />
+                                    <StackPanel x:Name="DevAccountSelectorPanel" Spacing="8" Visibility="Collapsed">
+                                        <ComboBox x:Name="ForcedAccountComboBox" Header="Steam account" HorizontalAlignment="Stretch" PlaceholderText="Random (Default)" />
                                     </StackPanel>
-                                </Border>
 
-                                <StackPanel x:Name="ActiveDownloadPanel" Visibility="Collapsed" Spacing="12">
-                                    <Grid>
-                                        <TextBlock Text="Active Download" Style="{StaticResource SubtitleTextBlockStyle}" />
-                                        <Button Content="Skip Account" HorizontalAlignment="Right" Style="{StaticResource SubtleButtonStyle}" Click="SkipAccount_Click" Padding="8,4" />
+                                    <Grid ColumnSpacing="8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <Button x:Name="ExecuteDownloadButton" Content="Download" Style="{StaticResource AccentButtonStyle}" Click="ExecuteDownload_Click" HorizontalAlignment="Stretch" Padding="22,8" />
+                                        <Button x:Name="SkipCurrentDownloadButton" Grid.Column="1" Content="Skip Current" Click="SkipCurrentDownload_Click" Visibility="Collapsed" Padding="14,8" />
+                                        <Button x:Name="CancelDownloadButton" Grid.Column="2" Content="Cancel All" Click="CancelDownload_Click" Visibility="Collapsed" Padding="14,8" />
+                                    </Grid>
+                                </StackPanel>
+
+                                <StackPanel x:Name="ActiveDownloadPanel" Visibility="Collapsed" Spacing="10">
+                                    <Grid ColumnSpacing="8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Active Download" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                        <Button Grid.Column="1" Content="Skip Account" HorizontalAlignment="Right" Style="{StaticResource SubtleButtonStyle}" Click="SkipAccount_Click" Padding="8,4" />
                                     </Grid>
                                     <ProgressBar x:Name="ActiveDownloadProgressBar" Minimum="0" Maximum="100" Height="8" CornerRadius="4" />
                                     <TextBlock x:Name="ActiveDownloadStatusText" Style="{StaticResource BodyTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
@@ -898,7 +918,7 @@
                                     </StackPanel>
                                 </StackPanel>
 
-                                <ListView x:Name="BatchDownloadListView" ItemsSource="{x:Bind BatchDownloadItems, Mode=OneWay}" SelectionMode="None" Visibility="Collapsed">
+                                <ListView x:Name="BatchDownloadListView" ItemsSource="{x:Bind BatchDownloadItems, Mode=OneWay}" SelectionMode="None" Visibility="Collapsed" CanDragItems="True" CanReorderItems="True" AllowDrop="True">
                                     <ListView.ItemContainerStyle>
                                         <Style TargetType="ListViewItem">
                                             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
@@ -929,7 +949,12 @@
                                                         <ProgressBar Value="{x:Bind Progress, Mode=OneWay}" Maximum="100" MinHeight="4" Visibility="{x:Bind ProgressVisibility, Mode=OneWay}" Margin="0,4,0,0" />
                                                     </StackPanel>
 
-                                                    <TextBlock Grid.Column="2" Text="{x:Bind Status, Mode=OneWay}" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Visibility="{x:Bind StatusVisibility, Mode=OneWay}" />
+                                                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                                                        <TextBlock Text="{x:Bind Status, Mode=OneWay}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Visibility="{x:Bind StatusVisibility, Mode=OneWay}" />
+                                                        <Button x:Name="RemoveFromBatchButton" Click="RemoveFromBatch_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Visibility="{x:Bind StatusVisibility, Mode=OneWay}">
+                                                            <FontIcon Glyph="&#xE711;" FontSize="14" />
+                                                        </Button>
+                                                    </StackPanel>
                                                 </Grid>
                                             </Border>
                                         </DataTemplate>
