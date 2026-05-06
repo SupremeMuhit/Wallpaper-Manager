@@ -82,13 +82,6 @@ public sealed class WallpaperItem : INotifyPropertyChanged
 
     public List<string> Tags { get; set; } = [];
 
-    private bool _prioritizeWorkshopName;
-    public bool PrioritizeWorkshopName
-    {
-        get => _prioritizeWorkshopName;
-        set { if (_prioritizeWorkshopName != value) { _prioritizeWorkshopName = value; OnPropertyChanged(); OnPropertyChanged(nameof(DisplayName)); } }
-    }
-
     private bool _useWorkshopTags;
     public bool UseWorkshopTags
     {
@@ -307,14 +300,14 @@ public sealed class WallpaperItem : INotifyPropertyChanged
     {
         get
         {
-            if (WorkshopMetadata != null && !string.IsNullOrWhiteSpace(WorkshopMetadata.Title))
-            {
-                return WorkshopMetadata.Title;
-            }
-
             if (!string.IsNullOrWhiteSpace(LocalName))
             {
                 return LocalName;
+            }
+
+            if (WorkshopMetadata != null && !string.IsNullOrWhiteSpace(WorkshopMetadata.Title))
+            {
+                return WorkshopMetadata.Title;
             }
 
             return !string.IsNullOrWhiteSpace(SteamId) ? SteamId : "Unknown";

@@ -61,8 +61,10 @@ public sealed class LocalMetadataStore
 
         var carbonDir = GetCarbonDirectory(rootPath);
         Directory.CreateDirectory(carbonDir);
-        Directory.CreateDirectory(Path.Combine(carbonDir, "Scene Extractions"));
+        Directory.CreateDirectory(GetSceneExtractionsDirectory(rootPath));
     }
+
+    public string GetSceneExtractionsDirectory(string rootPath) => Path.Combine(GetCarbonDirectory(rootPath), "Scene Extractions");
 
     private static string GetCarbonDirectory(string rootPath) => Path.Combine(rootPath, ".carbon");
     private static string GetLocalJsonPath(string rootPath) => Path.Combine(GetCarbonDirectory(rootPath), "local.json");

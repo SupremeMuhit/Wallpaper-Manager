@@ -40,8 +40,6 @@ public sealed class AppSettings
 
     public string MemoryUsageProfile { get; set; } = "Balanced";
 
-    public bool PrioritizeWorkshopName { get; set; }
-
     public bool AutoMarkNsfwFromWorkshop { get; set; } = true;
 
     public CensorshipMode NsfwMode { get; set; } = CensorshipMode.Blur;

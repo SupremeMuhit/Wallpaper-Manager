@@ -44,6 +44,7 @@ public sealed partial class MainWindow : Window
     private readonly SteamWorkshopService _workshopService = new();
     private readonly WorkshopDownloadService _downloadService = new();
     private readonly LocalMetadataStore _localMetadataStore = new();
+    private readonly ScenePackageExtractor _scenePackageExtractor = new();
     private readonly DispatcherTimer _engineStatusTimer = new();
     private MicaBackdrop? _micaBackdrop;
     private bool _isLoadingSettings;
@@ -178,9 +179,6 @@ public sealed partial class MainWindow : Window
         NsfwTabComboBox.SelectedIndex = (int)CurrentSettings.NsfwTabMode;
         RunOnStartupToggle.IsOn = CurrentSettings.RunOnStartup;
         MemoryUsageComboBox.SelectedItem = CurrentSettings.MemoryUsageProfile;
-        CurrentSettings.PrioritizeWorkshopName = true;
-        PrioritizeWorkshopNameToggle.IsOn = true;
-        PrioritizeWorkshopNameToggle.IsEnabled = false;
         AutoMarkNsfwToggle.IsOn = CurrentSettings.AutoMarkNsfwFromWorkshop;
         RemoveCensorOnHoverToggle.IsOn = CurrentSettings.RemoveCensorOnHover;
         NsfwModeComboBox.SelectedIndex = (int)CurrentSettings.NsfwMode;
@@ -449,16 +447,6 @@ public sealed partial class MainWindow : Window
         ThemeColorTextBox.Text = CurrentSettings.ThemeColor;
         ThemeColorPresetComboBox.SelectedItem = ToThemeColorPreset(CurrentSettings.ThemeColor);
         ApplyThemeColor(CurrentSettings.ThemeColor);
-        TriggerSaveSettings();
-    }
-
-    private void PrioritizeWorkshopNameToggle_Toggled(object sender, RoutedEventArgs e)
-    {
-        if (_isLoadingSettings) return;
-        CurrentSettings.PrioritizeWorkshopName = true;
-        PrioritizeWorkshopNameToggle.IsOn = true;
-        ApplyWallpaperPresentation();
-        RefreshVisibleWallpapers();
         TriggerSaveSettings();
     }
 
@@ -1425,6 +1413,110 @@ public sealed partial class MainWindow : Window
         });
     }
 
+    private void RefreshSceneExtractorPage()
+    {
+        SceneExtractorWallpaperSelector.ItemsSource = Wallpapers
+            .Where(wallpaper => File.Exists(Path.Combine(wallpaper.DirectoryPath, "scene.pkg")))
+            .OrderBy(wallpaper => wallpaper.DisplayName, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+
+        if (SceneExtractorWallpaperSelector.SelectedIndex == -1 && SceneExtractorWallpaperSelector.Items.Count > 0)
+        {
+            SceneExtractorWallpaperSelector.SelectedIndex = 0;
+        }
+
+        UpdateSceneExtractionOutputPath();
+    }
+
+    private void SceneExtractorWallpaperSelector_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        UpdateSceneExtractionOutputPath();
+    }
+
+    private void UpdateSceneExtractionOutputPath()
+    {
+        if (SceneExtractorWallpaperSelector.SelectedItem is not WallpaperItem wallpaper ||
+            string.IsNullOrWhiteSpace(wallpaper.LibraryRootPath))
+        {
+            SceneExtractionOutputPathText.Text = "No scene wallpaper selected.";
+            return;
+        }
+
+        SceneExtractionOutputPathText.Text = GetSceneExtractionOutputDirectory(wallpaper);
+    }
+
+    private string GetSceneExtractionOutputDirectory(WallpaperItem wallpaper)
+    {
+        var root = _localMetadataStore.GetSceneExtractionsDirectory(wallpaper.LibraryRootPath);
+        var folderName = !string.IsNullOrWhiteSpace(wallpaper.SteamId)
+            ? wallpaper.SteamId
+            : Path.GetFileName(wallpaper.DirectoryPath.TrimEnd(Path.DirectorySeparatorChar));
+
+        return Path.Combine(root, folderName);
+    }
+
+    private async void ExtractScene_Click(object sender, RoutedEventArgs e)
+    {
+        if (SceneExtractorWallpaperSelector.SelectedItem is not WallpaperItem wallpaper)
+        {
+            ShowSceneExtractionInfo("No wallpaper selected", "Choose a wallpaper with a scene.pkg file.", InfoBarSeverity.Warning);
+            return;
+        }
+
+        var scenePackagePath = Path.Combine(wallpaper.DirectoryPath, "scene.pkg");
+        if (!File.Exists(scenePackagePath))
+        {
+            ShowSceneExtractionInfo("No scene.pkg", "The selected wallpaper does not contain a scene.pkg file.", InfoBarSeverity.Warning);
+            return;
+        }
+
+        ExtractSceneButton.IsEnabled = false;
+        SceneExtractionProgressRing.Visibility = Visibility.Visible;
+        SceneExtractionProgressRing.IsActive = true;
+
+        try
+        {
+            var outputDirectory = GetSceneExtractionOutputDirectory(wallpaper);
+            var result = await _scenePackageExtractor.ExtractAsync(scenePackagePath, outputDirectory);
+            SceneExtractionOutputPathText.Text = result.OutputDirectory;
+            ShowSceneExtractionInfo("Scene extracted", $"Extracted {result.FileCount:N0} files from {result.Signature}.", InfoBarSeverity.Success);
+        }
+        catch (Exception ex)
+        {
+            ShowSceneExtractionInfo("Extraction failed", ex.Message, InfoBarSeverity.Error);
+        }
+        finally
+        {
+            SceneExtractionProgressRing.IsActive = false;
+            SceneExtractionProgressRing.Visibility = Visibility.Collapsed;
+            ExtractSceneButton.IsEnabled = true;
+        }
+    }
+
+    private void OpenSceneExtraction_Click(object sender, RoutedEventArgs e)
+    {
+        var path = SceneExtractionOutputPathText.Text;
+        if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
+        {
+            ShowSceneExtractionInfo("Output missing", "Extract a scene first, then open the output folder.", InfoBarSeverity.Warning);
+            return;
+        }
+
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = path,
+            UseShellExecute = true
+        });
+    }
+
+    private void ShowSceneExtractionInfo(string title, string message, InfoBarSeverity severity)
+    {
+        SceneExtractionInfoBar.Title = title;
+        SceneExtractionInfoBar.Message = message;
+        SceneExtractionInfoBar.Severity = severity;
+        SceneExtractionInfoBar.IsOpen = true;
+    }
+
     private void Navigation_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
     {
         var page = args.IsSettingsSelected
@@ -1448,6 +1540,11 @@ public sealed partial class MainWindow : Window
             {
                 DownloadPathSelector.SelectedIndex = 0;
             }
+        }
+
+        if (page == "SceneExtractor")
+        {
+            RefreshSceneExtractorPage();
         }
 
         ShowPage(page);
@@ -1655,7 +1752,6 @@ public sealed partial class MainWindow : Window
             wallpaper.SizeColumnWidth = GetColumnWidth(hiddenColumns, SizeColumn, new GridLength(110));
             wallpaper.TagsColumnWidth = GetColumnWidth(hiddenColumns, TagsColumn, new GridLength(180));
 
-            wallpaper.PrioritizeWorkshopName = true;
             wallpaper.UseWorkshopTags = true;
 
             ApplyCensorship(wallpaper);
@@ -1915,6 +2011,7 @@ public sealed partial class MainWindow : Window
     {
         HomePage.Visibility = page == "Home" ? Visibility.Visible : Visibility.Collapsed;
         LibraryPage.Visibility = page == "Library" ? Visibility.Visible : Visibility.Collapsed;
+        SceneExtractorPage.Visibility = page == "SceneExtractor" ? Visibility.Visible : Visibility.Collapsed;
         DownloaderPage.Visibility = page == "Downloader" ? Visibility.Visible : Visibility.Collapsed;
         GuidePage.Visibility = page == "Guide" ? Visibility.Visible : Visibility.Collapsed;
         SettingsPage.Visibility = page == "Settings" ? Visibility.Visible : Visibility.Collapsed;
@@ -1930,6 +2027,7 @@ public sealed partial class MainWindow : Window
         PageSubtitle.Text = page switch
         {
             "Library" => _showingNsfwTab ? "Your adult and mature wallpapers." : "All detected wallpapers within every configured directory.",
+            "SceneExtractor" => "Extract scene.pkg files into the local .carbon scene extraction folder.",
             "Downloader" => "Directly download Steam Workshop wallpapers into your library.",
             "Guide" => "Folder naming, scanning rules, and practical usage notes.",
             "Settings" => "Engine and wallpaper, appearance, library, and tags.",
@@ -2073,7 +2171,6 @@ public sealed partial class MainWindow : Window
                     CurrentSettings.Tags = Tags.ToList();
                     CurrentSettings.WallpaperDirectories = LibraryRoots.ToList();
                     CurrentSettings.WallpaperTags = [];
-                    CurrentSettings.PrioritizeWorkshopName = true;
                     CurrentSettings.UseWorkshopTags = true;
 
                     await SaveLocalMetadataAsync();
@@ -2849,6 +2946,34 @@ public sealed partial class MainWindow : Window
         }
 
         var meta = wallpaper.WorkshopMetadata;
+        var secondaryBrush = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"];
+
+        void AddInfoRow(StackPanel panel, string label, string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return;
+            }
+
+            var row = new Grid { ColumnSpacing = 12 };
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(110) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            row.Children.Add(new TextBlock
+            {
+                Text = label,
+                Foreground = secondaryBrush,
+                TextWrapping = TextWrapping.Wrap
+            });
+
+            var valueBlock = new TextBlock
+            {
+                Text = value,
+                TextWrapping = TextWrapping.Wrap
+            };
+            Grid.SetColumn(valueBlock, 1);
+            row.Children.Add(valueBlock);
+            panel.Children.Add(row);
+        }
         
         var rootGrid = new Grid 
         { 
@@ -2902,13 +3027,13 @@ public sealed partial class MainWindow : Window
         detailsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
         var leftDetails = new StackPanel { Spacing = 4 };
-        leftDetails.Children.Add(new TextBlock { Text = $"ID: {wallpaper.IdText}", Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"] });
-        leftDetails.Children.Add(new TextBlock { Text = $"Size: {wallpaper.SizeText}", Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"] });
+        leftDetails.Children.Add(new TextBlock { Text = $"ID: {wallpaper.IdText}", Foreground = secondaryBrush });
+        leftDetails.Children.Add(new TextBlock { Text = $"Size: {wallpaper.SizeText}", Foreground = secondaryBrush });
 
         var rightDetails = new StackPanel { Spacing = 4 };
         if (wallpaper.IsNsfw) rightDetails.Children.Add(new TextBlock { Text = "NSFW", Foreground = new SolidColorBrush(Microsoft.UI.Colors.Red) });
         if (wallpaper.IsMature) rightDetails.Children.Add(new TextBlock { Text = "Mature", Foreground = new SolidColorBrush(Microsoft.UI.Colors.Orange) });
-        if (wallpaper.Tags.Count > 0) rightDetails.Children.Add(new TextBlock { Text = $"Tags: {wallpaper.TagsText}", Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"], TextWrapping = TextWrapping.Wrap });
+        if (wallpaper.Tags.Count > 0) rightDetails.Children.Add(new TextBlock { Text = $"Tags: {wallpaper.TagsText}", Foreground = secondaryBrush, TextWrapping = TextWrapping.Wrap });
 
         detailsGrid.Children.Add(leftDetails);
         Grid.SetColumn(leftDetails, 0);
@@ -2916,63 +3041,28 @@ public sealed partial class MainWindow : Window
         Grid.SetColumn(rightDetails, 1);
 
         infoInner.Children.Add(detailsGrid);
+        if (meta != null)
+        {
+            var workshopRows = new StackPanel { Spacing = 6, Margin = new Thickness(0, 8, 0, 0) };
+            AddInfoRow(workshopRows, "Original", meta.Title);
+            AddInfoRow(workshopRows, "Subscribers", meta.SubscriptionCount.ToString("N0"));
+            AddInfoRow(workshopRows, "Views", meta.ViewCount.ToString("N0"));
+            AddInfoRow(workshopRows, "Favorites", meta.FavoriteCount.ToString("N0"));
+            AddInfoRow(workshopRows, "Rating", meta.ContentRating);
+            AddInfoRow(workshopRows, "Tags", string.Join(", ", meta.Tags));
+            infoInner.Children.Add(workshopRows);
+        }
+
         infoCard.Child = infoInner;
         leftStack.Children.Add(infoCard);
         
         rootGrid.Children.Add(leftStack);
         Grid.SetColumn(leftStack, 0);
 
-        // Right Side: Workshop Metadata
+        // Right Side: Description
         var rightStack = new StackPanel { Spacing = 12 };
         if (meta != null)
         {
-            var statsCard = new Border
-            {
-                Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"],
-                CornerRadius = new CornerRadius(8),
-                Padding = new Thickness(16)
-            };
-
-            var statsGrid = new Grid { RowSpacing = 8, ColumnSpacing = 16 };
-            statsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            statsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            statsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            statsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-
-            var titleBlock = new TextBlock
-            {
-                Text = "Workshop Info",
-                Style = (Style)Application.Current.Resources["CaptionTextBlockStyle"],
-                Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
-                Margin = new Thickness(0, 0, 0, 8)
-            };
-            
-            var s1 = new StackPanel { Spacing = 4 };
-            s1.Children.Add(new TextBlock { Text = $"Subscribers: {meta.SubscriptionCount:N0}" });
-            s1.Children.Add(new TextBlock { Text = $"Favorites: {meta.FavoriteCount:N0}" });
-            
-            var s2 = new StackPanel { Spacing = 4 };
-            s2.Children.Add(new TextBlock { Text = $"Views: {meta.ViewCount:N0}" });
-            if (!string.IsNullOrWhiteSpace(meta.ContentRating))
-                s2.Children.Add(new TextBlock { Text = $"Rating: {meta.ContentRating}" });
-
-            statsGrid.Children.Add(s1);
-            Grid.SetColumn(s2, 1);
-            statsGrid.Children.Add(s2);
-            Grid.SetRow(s1, 1);
-            Grid.SetRow(s2, 1);
-
-            var statsOuter = new StackPanel();
-            statsOuter.Children.Add(titleBlock);
-            if (!string.IsNullOrWhiteSpace(meta.Title))
-                statsOuter.Children.Add(new TextBlock { Text = $"Title: {meta.Title}", Margin = new Thickness(0, 0, 0, 8), TextWrapping = TextWrapping.Wrap });
-            statsOuter.Children.Add(statsGrid);
-            if (meta.Tags.Count > 0)
-                statsOuter.Children.Add(new TextBlock { Text = $"Tags: {string.Join(", ", meta.Tags)}", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 0) });
-            
-            statsCard.Child = statsOuter;
-            rightStack.Children.Add(statsCard);
-
             if (meta.Description is { Length: > 0 } desc)
             {
                 var descCard = new Border
@@ -2988,13 +3078,12 @@ public sealed partial class MainWindow : Window
                 {
                     Text = "Description",
                     Style = (Style)Application.Current.Resources["CaptionTextBlockStyle"],
-                    Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"]
+                    Foreground = secondaryBrush
                 });
 
-                var truncated = desc.Length > 1000 ? desc[..1000] + "…" : desc;
                 descInner.Children.Add(new TextBlock
                 {
-                    Text = truncated,
+                    Text = desc,
                     TextWrapping = TextWrapping.Wrap,
                     FontSize = 13
                 });
