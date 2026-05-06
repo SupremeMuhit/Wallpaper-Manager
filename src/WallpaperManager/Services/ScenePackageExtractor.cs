@@ -4,11 +4,9 @@ namespace WallpaperManager.Services;
 
 public sealed class ScenePackageExtractor
 {
-    private static readonly HashSet<string> SupportedSignatures = new(StringComparer.Ordinal)
-    {
-        "PKGV0001",
-        "PKGV0002"
-    };
+    private const int MaxMagicLength = 32;
+    private const int MaxEntryPathLength = 255;
+    private const int CopyBufferSize = 81920;
 
     public Task<SceneExtractionResult> ExtractAsync(string packagePath, string outputDirectory)
     {
@@ -27,18 +25,39 @@ public sealed class ScenePackageExtractor
         using var stream = File.Open(packagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
         using var reader = new BinaryReader(stream, Encoding.UTF8, leaveOpen: true);
 
-        var signatureLength = reader.ReadInt32();
-        if (signatureLength <= 0 || signatureLength > 64)
+        var signature = ReadSizedString(reader, MaxMagicLength, "scene package signature");
+        var entries = ReadEntries(reader);
+
+        var dataOffset = stream.Position;
+        var outputRoot = Path.GetFullPath(outputDirectory);
+        if (!outputRoot.EndsWith(Path.DirectorySeparatorChar))
         {
-            throw new InvalidDataException("Invalid scene package signature.");
+            outputRoot += Path.DirectorySeparatorChar;
         }
 
-        var signature = Encoding.UTF8.GetString(reader.ReadBytes(signatureLength));
-        if (!signature.StartsWith("PKGV", StringComparison.Ordinal) || !SupportedSignatures.Contains(signature))
+        var extractedFiles = new List<string>(entries.Count);
+        var buffer = new byte[CopyBufferSize];
+        foreach (var entry in entries)
         {
-            throw new InvalidDataException($"Unsupported scene package signature: {signature}");
+            var outputPath = GetSafeOutputPath(outputRoot, entry.RelativePath);
+            Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
+
+            if (dataOffset + entry.Offset + entry.Length > stream.Length)
+            {
+                throw new EndOfStreamException("Scene package contains an entry beyond the end of the file.");
+            }
+
+            stream.Seek(dataOffset + entry.Offset, SeekOrigin.Begin);
+            using var output = File.Create(outputPath);
+            CopyExact(stream, output, entry.Length, buffer);
+            extractedFiles.Add(outputPath);
         }
 
+        return new SceneExtractionResult(signature, entries.Count, outputDirectory, extractedFiles);
+    }
+
+    private static List<ScenePackageEntry> ReadEntries(BinaryReader reader)
+    {
         var fileCount = reader.ReadInt32();
         if (fileCount < 0)
         {
@@ -48,13 +67,7 @@ public sealed class ScenePackageExtractor
         var entries = new List<ScenePackageEntry>(fileCount);
         for (var i = 0; i < fileCount; i++)
         {
-            var pathLength = reader.ReadInt32();
-            if (pathLength <= 0 || pathLength > 4096)
-            {
-                throw new InvalidDataException("Invalid scene package path length.");
-            }
-
-            var relativePath = Encoding.UTF8.GetString(reader.ReadBytes(pathLength));
+            var relativePath = ReadSizedString(reader, MaxEntryPathLength, "scene package path");
             var offset = reader.ReadInt32();
             var length = reader.ReadInt32();
             if (offset < 0 || length < 0)
@@ -65,25 +78,23 @@ public sealed class ScenePackageExtractor
             entries.Add(new ScenePackageEntry(relativePath, offset, length));
         }
 
-        var dataOffset = stream.Position;
-        var outputRoot = Path.GetFullPath(outputDirectory);
-        if (!outputRoot.EndsWith(Path.DirectorySeparatorChar))
+        return entries;
+    }
+
+    private static string ReadSizedString(BinaryReader reader, int maxLength, string fieldName)
+    {
+        var length = reader.ReadInt32();
+        if (length < 0)
         {
-            outputRoot += Path.DirectorySeparatorChar;
+            throw new InvalidDataException($"Invalid {fieldName} length.");
         }
 
-        var buffer = new byte[81920];
-        foreach (var entry in entries)
+        if (length > maxLength)
         {
-            var outputPath = GetSafeOutputPath(outputRoot, entry.RelativePath);
-            Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
-
-            stream.Seek(dataOffset + entry.Offset, SeekOrigin.Begin);
-            using var output = File.Create(outputPath);
-            CopyExact(stream, output, entry.Length, buffer);
+            throw new InvalidDataException($"The {fieldName} is too long.");
         }
 
-        return new SceneExtractionResult(signature, entries.Count, outputDirectory);
+        return Encoding.UTF8.GetString(reader.ReadBytes(length));
     }
 
     private static string GetSafeOutputPath(string outputRoot, string relativePath)
@@ -121,4 +132,8 @@ public sealed class ScenePackageExtractor
     private sealed record ScenePackageEntry(string RelativePath, int Offset, int Length);
 }
 
-public sealed record SceneExtractionResult(string Signature, int FileCount, string OutputDirectory);
+public sealed record SceneExtractionResult(
+    string Signature,
+    int FileCount,
+    string OutputDirectory,
+    IReadOnlyList<string> ExtractedFiles);

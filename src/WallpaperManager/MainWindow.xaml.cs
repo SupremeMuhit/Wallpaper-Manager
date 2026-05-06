@@ -1439,10 +1439,15 @@ public sealed partial class MainWindow : Window
             string.IsNullOrWhiteSpace(wallpaper.LibraryRootPath))
         {
             SceneExtractionOutputPathText.Text = "No scene wallpaper selected.";
+            SceneExtractionOutputSummaryText.Text = "Choose a wallpaper with a scene.pkg file to see its extraction output here.";
             return;
         }
 
-        SceneExtractionOutputPathText.Text = GetSceneExtractionOutputDirectory(wallpaper);
+        var outputDirectory = GetSceneExtractionOutputDirectory(wallpaper);
+        SceneExtractionOutputPathText.Text = outputDirectory;
+        SceneExtractionOutputSummaryText.Text = Directory.Exists(outputDirectory)
+            ? BuildSceneExtractionOutputSummary(outputDirectory)
+            : "Output folder has not been created yet.";
     }
 
     private string GetSceneExtractionOutputDirectory(WallpaperItem wallpaper)
@@ -1479,6 +1484,7 @@ public sealed partial class MainWindow : Window
             var outputDirectory = GetSceneExtractionOutputDirectory(wallpaper);
             var result = await _scenePackageExtractor.ExtractAsync(scenePackagePath, outputDirectory);
             SceneExtractionOutputPathText.Text = result.OutputDirectory;
+            SceneExtractionOutputSummaryText.Text = BuildSceneExtractionOutputSummary(result);
             ShowSceneExtractionInfo("Scene extracted", $"Extracted {result.FileCount:N0} files from {result.Signature}.", InfoBarSeverity.Success);
         }
         catch (Exception ex)
@@ -1507,6 +1513,56 @@ public sealed partial class MainWindow : Window
             FileName = path,
             UseShellExecute = true
         });
+    }
+
+    private static string BuildSceneExtractionOutputSummary(SceneExtractionResult result)
+    {
+        if (result.ExtractedFiles.Count == 0)
+        {
+            return "No files were extracted.";
+        }
+
+        var previewFiles = result.ExtractedFiles
+            .Select(path => Path.GetRelativePath(result.OutputDirectory, path))
+            .OrderBy(path => path, StringComparer.CurrentCultureIgnoreCase)
+            .Take(8)
+            .ToList();
+
+        var summary = $"Extracted {result.FileCount:N0} files:\n" + string.Join("\n", previewFiles);
+        var remaining = result.FileCount - previewFiles.Count;
+        return remaining > 0
+            ? $"{summary}\n...and {remaining:N0} more."
+            : summary;
+    }
+
+    private static string BuildSceneExtractionOutputSummary(string outputDirectory)
+    {
+        string[] files;
+        try
+        {
+            files = Directory.GetFiles(outputDirectory, "*", SearchOption.AllDirectories);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return "Output folder exists, but its contents could not be read.";
+        }
+
+        if (files.Length == 0)
+        {
+            return "Output folder exists but is empty.";
+        }
+
+        var previewFiles = files
+            .Select(path => Path.GetRelativePath(outputDirectory, path))
+            .OrderBy(path => path, StringComparer.CurrentCultureIgnoreCase)
+            .Take(8)
+            .ToList();
+
+        var summary = $"Current output contains {files.Length:N0} files:\n" + string.Join("\n", previewFiles);
+        var remaining = files.Length - previewFiles.Count;
+        return remaining > 0
+            ? $"{summary}\n...and {remaining:N0} more."
+            : summary;
     }
 
     private void ShowSceneExtractionInfo(string title, string message, InfoBarSeverity severity)
@@ -1583,6 +1639,10 @@ public sealed partial class MainWindow : Window
         RefreshVisibleWallpapers();
         RefreshSelectedWallpapers();
         UpdateEmptyStates();
+        if (SceneExtractorPage.Visibility == Visibility.Visible)
+        {
+            RefreshSceneExtractorPage();
+        }
 
         _ = FetchWorkshopMetadataAsync();
         }

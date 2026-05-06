@@ -837,6 +837,7 @@
                                 <StackPanel Spacing="10">
                                     <TextBlock Text="Output" Style="{StaticResource SubtitleTextBlockStyle}" />
                                     <TextBlock x:Name="SceneExtractionOutputPathText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                                    <TextBlock x:Name="SceneExtractionOutputSummaryText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                                     <TextBlock Text="Scene files are extracted into the selected library folder under .carbon\Scene Extractions." Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                                 </StackPanel>
                             </Border>
