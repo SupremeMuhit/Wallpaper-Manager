@@ -816,30 +816,94 @@
                         </Grid>
                     </ScrollViewer>
                 </Grid>
-                        <Grid x:Name="SceneExtractorPage" Visibility="Collapsed" Margin="0,14,0,0">
+                        <Grid x:Name="SceneExtractorPage" Visibility="Collapsed" Margin="0,14,0,0" ColumnSpacing="18">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="420" />
+                                <ColumnDefinition Width="360" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
 
-                            <StackPanel Spacing="16" Padding="0,0,28,0">
-                                <TextBlock Text="Scene Extractor" FontSize="24" FontWeight="SemiBold" />
-                                <ComboBox x:Name="SceneExtractorWallpaperSelector" Header="Wallpaper" HorizontalAlignment="Stretch" DisplayMemberPath="DisplayName" SelectionChanged="SceneExtractorWallpaperSelector_SelectionChanged" />
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <Button x:Name="ExtractSceneButton" Content="Extract" Style="{StaticResource AccentButtonStyle}" Click="ExtractScene_Click" Padding="22,8" />
-                                    <Button x:Name="OpenSceneExtractionButton" Content="Open Output" Click="OpenSceneExtraction_Click" Padding="14,8" />
-                                </StackPanel>
-                                <ProgressRing x:Name="SceneExtractionProgressRing" Width="32" Height="32" IsActive="False" Visibility="Collapsed" />
-                                <InfoBar x:Name="SceneExtractionInfoBar" IsOpen="False" />
-                            </StackPanel>
+                            <Grid RowSpacing="16">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
 
-                            <Border Grid.Column="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="18">
-                                <StackPanel Spacing="10">
-                                    <TextBlock Text="Output" Style="{StaticResource SubtitleTextBlockStyle}" />
-                                    <TextBlock x:Name="SceneExtractionOutputPathText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
-                                    <TextBlock x:Name="SceneExtractionOutputSummaryText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
-                                    <TextBlock Text="Scene files are extracted into the selected library folder under .carbon\Scene Extractions." Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
-                                </StackPanel>
+                                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                                    <StackPanel Spacing="12">
+                                        <TextBlock Text="Wallpaper to Extract" Style="{StaticResource SubtitleTextBlockStyle}" />
+                                        <ComboBox x:Name="SceneExtractorWallpaperSelector" HorizontalAlignment="Stretch" DisplayMemberPath="DisplayName" SelectionChanged="SceneExtractorWallpaperSelector_SelectionChanged" />
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <Button x:Name="ExtractSceneButton" Content="Extract" Style="{StaticResource AccentButtonStyle}" Click="ExtractScene_Click" Padding="18,8" />
+                                            <ProgressRing x:Name="SceneExtractionProgressRing" Width="28" Height="28" IsActive="False" Visibility="Collapsed" />
+                                        </StackPanel>
+                                        <InfoBar x:Name="SceneExtractionInfoBar" IsOpen="False" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Grid.Row="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                                    <StackPanel Spacing="10">
+                                        <TextBlock Text="Latest Extraction" Style="{StaticResource SubtitleTextBlockStyle}" />
+                                        <TextBlock x:Name="SceneExtractionOutputPathText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                                        <TextBlock x:Name="SceneExtractionOutputSummaryText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+
+                            <Border Grid.Column="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                                <Grid RowSpacing="12">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="*" />
+                                    </Grid.RowDefinitions>
+                                    <Grid ColumnSpacing="12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Extracted Scenes" Style="{StaticResource SubtitleTextBlockStyle}" />
+                                        <Button Grid.Column="1" Content="Refresh" Click="RefreshSceneExtractions_Click" Padding="12,6" />
+                                    </Grid>
+                                    <ListView Grid.Row="1" x:Name="SceneExtractionListView" ItemsSource="{x:Bind SceneExtractionItems, Mode=OneWay}" SelectionMode="None">
+                                        <ListView.ItemContainerStyle>
+                                            <Style TargetType="ListViewItem">
+                                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                                <Setter Property="Padding" Value="0" />
+                                                <Setter Property="Margin" Value="0,0,0,10" />
+                                            </Style>
+                                        </ListView.ItemContainerStyle>
+                                        <ListView.ItemTemplate>
+                                            <DataTemplate x:DataType="models:SceneExtractionItem">
+                                                <Border Background="{ThemeResource LayerFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="14">
+                                                    <Grid ColumnSpacing="14">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="44" />
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="Auto" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <Border Width="44" Height="44" CornerRadius="6" Background="{ThemeResource AccentFillColorDefaultBrush}">
+                                                            <FontIcon Glyph="&#xE8B7;" Foreground="White" FontSize="18" />
+                                                        </Border>
+                                                        <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
+                                                            <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                            <TextBlock Text="{x:Bind DirectoryPath}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" TextTrimming="CharacterEllipsis" />
+                                                            <StackPanel Orientation="Horizontal" Spacing="14">
+                                                                <TextBlock Text="{x:Bind FileCountText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" />
+                                                                <TextBlock Text="{x:Bind SizeText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" />
+                                                                <TextBlock Text="{x:Bind LastWriteText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" />
+                                                            </StackPanel>
+                                                            <TextBlock Text="{x:Bind PackageTargetText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" TextTrimming="CharacterEllipsis" />
+                                                        </StackPanel>
+                                                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                                            <Button Content="Repack" Tag="{x:Bind}" Click="RepackScene_Click" Padding="12,6" />
+                                                            <Button Content="Open Location" Tag="{x:Bind}" Click="OpenSceneItemLocation_Click" Padding="12,6" />
+                                                            <Button Content="Open Editor" Tag="{x:Bind}" Click="OpenSceneItemEditor_Click" Padding="12,6" />
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ListView.ItemTemplate>
+                                    </ListView>
+                                </Grid>
                             </Border>
                         </Grid>
                         <Grid x:Name="DownloaderPage" Visibility="Collapsed" Margin="0,14,0,0">

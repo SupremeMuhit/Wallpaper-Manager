@@ -45,6 +45,7 @@ public sealed partial class MainWindow : Window
     private readonly WorkshopDownloadService _downloadService = new();
     private readonly LocalMetadataStore _localMetadataStore = new();
     private readonly ScenePackageExtractor _scenePackageExtractor = new();
+    private readonly ScenePackageRepacker _scenePackageRepacker = new();
     private readonly DispatcherTimer _engineStatusTimer = new();
     private MicaBackdrop? _micaBackdrop;
     private bool _isLoadingSettings;
@@ -59,6 +60,8 @@ public sealed partial class MainWindow : Window
     public ObservableCollection<WallpaperItem> SelectedWallpapers { get; } = [];
 
     public ObservableCollection<WorkshopDownloadItem> BatchDownloadItems { get; } = [];
+
+    public ObservableCollection<SceneExtractionItem> SceneExtractionItems { get; } = [];
 
     public ObservableCollection<WallpaperTag> Tags { get; } = [];
 
@@ -1426,6 +1429,7 @@ public sealed partial class MainWindow : Window
         }
 
         UpdateSceneExtractionOutputPath();
+        RefreshSceneExtractionItems();
     }
 
     private void SceneExtractorWallpaperSelector_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -1485,6 +1489,7 @@ public sealed partial class MainWindow : Window
             var result = await _scenePackageExtractor.ExtractAsync(scenePackagePath, outputDirectory);
             SceneExtractionOutputPathText.Text = result.OutputDirectory;
             SceneExtractionOutputSummaryText.Text = BuildSceneExtractionOutputSummary(result);
+            RefreshSceneExtractionItems();
             ShowSceneExtractionInfo("Scene extracted", $"Extracted {result.FileCount:N0} files from {result.Signature}.", InfoBarSeverity.Success);
         }
         catch (Exception ex)
@@ -1513,6 +1518,168 @@ public sealed partial class MainWindow : Window
             FileName = path,
             UseShellExecute = true
         });
+    }
+
+    private void RefreshSceneExtractions_Click(object sender, RoutedEventArgs e)
+    {
+        RefreshSceneExtractionItems();
+    }
+
+    private void RefreshSceneExtractionItems()
+    {
+        var items = new List<SceneExtractionItem>();
+        foreach (var root in LibraryRoots.Where(root => !string.IsNullOrWhiteSpace(root.Path)))
+        {
+            var extractionRoot = _localMetadataStore.GetSceneExtractionsDirectory(root.Path);
+            if (!Directory.Exists(extractionRoot))
+            {
+                continue;
+            }
+
+            foreach (var directory in Directory.GetDirectories(extractionRoot))
+            {
+                var item = CreateSceneExtractionItem(directory, root.Path);
+                if (item.FileCount > 0)
+                {
+                    items.Add(item);
+                }
+            }
+        }
+
+        SceneExtractionItems.Clear();
+        foreach (var item in items
+            .OrderByDescending(item => item.LastWriteTime)
+            .ThenBy(item => item.Name, StringComparer.CurrentCultureIgnoreCase))
+        {
+            SceneExtractionItems.Add(item);
+        }
+    }
+
+    private SceneExtractionItem CreateSceneExtractionItem(string directory, string libraryRootPath)
+    {
+        var folderName = Path.GetFileName(directory.TrimEnd(Path.DirectorySeparatorChar));
+        var matchingWallpaper = Wallpapers.FirstOrDefault(wallpaper =>
+            string.Equals(wallpaper.LibraryRootPath, libraryRootPath, StringComparison.OrdinalIgnoreCase) &&
+            (string.Equals(wallpaper.SteamId, folderName, StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(Path.GetFileName(wallpaper.DirectoryPath.TrimEnd(Path.DirectorySeparatorChar)), folderName, StringComparison.OrdinalIgnoreCase)));
+
+        var outputPackagePath = Path.Combine(directory, "scene.pkg");
+
+        var files = GetSceneExtractionFiles(directory, outputPackagePath);
+        return new SceneExtractionItem
+        {
+            Name = matchingWallpaper?.DisplayName ?? folderName,
+            DirectoryPath = directory,
+            OutputPackagePath = outputPackagePath,
+            FileCount = files.Count,
+            SizeBytes = files.Sum(file => file.Length),
+            LastWriteTime = files.Count == 0 ? DateTime.MinValue : files.Max(file => file.LastWriteTimeUtc)
+        };
+    }
+
+    private static List<FileInfo> GetSceneExtractionFiles(string directory, string outputPackagePath)
+    {
+        try
+        {
+            return Directory
+                .EnumerateFiles(directory, "*", SearchOption.AllDirectories)
+                .Where(path => !string.Equals(Path.GetFullPath(path), Path.GetFullPath(outputPackagePath), StringComparison.OrdinalIgnoreCase))
+                .Select(path => new FileInfo(path))
+                .Where(file => !string.Equals(file.Name, "scene.pkg.bak", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return [];
+        }
+    }
+
+    private async void RepackScene_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as Button)?.Tag is not SceneExtractionItem item)
+        {
+            return;
+        }
+
+        SetSceneActionButtonsEnabled(false);
+        SceneExtractionProgressRing.Visibility = Visibility.Visible;
+        SceneExtractionProgressRing.IsActive = true;
+
+        try
+        {
+            var result = await _scenePackageRepacker.RepackAsync(
+                item.DirectoryPath,
+                item.OutputPackagePath);
+
+            ShowSceneExtractionInfo("Scene repacked", $"Packed {result.FileCount:N0} files into {result.OutputPackagePath}.", InfoBarSeverity.Success);
+            SceneExtractionOutputPathText.Text = item.DirectoryPath;
+            SceneExtractionOutputSummaryText.Text = $"Repacked to:\n{result.OutputPackagePath}";
+            RefreshSceneExtractionItems();
+        }
+        catch (Exception ex)
+        {
+            ShowSceneExtractionInfo("Repack failed", ex.Message, InfoBarSeverity.Error);
+        }
+        finally
+        {
+            SceneExtractionProgressRing.IsActive = false;
+            SceneExtractionProgressRing.Visibility = Visibility.Collapsed;
+            SetSceneActionButtonsEnabled(true);
+        }
+    }
+
+    private void OpenSceneItemLocation_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as Button)?.Tag is not SceneExtractionItem item || !Directory.Exists(item.DirectoryPath))
+        {
+            return;
+        }
+
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = item.DirectoryPath,
+            UseShellExecute = true
+        });
+    }
+
+    private void OpenSceneItemEditor_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as Button)?.Tag is not SceneExtractionItem item)
+        {
+            return;
+        }
+
+        if (!TryOpenWallpaperEditor(item.DirectoryPath))
+        {
+            ShowSceneExtractionInfo("Editor unavailable", "Set the Wallpaper Engine executable path in Settings first.", InfoBarSeverity.Warning);
+        }
+    }
+
+    private bool TryOpenWallpaperEditor(string projectDirectory)
+    {
+        if (string.IsNullOrWhiteSpace(CurrentSettings.EngineExecutablePath) ||
+            !File.Exists(CurrentSettings.EngineExecutablePath) ||
+            !Directory.Exists(projectDirectory))
+        {
+            return false;
+        }
+
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = CurrentSettings.EngineExecutablePath,
+            UseShellExecute = false
+        };
+
+        startInfo.ArgumentList.Add("-editor");
+        startInfo.ArgumentList.Add(projectDirectory);
+        Process.Start(startInfo);
+        return true;
+    }
+
+    private void SetSceneActionButtonsEnabled(bool isEnabled)
+    {
+        ExtractSceneButton.IsEnabled = isEnabled;
+        SceneExtractionListView.IsEnabled = isEnabled;
     }
 
     private static string BuildSceneExtractionOutputSummary(SceneExtractionResult result)
