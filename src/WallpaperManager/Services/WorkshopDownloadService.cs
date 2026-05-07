@@ -13,6 +13,8 @@ public sealed class WorkshopDownloadService
 {
     private const string SecretKey = "wallpaper-engine-secret";
     private const string AppId = "431960";
+    private const string PreferredFirstAccount = "adgjl1182";
+    private const string PreferredLastAccount = "premexilmenledgconis";
 
     private static readonly List<(string Username, string EncryptedPassword)> EncryptedAccounts = new();
 
@@ -25,19 +27,18 @@ public sealed class WorkshopDownloadService
     {
         try
         {
-            var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-            var envPath = Path.Combine(baseDir, ".env");
-            
-            // Also check project dir for dev
-            if (!File.Exists(envPath))
-                envPath = Path.Combine(baseDir, "..", "..", "..", ".env");
-
-            if (File.Exists(envPath))
+            EncryptedAccounts.Clear();
+            foreach (var envPath in GetEnvCandidatePaths())
             {
-                var lines = File.ReadAllLines(envPath);
-                foreach (var line in lines)
+                if (!File.Exists(envPath))
                 {
-                    if (line.StartsWith("STEAM_ACCOUNTS="))
+                    continue;
+                }
+
+                foreach (var rawLine in File.ReadAllLines(envPath))
+                {
+                    var line = rawLine.Trim();
+                    if (line.StartsWith("STEAM_ACCOUNTS=", StringComparison.OrdinalIgnoreCase))
                     {
                         var accountsStr = line.Substring("STEAM_ACCOUNTS=".Length);
                         var pairs = accountsStr.Split(';', StringSplitOptions.RemoveEmptyEntries);
@@ -49,6 +50,8 @@ public sealed class WorkshopDownloadService
                                 EncryptedAccounts.Add((parts[0], parts[1]));
                             }
                         }
+
+                        return;
                     }
                 }
             }
@@ -57,7 +60,28 @@ public sealed class WorkshopDownloadService
         
     }
 
+    private static IEnumerable<string> GetEnvCandidatePaths()
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var start in new[] { AppDomain.CurrentDomain.BaseDirectory, Directory.GetCurrentDirectory() })
+        {
+            var directory = new DirectoryInfo(start);
+            while (directory is not null)
+            {
+                var path = Path.Combine(directory.FullName, ".env");
+                if (seen.Add(path))
+                {
+                    yield return path;
+                }
+
+                directory = directory.Parent;
+            }
+        }
+    }
+
     private bool _skipCurrentAccountRequested = false;
+    public string LastFailureMessage { get; private set; } = string.Empty;
+
     public void SkipCurrentAccount()
     {
         _skipCurrentAccountRequested = true;
@@ -119,6 +143,7 @@ public sealed class WorkshopDownloadService
 
     public async Task<bool> DownloadAsync(string workshopId, string downloadDir, Action<double, string>? onProgress = null, string? forcedUsername = null)
     {
+        LastFailureMessage = string.Empty;
         if (string.IsNullOrWhiteSpace(workshopId)) return false;
 
         _skipCurrentAccountRequested = false;
@@ -140,17 +165,28 @@ public sealed class WorkshopDownloadService
             if (!File.Exists(depotExe))
             {
                 onProgress?.Invoke(0, "Error: DepotDownloaderMod.exe not found.");
+                LastFailureMessage = "DepotDownloaderMod.exe not found.";
                 return false;
             }
         }
 
-        var accounts = EncryptedAccounts
-            .Select(a => (a.Username, Password: Decrypt(a.EncryptedPassword)))
-            .ToList();
+        var accounts = new List<(string Username, string Password)>();
+        foreach (var account in EncryptedAccounts)
+        {
+            try
+            {
+                accounts.Add((account.Username, Decrypt(account.EncryptedPassword)));
+            }
+            catch
+            {
+                // Skip malformed account entries instead of disabling all downloads.
+            }
+        }
 
         if (accounts.Count == 0)
         {
             onProgress?.Invoke(0, "Error: No Steam accounts configured.");
+            LastFailureMessage = "No Steam accounts configured. Check STEAM_ACCOUNTS in .env.";
             return false;
         }
 
@@ -160,8 +196,13 @@ public sealed class WorkshopDownloadService
             if (accounts.Count == 0)
             {
                 onProgress?.Invoke(0, $"Error: Account {forcedUsername} not found.");
+                LastFailureMessage = $"Account {forcedUsername} not found.";
                 return false;
             }
+        }
+        else
+        {
+            accounts = OrderAccountsForFallback(accounts);
         }
         
         string lastError = "All accounts failed";
@@ -171,48 +212,84 @@ public sealed class WorkshopDownloadService
             if (_cancelCurrentDownloadRequested) break;
             if (_skipCurrentDownloadRequested) break;
             _skipCurrentAccountRequested = false;
-            onProgress?.Invoke(0, "Connecting to Steam...");
+            onProgress?.Invoke(0, $"Connecting to Steam as {account.Username}...");
 
             var startInfo = new ProcessStartInfo
             {
                 FileName = depotExe,
-                Arguments = $"-app {AppId} -pubfile {workshopId} -username {account.Username} -password {account.Password} -dir \"{targetPath}\" -max-servers 30 -max-downloads 10",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true,
                 WorkingDirectory = Path.GetDirectoryName(depotExe)
             };
+            startInfo.ArgumentList.Add("-app");
+            startInfo.ArgumentList.Add(AppId);
+            startInfo.ArgumentList.Add("-pubfile");
+            startInfo.ArgumentList.Add(workshopId);
+            startInfo.ArgumentList.Add("-username");
+            startInfo.ArgumentList.Add(account.Username);
+            startInfo.ArgumentList.Add("-password");
+            startInfo.ArgumentList.Add(account.Password);
+            startInfo.ArgumentList.Add("-verify-all");
+            startInfo.ArgumentList.Add("-dir");
+            startInfo.ArgumentList.Add(targetPath);
+            startInfo.ArgumentList.Add("-max-servers");
+            startInfo.ArgumentList.Add("30");
+            startInfo.ArgumentList.Add("-max-downloads");
+            startInfo.ArgumentList.Add("10");
 
             using var process = new Process { StartInfo = startInfo };
-            
-            var tcs = new TaskCompletionSource<bool>();
+            var outputLines = new List<string>();
+            var lastOutputAt = DateTime.UtcNow;
+            var receivedAnyOutput = false;
+
+            void HandleOutputLine(string line, bool isError)
+            {
+                lock (outputLines)
+                {
+                    outputLines.Add(line);
+                    if (outputLines.Count > 50)
+                    {
+                        outputLines.RemoveAt(0);
+                    }
+                }
+
+                lastOutputAt = DateTime.UtcNow;
+                receivedAnyOutput = true;
+                lastError = line;
+
+                var progress = ParseProgress(line);
+                if (progress.HasValue)
+                {
+                    onProgress?.Invoke(Math.Min(progress.Value, 99), NormalizeStatus(line, account.Username));
+                    return;
+                }
+
+                var normalizedStatus = NormalizeStatus(line, account.Username);
+                if (!string.IsNullOrWhiteSpace(normalizedStatus))
+                {
+                    onProgress?.Invoke(0, normalizedStatus);
+                }
+
+                if (LooksLikeAuthFailure(line))
+                {
+                    lastError = line;
+                    try { process.Kill(); } catch { }
+                }
+            }
 
             process.OutputDataReceived += (s, e) =>
             {
                 if (string.IsNullOrEmpty(e.Data)) return;
-                
-                var progress = ParseProgress(e.Data);
-                if (progress.HasValue)
-                {
-                    onProgress?.Invoke(progress.Value, "Downloading...");
-                }
-                else if (e.Data.Contains("Login Key Failed", StringComparison.OrdinalIgnoreCase) || 
-                         e.Data.Contains("Invalid Password", StringComparison.OrdinalIgnoreCase) ||
-                         e.Data.Contains("Steam Guard", StringComparison.OrdinalIgnoreCase) ||
-                         e.Data.Contains("Two-factor", StringComparison.OrdinalIgnoreCase) ||
-                         e.Data.Contains("Authenticator", StringComparison.OrdinalIgnoreCase) ||
-                         e.Data.Contains("Captcha", StringComparison.OrdinalIgnoreCase))
-                {
-                    try { process.Kill(); } catch { }
-                }
+                HandleOutputLine(e.Data, isError: false);
             };
 
             process.ErrorDataReceived += (s, e) =>
             {
                 if (!string.IsNullOrEmpty(e.Data))
                 {
-                    lastError = e.Data;
+                    HandleOutputLine(e.Data, isError: true);
                 }
             };
 
@@ -222,12 +299,8 @@ public sealed class WorkshopDownloadService
                 process.BeginOutputReadLine();
                 process.BeginErrorReadLine();
 
-                bool receivedAnyOutput = false;
-                process.OutputDataReceived += (s, e) => { if (!string.IsNullOrEmpty(e.Data)) receivedAnyOutput = true; };
-
-                // Initial connection timeout - if no output for 30s, it's probably stuck on a prompt
-                var connectionTimeout = Task.Delay(TimeSpan.FromSeconds(30));
                 var processTask = process.WaitForExitAsync();
+                var hardDeadline = DateTime.UtcNow + TimeSpan.FromMinutes(10);
 
                 while (!processTask.IsCompleted)
                 {
@@ -246,11 +319,19 @@ public sealed class WorkshopDownloadService
                     var completed = await Task.WhenAny(processTask, Task.Delay(500));
                     if (completed == processTask) break;
 
-                    // Still check initial timeout
-                    if (!receivedAnyOutput && DateTime.Now - process.StartTime > TimeSpan.FromSeconds(30))
+                    if (DateTime.UtcNow > hardDeadline)
                     {
                         try { process.Kill(); } catch { }
-                        onProgress?.Invoke(0, "Connection unresponsive. Trying next account...");
+                        lastError = "Download timed out after 10 minutes.";
+                        onProgress?.Invoke(0, lastError);
+                        break;
+                    }
+
+                    if (!receivedAnyOutput && DateTime.UtcNow - lastOutputAt > TimeSpan.FromSeconds(45))
+                    {
+                        try { process.Kill(); } catch { }
+                        lastError = "No response from DepotDownloader for 45 seconds.";
+                        onProgress?.Invoke(0, $"{lastError} Trying next account...");
                         break;
                     }
                 }
@@ -259,13 +340,13 @@ public sealed class WorkshopDownloadService
                 if (_skipCurrentDownloadRequested) break;
                 if (_skipCurrentAccountRequested) continue;
 
-                var timeoutTask = Task.Delay(TimeSpan.FromMinutes(5));
+                var timeoutTask = Task.Delay(TimeSpan.FromSeconds(10));
                 var completedTask = await Task.WhenAny(processTask, timeoutTask);
                 
                 if (completedTask == timeoutTask)
                 {
                     try { process.Kill(); } catch { }
-                    onProgress?.Invoke(0, "Download timed out.");
+                    onProgress?.Invoke(0, "DepotDownloader did not exit cleanly. Trying next account...");
                     continue;
                 }
 
@@ -276,7 +357,12 @@ public sealed class WorkshopDownloadService
                 }
                 else
                 {
-                    onProgress?.Invoke(0, "Account failed. Trying next...");
+                    lock (outputLines)
+                    {
+                        lastError = outputLines.Count == 0 ? lastError : string.Join(Environment.NewLine, outputLines.TakeLast(5));
+                    }
+
+                    onProgress?.Invoke(0, $"Account {account.Username} failed. Trying next...");
                 }
             }
             catch (Exception ex)
@@ -299,6 +385,7 @@ public sealed class WorkshopDownloadService
         }
 
         onProgress?.Invoke(0, $"Error: {lastError}");
+        LastFailureMessage = lastError;
         return false;
     }
 
@@ -317,6 +404,52 @@ public sealed class WorkshopDownloadService
         }
 
         return null;
+    }
+
+    private static string NormalizeStatus(string line, string username)
+    {
+        var trimmed = line.Trim();
+        if (string.IsNullOrWhiteSpace(trimmed))
+        {
+            return string.Empty;
+        }
+
+        var lower = trimmed.ToLowerInvariant();
+        if (lower.Contains("download") ||
+            lower.Contains("depot") ||
+            lower.Contains("verif") ||
+            lower.Contains("connect") ||
+            lower.Contains("login") ||
+            lower.Contains("workshop") ||
+            lower.Contains("manifest") ||
+            lower.Contains("progress") ||
+            lower.Contains('%'))
+        {
+            return $"{trimmed} ({username})";
+        }
+
+        return string.Empty;
+    }
+
+    private static bool LooksLikeAuthFailure(string line)
+    {
+        return line.Contains("Login Key Failed", StringComparison.OrdinalIgnoreCase) ||
+               line.Contains("Invalid Password", StringComparison.OrdinalIgnoreCase) ||
+               line.Contains("Steam Guard", StringComparison.OrdinalIgnoreCase) ||
+               line.Contains("Two-factor", StringComparison.OrdinalIgnoreCase) ||
+               line.Contains("Authenticator", StringComparison.OrdinalIgnoreCase) ||
+               line.Contains("Captcha", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static List<(string Username, string Password)> OrderAccountsForFallback(List<(string Username, string Password)> accounts)
+    {
+        return accounts
+            .Select((account, index) => (account, index))
+            .OrderBy(item => string.Equals(item.account.Username, PreferredFirstAccount, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+            .ThenBy(item => string.Equals(item.account.Username, PreferredLastAccount, StringComparison.OrdinalIgnoreCase) ? 1 : 0)
+            .ThenBy(item => item.index)
+            .Select(item => item.account)
+            .ToList();
     }
 
     private static string Decrypt(string encoded)

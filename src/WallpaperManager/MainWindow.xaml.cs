@@ -893,11 +893,8 @@ public sealed partial class MainWindow : Window
                             item.Progress = progress;
                             ActiveDownloadProgressBar.IsIndeterminate = progress <= 0;
                             ActiveDownloadProgressBar.Value = progress;
-                            
-                            if (CurrentSettings.IsDevMode && status.Contains("as "))
-                            {
-                                ActiveDownloadStatusText.Text = $"{item.DisplayName} - {status}";
-                            }
+                            item.Status = status;
+                            ActiveDownloadStatusText.Text = $"{item.DisplayName} - {status}";
                         });
                     }, forcedAccount);
                 });
@@ -925,7 +922,13 @@ public sealed partial class MainWindow : Window
                 {
                     var wasSkipped = _downloadService.IsCurrentDownloadSkipped();
                     item.IsFailed = !_downloadService.IsCancelled() && !wasSkipped;
-                    item.Status = _downloadService.IsCancelled() ? "Cancelled" : wasSkipped ? "Skipped" : "Failed";
+                    item.Status = _downloadService.IsCancelled()
+                        ? "Cancelled"
+                        : wasSkipped
+                            ? "Skipped"
+                            : string.IsNullOrWhiteSpace(_downloadService.LastFailureMessage)
+                                ? "Failed"
+                                : _downloadService.LastFailureMessage;
                 }
 
                 if (_downloadService.IsCancelled()) break;
@@ -948,15 +951,7 @@ public sealed partial class MainWindow : Window
                     {
                         ActiveDownloadProgressBar.IsIndeterminate = progress <= 0;
                         ActiveDownloadProgressBar.Value = progress;
-                        
-                        if (CurrentSettings.IsDevMode && status.Contains("as "))
-                        {
-                            ActiveDownloadStatusText.Text = status;
-                        }
-                        else
-                        {
-                            ActiveDownloadStatusText.Text = status;
-                        }
+                        ActiveDownloadStatusText.Text = status;
                     });
                 }, forcedAccount);
             });
@@ -983,7 +978,12 @@ public sealed partial class MainWindow : Window
             }
             else
             {
-                ShowDownloadInfo("Download Failed", _downloadService.IsCancelled() ? "Download was cancelled." : "There was an error downloading the wallpaper.", InfoBarSeverity.Error);
+                var message = _downloadService.IsCancelled()
+                    ? "Download was cancelled."
+                    : string.IsNullOrWhiteSpace(_downloadService.LastFailureMessage)
+                        ? "There was an error downloading the wallpaper."
+                        : _downloadService.LastFailureMessage;
+                ShowDownloadInfo("Download Failed", message, InfoBarSeverity.Error);
             }
         }
 
