@@ -378,7 +378,7 @@
                                                     <Button Grid.Row="1" Grid.Column="1" Visibility="{x:Bind Button2Visibility, Mode=OneWay}" Tag="{x:Bind Button2Id, Mode=OneWay}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="36" Height="36" ToolTipService.ToolTip="{x:Bind Button2Tooltip, Mode=OneWay}">
                                                         <FontIcon Glyph="{x:Bind Button2Glyph, Mode=OneWay}" FontSize="16" />
                                                     </Button>
-                                                    <Button Grid.Row="2" Grid.Column="1" Visibility="{x:Bind Button3Visibility, Mode=OneWay}" Tag="{x:Bind Button3Id, Mode=OneWay}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="36" Height="36" ToolTipService.ToolTip="{x:Bind Button3Tooltip, Mode=OneWay}">
+                                                    <Button Grid.Row="2" Grid.Column="1" Visibility="{x:Bind Button3Visibility, Mode=OneWay}" Tag="{x:Bind Button3Id, Mode=OneWay}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="32" Height="32" ToolTipService.ToolTip="{x:Bind Button3Tooltip, Mode=OneWay}">
                                                         <FontIcon Glyph="{x:Bind Button3Glyph, Mode=OneWay}" FontSize="16" />
                                                     </Button>
                                                     <Button Grid.Row="0" Grid.Column="0" Visibility="{x:Bind Button4Visibility, Mode=OneWay}" Tag="{x:Bind Button4Id, Mode=OneWay}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="36" Height="36" ToolTipService.ToolTip="{x:Bind Button4Tooltip, Mode=OneWay}">
@@ -539,8 +539,14 @@
                                     <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                         <FontIcon Glyph="&#xE7F5;" FontSize="18" VerticalAlignment="Center" />
-                                        <StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Run on startup" FontSize="17" /><TextBlock Text="Close sends Carbon Wallpaper to the system tray; use Exit from the tray menu to quit." Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" /></StackPanel>
+                                        <StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Run on startup" FontSize="17" /><TextBlock Text="Start the application automatically when you sign in to Windows." Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" /></StackPanel>
                                         <ToggleSwitch x:Name="RunOnStartupToggle" Grid.Column="2" Toggled="RunOnStartupToggle_Toggled" />
+                                    </Grid>
+                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                        <FontIcon Glyph="&#xE713;" FontSize="18" VerticalAlignment="Center" />
+                                        <StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Quit to tray" FontSize="17" /><TextBlock Text="Closing the window will hide it to the system tray instead of exiting." Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" /></StackPanel>
+                                        <ToggleSwitch x:Name="QuitToTrayToggle" Grid.Column="2" Toggled="QuitToTrayToggle_Toggled" />
                                     </Grid>
                                     <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>

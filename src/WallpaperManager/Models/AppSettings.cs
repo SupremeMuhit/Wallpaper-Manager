@@ -38,6 +38,8 @@ public sealed class AppSettings
 
     public bool RunOnStartup { get; set; }
 
+    public bool QuitToTray { get; set; } = true;
+
     public string MemoryUsageProfile { get; set; } = "Balanced";
 
     public bool AutoMarkNsfwFromWorkshop { get; set; } = true;
@@ -68,7 +70,9 @@ public sealed class AppSettings
     public List<string> CardButtons { get; set; } = ["ThreeDot", "AddToHome", "AddLocalName", "Details"];
 
     public bool IsDevMode { get; set; }
+    public bool QuitToTray { get; set; } = true;
 }
+
 
 public static class CardButtonIds
 {

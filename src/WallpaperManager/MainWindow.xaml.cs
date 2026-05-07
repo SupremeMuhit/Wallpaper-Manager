@@ -154,7 +154,7 @@ public sealed partial class MainWindow : Window
 
     private void AppWindow_Closing(AppWindow sender, AppWindowClosingEventArgs args)
     {
-        if (_isExitRequested)
+        if (_isExitRequested || !CurrentSettings.QuitToTray)
         {
             DisposeTrayIcon();
             return;
@@ -439,6 +439,8 @@ public sealed partial class MainWindow : Window
         NsfwModeComboBox.SelectedIndex = (int)CurrentSettings.NsfwMode;
         MatureModeComboBox.SelectedIndex = (int)CurrentSettings.MatureMode;
         LibraryHideComboBox.SelectedIndex = (int)CurrentSettings.LibraryHideMode;
+        QuitToTrayToggle.IsOn = CurrentSettings.QuitToTray;
+
         
         InitializeCardButtonsList();
 
@@ -617,7 +619,19 @@ public sealed partial class MainWindow : Window
         TriggerSaveSettings();
     }
 
+    private void QuitToTrayToggle_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (_isLoadingSettings)
+        {
+            return;
+        }
+
+        CurrentSettings.QuitToTray = QuitToTrayToggle.IsOn;
+        TriggerSaveSettings();
+    }
+
     private void RunOnStartupToggle_Toggled(object sender, RoutedEventArgs e)
+
     {
         if (_isLoadingSettings)
         {
