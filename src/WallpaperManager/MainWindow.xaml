@@ -539,7 +539,7 @@
                                     <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                         <FontIcon Glyph="&#xE7F5;" FontSize="18" VerticalAlignment="Center" />
-                                        <StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Run on startup" FontSize="17" /><TextBlock Text="Placeholder only (startup hook later)" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel>
+                                        <StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Run on startup" FontSize="17" /><TextBlock Text="Close sends Carbon Wallpaper to the system tray; use Exit from the tray menu to quit." Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" /></StackPanel>
                                         <ToggleSwitch x:Name="RunOnStartupToggle" Grid.Column="2" Toggled="RunOnStartupToggle_Toggled" />
                                     </Grid>
                                     <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18">

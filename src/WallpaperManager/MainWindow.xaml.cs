@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Net.Http;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using Microsoft.UI.Composition.SystemBackdrops;
@@ -15,9 +16,11 @@ using Windows.UI;
 using System.Diagnostics;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Microsoft.UI.Composition;
+using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml.Hosting;
 using Microsoft.Graphics.Canvas.Effects;
 using Windows.Graphics.Effects;
+using WinRT.Interop;
 
 namespace WallpaperManager;
 
@@ -48,6 +51,14 @@ public sealed partial class MainWindow : Window
     private readonly ScenePackageRepacker _scenePackageRepacker = new();
     private readonly DispatcherTimer _engineStatusTimer = new();
     private MicaBackdrop? _micaBackdrop;
+    private AppWindow? _appWindow;
+    private IntPtr _hwnd;
+    private IntPtr _trayIconHandle;
+    private WindowProc? _newWndProc;
+    private IntPtr _oldWndProc;
+    private bool _trayIconAdded;
+    private bool _isExitRequested;
+    private bool _hasShownTrayHint;
     private bool _isLoadingSettings;
     private Dictionary<string, LocalMetadataFile> _localMetadataByRoot = new(StringComparer.OrdinalIgnoreCase);
 
@@ -102,6 +113,7 @@ public sealed partial class MainWindow : Window
         InitializeComponent();
 
         ExtendsContentIntoTitleBar = true;
+        InitializeTrayBehavior();
 
         _engineStatusTimer.Interval = TimeSpan.FromSeconds(3);
         _engineStatusTimer.Tick += (_, _) => UpdateEngineStatus();
@@ -127,6 +139,246 @@ public sealed partial class MainWindow : Window
     }
 
     private readonly DispatcherTimer _sizeChangedTimer = new();
+
+    private void InitializeTrayBehavior()
+    {
+        _hwnd = WindowNative.GetWindowHandle(this);
+        var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(_hwnd);
+        _appWindow = AppWindow.GetFromWindowId(windowId);
+        _appWindow.Closing += AppWindow_Closing;
+
+        _newWndProc = TrayWndProc;
+        _oldWndProc = SetWindowLongPtr(_hwnd, GWLP_WNDPROC, Marshal.GetFunctionPointerForDelegate(_newWndProc));
+        AddTrayIcon();
+    }
+
+    private void AppWindow_Closing(AppWindow sender, AppWindowClosingEventArgs args)
+    {
+        if (_isExitRequested)
+        {
+            DisposeTrayIcon();
+            return;
+        }
+
+        args.Cancel = true;
+        HideToTray();
+    }
+
+    private void HideToTray()
+    {
+        _appWindow?.Hide();
+
+        if (!_hasShownTrayHint)
+        {
+            ShowTrayBalloon(
+                "Carbon Wallpaper is still running",
+                "Use the tray icon to reopen it or exit.");
+            _hasShownTrayHint = true;
+        }
+    }
+
+    private void ShowFromTray()
+    {
+        _appWindow?.Show();
+        Activate();
+    }
+
+    private void ExitFromTray()
+    {
+        _isExitRequested = true;
+        DisposeTrayIcon();
+        Close();
+    }
+
+    private void DisposeTrayIcon()
+    {
+        if (_trayIconAdded)
+        {
+            var data = CreateNotifyIconData();
+            Shell_NotifyIcon(NIM_DELETE, ref data);
+            _trayIconAdded = false;
+        }
+
+        if (_oldWndProc != IntPtr.Zero && _hwnd != IntPtr.Zero)
+        {
+            SetWindowLongPtr(_hwnd, GWLP_WNDPROC, _oldWndProc);
+            _oldWndProc = IntPtr.Zero;
+        }
+    }
+
+    private void AddTrayIcon()
+    {
+        _trayIconHandle = LoadIcon(IntPtr.Zero, IDI_APPLICATION);
+        var data = CreateNotifyIconData();
+        data.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
+        data.hIcon = _trayIconHandle;
+        data.szTip = "Carbon Wallpaper";
+        _trayIconAdded = Shell_NotifyIcon(NIM_ADD, ref data);
+    }
+
+    private void ShowTrayBalloon(string title, string message)
+    {
+        if (!_trayIconAdded)
+        {
+            return;
+        }
+
+        var data = CreateNotifyIconData();
+        data.uFlags = NIF_INFO;
+        data.szInfoTitle = title;
+        data.szInfo = message;
+        data.dwInfoFlags = NIIF_INFO;
+        Shell_NotifyIcon(NIM_MODIFY, ref data);
+    }
+
+    private NOTIFYICONDATA CreateNotifyIconData()
+    {
+        var data = new NOTIFYICONDATA
+        {
+            cbSize = Marshal.SizeOf<NOTIFYICONDATA>(),
+            hWnd = _hwnd,
+            uID = 1,
+            uCallbackMessage = WM_TRAYICON,
+            szTip = string.Empty,
+            szInfo = string.Empty,
+            szInfoTitle = string.Empty
+        };
+
+        return data;
+    }
+
+    private IntPtr TrayWndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
+    {
+        if (msg == WM_TRAYICON)
+        {
+            var mouseMessage = lParam.ToInt32();
+            if (mouseMessage is WM_LBUTTONUP or WM_LBUTTONDBLCLK)
+            {
+                DispatcherQueue.TryEnqueue(ShowFromTray);
+                return IntPtr.Zero;
+            }
+
+            if (mouseMessage == WM_RBUTTONUP)
+            {
+                DispatcherQueue.TryEnqueue(ShowTrayMenu);
+                return IntPtr.Zero;
+            }
+        }
+
+        return CallWindowProc(_oldWndProc, hWnd, msg, wParam, lParam);
+    }
+
+    private void ShowTrayMenu()
+    {
+        if (_hwnd == IntPtr.Zero)
+        {
+            return;
+        }
+
+        var menu = CreatePopupMenu();
+        AppendMenu(menu, MF_STRING, TrayCommandOpen, "Open Carbon Wallpaper");
+        AppendMenu(menu, MF_SEPARATOR, 0, string.Empty);
+        AppendMenu(menu, MF_STRING, TrayCommandExit, "Exit");
+
+        GetCursorPos(out var point);
+        SetForegroundWindow(_hwnd);
+        var command = TrackPopupMenu(menu, TPM_RETURNCMD | TPM_RIGHTBUTTON, point.X, point.Y, 0, _hwnd, IntPtr.Zero);
+        DestroyMenu(menu);
+
+        switch (command)
+        {
+            case TrayCommandOpen:
+                ShowFromTray();
+                break;
+            case TrayCommandExit:
+                ExitFromTray();
+                break;
+        }
+    }
+
+    private delegate IntPtr WindowProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+
+    private const int GWLP_WNDPROC = -4;
+    private const uint WM_APP = 0x8000;
+    private const uint WM_TRAYICON = WM_APP + 1;
+    private const int WM_LBUTTONUP = 0x0202;
+    private const int WM_RBUTTONUP = 0x0205;
+    private const int WM_LBUTTONDBLCLK = 0x0203;
+    private const uint NIM_ADD = 0x00000000;
+    private const uint NIM_MODIFY = 0x00000001;
+    private const uint NIM_DELETE = 0x00000002;
+    private const uint NIF_MESSAGE = 0x00000001;
+    private const uint NIF_ICON = 0x00000002;
+    private const uint NIF_TIP = 0x00000004;
+    private const uint NIF_INFO = 0x00000010;
+    private const uint NIIF_INFO = 0x00000001;
+    private const uint MF_STRING = 0x00000000;
+    private const uint MF_SEPARATOR = 0x00000800;
+    private const uint TPM_RIGHTBUTTON = 0x0002;
+    private const uint TPM_RETURNCMD = 0x0100;
+    private const uint TrayCommandOpen = 1001;
+    private const uint TrayCommandExit = 1002;
+    private static readonly IntPtr IDI_APPLICATION = new(32512);
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    private struct NOTIFYICONDATA
+    {
+        public int cbSize;
+        public IntPtr hWnd;
+        public uint uID;
+        public uint uFlags;
+        public uint uCallbackMessage;
+        public IntPtr hIcon;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
+        public string szTip;
+        public uint dwState;
+        public uint dwStateMask;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
+        public string szInfo;
+        public uint uTimeoutOrVersion;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 64)]
+        public string szInfoTitle;
+        public uint dwInfoFlags;
+        public Guid guidItem;
+        public IntPtr hBalloonIcon;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct POINT
+    {
+        public int X;
+        public int Y;
+    }
+
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+    private static extern bool Shell_NotifyIcon(uint dwMessage, ref NOTIFYICONDATA lpData);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr CallWindowProc(IntPtr lpPrevWndFunc, IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern IntPtr LoadIcon(IntPtr hInstance, IntPtr lpIconName);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr CreatePopupMenu();
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern bool AppendMenu(IntPtr hMenu, uint uFlags, uint uIDNewItem, string lpNewItem);
+
+    [DllImport("user32.dll")]
+    private static extern bool DestroyMenu(IntPtr hMenu);
+
+    [DllImport("user32.dll")]
+    private static extern bool GetCursorPos(out POINT lpPoint);
+
+    [DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    private static extern uint TrackPopupMenu(IntPtr hMenu, uint uFlags, int x, int y, int nReserved, IntPtr hWnd, IntPtr prcRect);
 
     private void ApplyBackdrop(bool useMica)
     {
