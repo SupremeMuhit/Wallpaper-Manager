@@ -2079,6 +2079,9 @@ public sealed partial class MainWindow : Window
         }
 
         _ = FetchWorkshopMetadataAsync();
+
+        // Keep context menu registry entries in sync with current wallpapers
+        ContextMenuService.ApplySettings(CurrentSettings, Wallpapers.ToList());
         }
         finally
         {
@@ -2719,6 +2722,11 @@ public sealed partial class MainWindow : Window
         if (_isLoadingSettings) return;
         CurrentSettings.ContextMenuNextWallpaper = ContextMenuNextToggle.IsOn;
         TriggerSaveSettings();
+
+        if (ContextMenuNextToggle.IsOn)
+            ContextMenuService.RegisterNextWallpaper();
+        else
+            ContextMenuService.UnregisterNextWallpaper();
     }
 
     private void ContextMenuSwitchToggle_Toggled(object sender, RoutedEventArgs e)
@@ -2726,6 +2734,11 @@ public sealed partial class MainWindow : Window
         if (_isLoadingSettings) return;
         CurrentSettings.ContextMenuSwitchWallpaper = ContextMenuSwitchToggle.IsOn;
         TriggerSaveSettings();
+
+        if (ContextMenuSwitchToggle.IsOn)
+            ContextMenuService.RegisterSwitchWallpaper(Wallpapers.ToList());
+        else
+            ContextMenuService.UnregisterSwitchWallpaper();
     }
 
     private void ContextMenuListComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -2746,6 +2759,12 @@ public sealed partial class MainWindow : Window
             }
         }
         TriggerSaveSettings();
+
+        // Refresh the Switch submenu entries if the toggle is on
+        if (CurrentSettings.ContextMenuSwitchWallpaper)
+        {
+            ContextMenuService.ApplySettings(CurrentSettings, Wallpapers.ToList());
+        }
     }
 
     private void HomeListEntireHome_Click(object sender, RoutedEventArgs e)
