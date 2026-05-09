@@ -15,7 +15,7 @@
         </Grid.Resources>
         <Border x:Name="MicaTintOverlay" Background="Transparent" IsHitTestVisible="False" />
         <NavigationView
-            x:Name="Navigation"
+            x:Name="Navigation" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"
             IsBackButtonVisible="Collapsed"
             IsSettingsVisible="True"
             PaneTitle="Carbon Wallpaper"
@@ -26,7 +26,7 @@
                 <NavigationViewItem Content="Library" Icon="Pictures" Tag="Library" />
                 <NavigationViewItem x:Name="NsfwNavTab" Content="NSFW" Tag="NsfwTab" Visibility="Collapsed">
                     <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xE8D4;" />
+                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE8D4;" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
             </NavigationView.MenuItems>
@@ -36,7 +36,7 @@
                 <NavigationViewItem Content="Guide" Icon="Help" Tag="Guide" />
             </NavigationView.FooterMenuItems>
 
-            <Grid Padding="28">
+            <Grid Padding="28" VerticalAlignment="Stretch">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
@@ -76,7 +76,7 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock x:Name="HomeCountText" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock x:Name="HomeCountText" Grid.Row="0" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
                                 <ComboBox x:Name="HomeSortComboBox" Width="150" ItemsSource="{x:Bind HomeSortChoices}" SelectionChanged="HomeSortComboBox_SelectionChanged" />
                                 <ComboBox x:Name="HomeViewComboBox" Width="150" ItemsSource="{x:Bind LibraryViewChoices}" SelectionChanged="HomeViewComboBox_SelectionChanged" />
@@ -84,180 +84,193 @@
                             </StackPanel>
                         </Grid>
 
-                        <InfoBar x:Name="EmptyHomeInfo" Grid.Row="1" Margin="0,14,0,0" Severity="Informational" IsOpen="True" Title="No selected wallpapers" Message="Use the Library item menu to add wallpapers to Home." />
+                                                <InfoBar x:Name="EmptyHomeInfo" Grid.Row="1" Margin="0,14,0,0" Severity="Informational" IsOpen="True" Title="No selected wallpapers" Message="Use the Library item menu to add wallpapers to Home." />
 
-                        <Grid Grid.Row="2" Margin="0,14,0,0">
-                            <ListView x:Name="HomeListView" ItemsSource="{x:Bind SelectedWallpapers, Mode=OneWay}" SelectionMode="None" Visibility="Collapsed" CanDragItems="True" CanReorderItems="True" AllowDrop="True" DragItemsCompleted="HomeView_DragItemsCompleted">
-                                <ListView.ItemContainerStyle>
-                                    <Style TargetType="ListViewItem">
-                                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                                        <Setter Property="Padding" Value="0" />
-                                    </Style>
-                                </ListView.ItemContainerStyle>
-                                <ListView.Header>
-                                    <Grid x:Name="HomeCompactListHeader" Padding="12,0,12,8" ColumnSpacing="14" Visibility="Collapsed">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="150" />
-                                            <ColumnDefinition Width="90" />
-                                            <ColumnDefinition Width="180" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="1" Text="Local name" Style="{StaticResource CaptionTextBlockStyle}" />
-                                        <TextBlock Grid.Column="2" Text="ID" Style="{StaticResource CaptionTextBlockStyle}" />
-                                        <TextBlock Grid.Column="3" Text="Size" Style="{StaticResource CaptionTextBlockStyle}" />
-                                        <TextBlock Grid.Column="4" Text="Tags" Style="{StaticResource CaptionTextBlockStyle}" />
-                                    </Grid>
-                                </ListView.Header>
-                                <ListView.ItemTemplate>
-                                    <DataTemplate x:DataType="models:WallpaperItem">
-                                        <Border Background="{x:Bind RowBackground, Mode=OneWay}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Margin="0,4" MinHeight="{x:Bind ListRowMinHeight, Mode=OneWay}">
-                                            <Grid>
-                                            <Grid Padding="{x:Bind ListRowPadding, Mode=OneWay}" ColumnSpacing="16" Visibility="{x:Bind LargeListLayoutVisibility, Mode=OneWay}">
+                        <ScrollViewer Grid.Row="2" Margin="0,14,0,0">
+                            <ItemsRepeater ItemsSource="{x:Bind HomeGroups, Mode=OneWay}">
+                                <ItemsRepeater.ItemTemplate>
+                                    <DataTemplate x:DataType="models:HomeGroupViewModel">
+                                        <StackPanel Margin="0,0,0,32">
+                                            <!-- Group Header -->
+                                            <Grid ColumnSpacing="8" Margin="0,0,0,12">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="Auto" />
                                                     <ColumnDefinition Width="*" />
                                                     <ColumnDefinition Width="Auto" />
                                                 </Grid.ColumnDefinitions>
-                                                <Grid Width="{x:Bind ListPreviewWidth, Mode=OneWay}" Height="{x:Bind ListPreviewHeight, Mode=OneWay}" Visibility="{x:Bind ListPreviewVisibility, Mode=OneWay}" Background="Transparent" PointerEntered="PreviewImage_PointerEntered" PointerExited="PreviewImage_PointerExited">
-                                                    <Border Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="6">
-                                                        <Image Source="{x:Bind PreviewImage}" Stretch="UniformToFill" Opacity="{x:Bind BlurOpacity, Mode=OneWay}" />
-                                                    </Border>
-                                                    <Grid Visibility="{x:Bind BlurOverlayVisibility, Mode=OneWay}" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" IsHitTestVisible="False">
-                                                        <Border CornerRadius="6" Loaded="BlurOverlay_Loaded" Unloaded="BlurOverlay_Unloaded" />
-                                                    </Grid>
-                                                    <Grid Visibility="{x:Bind NsfwOverlayVisibility, Mode=OneWay}" IsHitTestVisible="False">
-                                                        <Border Background="Black" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="6" />
-                                                    </Grid>
-                                                    <Grid Visibility="{x:Bind MatureOverlayVisibility, Mode=OneWay}" IsHitTestVisible="False">
-                                                        <Border Background="Black" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="6" />
-                                                    </Grid>
-                                                </Grid>
-                                                <StackPanel Grid.Column="1" Spacing="8" VerticalAlignment="Center">
-                                                    <TextBlock Text="{x:Bind DisplayName, Mode=OneWay}" FontSize="{x:Bind ListTitleFontSize, Mode=OneWay}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                                    <StackPanel Orientation="Horizontal" Spacing="22" Visibility="{x:Bind ListDetailsVisibility, Mode=OneWay}">
-                                                        <TextBlock Text="{x:Bind IdText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
-                                                        <TextBlock Text="{x:Bind SizeText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                                        <TextBlock Text="{x:Bind TagsText, Mode=OneWay}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
-                                                    </StackPanel>
-                                                </StackPanel>
-                                                <Grid Grid.Column="2" ColumnSpacing="8" RowSpacing="8" VerticalAlignment="Center">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="Auto" />
-                                                        <ColumnDefinition Width="Auto" />
-                                                    </Grid.ColumnDefinitions>
-                                                    <Grid.RowDefinitions>
-                                                        <RowDefinition Height="Auto" />
-                                                        <RowDefinition Height="Auto" />
-                                                        <RowDefinition Height="Auto" />
-                                                    </Grid.RowDefinitions>
-                                                    <Button Grid.Row="0" Grid.Column="1" Visibility="{x:Bind Button1Visibility, Mode=OneWay}" Tag="{x:Bind Button1Id, Mode=OneWay}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="36" Height="36" ToolTipService.ToolTip="{x:Bind Button1Tooltip, Mode=OneWay}">
-                                                        <FontIcon Glyph="{x:Bind Button1Glyph, Mode=OneWay}" FontSize="16" />
-                                                    </Button>
-                                                    <Button Grid.Row="1" Grid.Column="1" Visibility="{x:Bind Button2Visibility, Mode=OneWay}" Tag="{x:Bind Button2Id, Mode=OneWay}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="36" Height="36" ToolTipService.ToolTip="{x:Bind Button2Tooltip, Mode=OneWay}">
-                                                        <FontIcon Glyph="{x:Bind Button2Glyph, Mode=OneWay}" FontSize="16" />
-                                                    </Button>
-                                                    <Button Grid.Row="2" Grid.Column="1" Visibility="{x:Bind Button3Visibility, Mode=OneWay}" Tag="{x:Bind Button3Id, Mode=OneWay}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="36" Height="36" ToolTipService.ToolTip="{x:Bind Button3Tooltip, Mode=OneWay}">
-                                                        <FontIcon Glyph="{x:Bind Button3Glyph, Mode=OneWay}" FontSize="16" />
-                                                    </Button>
-                                                    <Button Grid.Row="0" Grid.Column="0" Visibility="{x:Bind Button4Visibility, Mode=OneWay}" Tag="{x:Bind Button4Id, Mode=OneWay}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="36" Height="36" ToolTipService.ToolTip="{x:Bind Button4Tooltip, Mode=OneWay}">
-                                                        <FontIcon Glyph="{x:Bind Button4Glyph, Mode=OneWay}" FontSize="16" />
-                                                    </Button>
-                                                    <Button Grid.Row="1" Grid.Column="0" Visibility="{x:Bind Button5Visibility, Mode=OneWay}" Tag="{x:Bind Button5Id, Mode=OneWay}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="36" Height="36" ToolTipService.ToolTip="{x:Bind Button5Tooltip, Mode=OneWay}">
-                                                        <FontIcon Glyph="{x:Bind Button5Glyph, Mode=OneWay}" FontSize="16" />
-                                                    </Button>
-                                                    <Button Grid.Row="2" Grid.Column="0" Visibility="{x:Bind Button6Visibility, Mode=OneWay}" Tag="{x:Bind Button6Id, Mode=OneWay}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="36" Height="36" ToolTipService.ToolTip="{x:Bind Button6Tooltip, Mode=OneWay}">
-                                                        <FontIcon Glyph="{x:Bind Button6Glyph, Mode=OneWay}" FontSize="16" />
-                                                    </Button>
-                                                </Grid>
-                                            </Grid>
-                                            <Grid Padding="{x:Bind ListRowPadding, Mode=OneWay}" ColumnSpacing="14" Visibility="{x:Bind CompactListLayoutVisibility, Mode=OneWay}">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto" />
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="150" />
-                                                    <ColumnDefinition Width="90" />
-                                                    <ColumnDefinition Width="180" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                </Grid.ColumnDefinitions>
-                                                <Grid Width="{x:Bind ListPreviewWidth, Mode=OneWay}" Height="{x:Bind ListPreviewHeight, Mode=OneWay}" Visibility="{x:Bind ListPreviewVisibility, Mode=OneWay}" Background="Transparent" PointerEntered="PreviewImage_PointerEntered" PointerExited="PreviewImage_PointerExited">
-                                                    <Border Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="4">
-                                                        <Image Source="{x:Bind PreviewImage}" Stretch="UniformToFill" Opacity="{x:Bind BlurOpacity, Mode=OneWay}" />
-                                                    </Border>
-                                                    <Grid Visibility="{x:Bind BlurOverlayVisibility, Mode=OneWay}" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" IsHitTestVisible="False">
-                                                        <Border CornerRadius="4" Loaded="BlurOverlay_Loaded" Unloaded="BlurOverlay_Unloaded" />
-                                                    </Grid>
-                                                    <Grid Visibility="{x:Bind NsfwOverlayVisibility, Mode=OneWay}" IsHitTestVisible="False">
-                                                        <Border Background="Black" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="4" />
-                                                    </Grid>
-                                                    <Grid Visibility="{x:Bind MatureOverlayVisibility, Mode=OneWay}" IsHitTestVisible="False">
-                                                        <Border Background="Black" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="4" />
-                                                    </Grid>
-                                                </Grid>
-                                                <TextBlock Grid.Column="1" Text="{x:Bind DisplayName, Mode=OneWay}" FontSize="{x:Bind ListTitleFontSize, Mode=OneWay}" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Visibility="{x:Bind LocalNameColumnVisibility, Mode=OneWay}" />
-                                                <TextBlock Grid.Column="2" Text="{x:Bind IdText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                                <TextBlock Grid.Column="3" Text="{x:Bind SizeText}" VerticalAlignment="Center" />
-                                                <TextBlock Grid.Column="4" Text="{x:Bind TagsText, Mode=OneWay}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                                <StackPanel Grid.Column="5" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                                    <Button Visibility="{x:Bind Button3Visibility, Mode=OneWay}" Tag="{x:Bind Button3Id, Mode=OneWay}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="32" Height="32" ToolTipService.ToolTip="{x:Bind Button3Tooltip, Mode=OneWay}">
-                                                        <FontIcon Glyph="{x:Bind Button3Glyph, Mode=OneWay}" FontSize="12" />
-                                                    </Button>
-                                                    <Button Visibility="{x:Bind Button2Visibility, Mode=OneWay}" Tag="{x:Bind Button2Id, Mode=OneWay}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="32" Height="32" ToolTipService.ToolTip="{x:Bind Button2Tooltip, Mode=OneWay}">
-                                                        <FontIcon Glyph="{x:Bind Button2Glyph, Mode=OneWay}" FontSize="12" />
-                                                    </Button>
-                                                    <Button Visibility="{x:Bind Button1Visibility, Mode=OneWay}" Tag="{x:Bind Button1Id, Mode=OneWay}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="32" Height="32" ToolTipService.ToolTip="{x:Bind Button1Tooltip, Mode=OneWay}">
-                                                        <FontIcon Glyph="{x:Bind Button1Glyph, Mode=OneWay}" FontSize="12" />
+                                                <TextBlock Text="{x:Bind Title, Mode=OneWay}" Style="{StaticResource SubtitleTextBlockStyle}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                                
+                                                <Line X1="0" Y1="0" X2="2000" Y2="0" Stroke="{ThemeResource DividerStrokeColorDefaultBrush}" StrokeThickness="1" VerticalAlignment="Center" Stretch="Fill" Grid.Column="1" Margin="8,0" />
+                                                
+                                                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
+                                                    <ToggleButton IsChecked="{x:Bind IsCollapsed, Mode=TwoWay}" Padding="8,6" ToolTipService.ToolTip="Collapse list">
+                                                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="{x:Bind CollapseGlyph, Mode=OneWay}" FontSize="12" />
+                                                    </ToggleButton>
+                                                    <Button Visibility="{x:Bind SettingsVisibility, Mode=OneWay}" Click="GroupSettings_Click" Tag="{x:Bind ListId, Mode=OneWay}" Padding="8,6" ToolTipService.ToolTip="List settings">
+                                                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE713;" FontSize="12" />
                                                     </Button>
                                                 </StackPanel>
                                             </Grid>
-                                            </Grid>
-                                        </Border>
-                                    </DataTemplate>
-                                </ListView.ItemTemplate>
-                            </ListView>
 
-                            <GridView x:Name="HomeThumbnailView" ItemsSource="{x:Bind SelectedWallpapers, Mode=OneWay}" SelectionMode="None" CanDragItems="True" CanReorderItems="True" AllowDrop="True" DragItemsCompleted="HomeView_DragItemsCompleted">
-                                <GridView.ItemTemplate>
-                                    <DataTemplate x:DataType="models:WallpaperItem">
-                                        <Border Width="{x:Bind CardWidth, Mode=OneWay}" Padding="12" Background="{x:Bind RowBackground, Mode=OneWay}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
-                                            <Grid>
-                                            <StackPanel Spacing="10">
-                                                <Grid Height="{x:Bind CardPreviewHeight, Mode=OneWay}" Background="Transparent" PointerEntered="PreviewImage_PointerEntered" PointerExited="PreviewImage_PointerExited">
-                                                    <Border Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="6">
-                                                        <Image Source="{x:Bind PreviewImage}" Stretch="UniformToFill" Opacity="{x:Bind BlurOpacity, Mode=OneWay}" />
-                                                    </Border>
-                                                    <Grid Visibility="{x:Bind BlurOverlayVisibility, Mode=OneWay}" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" IsHitTestVisible="False">
-                                                        <Border CornerRadius="6" Loaded="BlurOverlay_Loaded" Unloaded="BlurOverlay_Unloaded" />
-                                                    </Grid>
-                                                    <Grid Visibility="{x:Bind NsfwOverlayVisibility, Mode=OneWay}" IsHitTestVisible="False">
-                                                        <Border Background="Black" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="6" />
-                                                    </Grid>
-                                                    <Grid Visibility="{x:Bind MatureOverlayVisibility, Mode=OneWay}" IsHitTestVisible="False">
-                                                        <Border Background="Black" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="6" />
-                                                    </Grid>
-                                                    <Button HorizontalAlignment="Right" VerticalAlignment="Top" Margin="6" Padding="6" Width="32" Height="32" Style="{StaticResource SubtleButtonStyle}" CornerRadius="4" Tag="ThreeDot" Click="DynamicCardButton_Click" ToolTipService.ToolTip="More actions">
-                                                        <FontIcon Glyph="&#xE712;" FontSize="12" />
-                                                    </Button>
-                                                </Grid>
-                                                <TextBlock Text="{x:Bind DisplayName, Mode=OneWay}" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="Wrap" />
-                                                <Grid ColumnSpacing="8" Visibility="{x:Bind ThumbnailDetailsVisibility, Mode=OneWay}">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*" />
-                                                        <ColumnDefinition Width="Auto" />
-                                                        <ColumnDefinition Width="Auto" />
-                                                    </Grid.ColumnDefinitions>
-                                                    <TextBlock Text="{x:Bind IdText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
-                                                    <TextBlock Grid.Column="1" Text="{x:Bind SizeText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                                    <Button Grid.Column="2" Content="USE" Click="RunWallpaper_Click" />
-                                                </Grid>
-                                            </StackPanel>
+                                            <!-- Group Content -->
+                                            <Grid Visibility="{x:Bind IsExpanded, Mode=OneWay}">
+                                                <ListView  ItemsSource="{x:Bind Wallpapers, Mode=OneWay}" SelectionMode="None" Visibility="{x:Bind ListVisibility, Mode=OneWay}" CanDragItems="{x:Bind CanReorder, Mode=OneWay}" CanReorderItems="{x:Bind CanReorder, Mode=OneWay}" AllowDrop="{x:Bind CanReorder, Mode=OneWay}" DragItemsCompleted="HomeView_DragItemsCompleted" DragItemsStarting="HomeView_DragItemsStarting" DragOver="HomeView_DragOver" Drop="HomeView_Drop">
+                                                                                <ListView.ItemContainerStyle>
+                                                                                    <Style TargetType="ListViewItem">
+                                                                                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                                                                        <Setter Property="Padding" Value="0" />
+                                                                                    </Style>
+                                                                                </ListView.ItemContainerStyle>
+                                                                                <ListView.Header>
+                                                                                    <Grid Padding="12,0,12,8" ColumnSpacing="14" Visibility="{x:Bind CompactHeaderVisibility, Mode=OneWay}">
+                                                                                        <Grid.ColumnDefinitions>
+                                                                                            <ColumnDefinition Width="Auto" />
+                                                                                            <ColumnDefinition Width="*" />
+                                                                                            <ColumnDefinition Width="150" />
+                                                                                            <ColumnDefinition Width="90" />
+                                                                                            <ColumnDefinition Width="180" />
+                                                                                            <ColumnDefinition Width="Auto" />
+                                                                                        </Grid.ColumnDefinitions>
+                                                                                        <TextBlock Grid.Column="1" Text="Local name" Style="{StaticResource CaptionTextBlockStyle}" />
+                                                                                        <TextBlock Grid.Column="2" Text="ID" Style="{StaticResource CaptionTextBlockStyle}" />
+                                                                                        <TextBlock Grid.Column="3" Text="Size" Style="{StaticResource CaptionTextBlockStyle}" />
+                                                                                        <TextBlock Grid.Column="4" Text="Tags" Style="{StaticResource CaptionTextBlockStyle}" />
+                                                                                    </Grid>
+                                                                                </ListView.Header>
+                                                                                <ListView.ItemTemplate>
+                                                                                    <DataTemplate x:DataType="models:WallpaperItem">
+                                                                                        <Border Background="{x:Bind RowBackground, Mode=OneWay}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Margin="0,4" MinHeight="{x:Bind ListRowMinHeight, Mode=OneWay}">
+                                                                                            <Grid>
+                                                                                            <Grid Padding="{x:Bind ListRowPadding, Mode=OneWay}" ColumnSpacing="16" Visibility="{x:Bind LargeListLayoutVisibility, Mode=OneWay}">
+                                                                                                <Grid.ColumnDefinitions>
+                                                                                                    <ColumnDefinition Width="Auto" />
+                                                                                                    <ColumnDefinition Width="*" />
+                                                                                                    <ColumnDefinition Width="Auto" />
+                                                                                                </Grid.ColumnDefinitions>
+                                                                                                <Grid Width="{x:Bind ListPreviewWidth, Mode=OneWay}" Height="{x:Bind ListPreviewHeight, Mode=OneWay}" Visibility="{x:Bind ListPreviewVisibility, Mode=OneWay}" Background="Transparent" PointerEntered="PreviewImage_PointerEntered" PointerExited="PreviewImage_PointerExited">
+                                                                                                    <Border Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="6">
+                                                                                                        <Image Source="{x:Bind PreviewImage}" Stretch="UniformToFill" Opacity="{x:Bind BlurOpacity, Mode=OneWay}" />
+                                                                                                    </Border>
+                                                                                                    <Grid Visibility="{x:Bind BlurOverlayVisibility, Mode=OneWay}" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" IsHitTestVisible="False">
+                                                                                                        <Border CornerRadius="6" Loaded="BlurOverlay_Loaded" Unloaded="BlurOverlay_Unloaded" />
+                                                                                                    </Grid>
+                                                                                                    <Grid Visibility="{x:Bind NsfwOverlayVisibility, Mode=OneWay}" IsHitTestVisible="False">
+                                                                                                        <Border Background="Black" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="6" />
+                                                                                                    </Grid>
+                                                                                                    <Grid Visibility="{x:Bind MatureOverlayVisibility, Mode=OneWay}" IsHitTestVisible="False">
+                                                                                                        <Border Background="Black" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="6" />
+                                                                                                    </Grid>
+                                                                                                </Grid>
+                                                                                                <StackPanel Grid.Column="1" Spacing="8" VerticalAlignment="Center">
+                                                                                                    <TextBlock Text="{x:Bind DisplayName, Mode=OneWay}" FontSize="{x:Bind ListTitleFontSize, Mode=OneWay}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                                                                    <StackPanel Orientation="Horizontal" Spacing="22" Visibility="{x:Bind ListDetailsVisibility, Mode=OneWay}">
+                                                                                                        <TextBlock Text="{x:Bind IdText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
+                                                                                                        <TextBlock Text="{x:Bind SizeText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                                                                        <TextBlock Text="{x:Bind TagsText, Mode=OneWay}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
+                                                                                                    </StackPanel>
+                                                                                                </StackPanel>
+                                                                                                                                                                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                                                    <Button Visibility="{x:Bind Button3Visibility, Mode=OneWay}" Tag="ChangeList" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="32" Height="32" ToolTipService.ToolTip="Change List">
+                                                                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE90B;" FontSize="12" />
+                                                                    </Button>
+                                                                    <Button Tag="RemoveFromHome" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="32" Height="32" ToolTipService.ToolTip="Remove from Home">
+                                                                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE738;" FontSize="12" />
+                                                                    </Button>
+                                                                </StackPanel>
+                                                                                            </Grid>
+                                                                                            <Grid Padding="{x:Bind ListRowPadding, Mode=OneWay}" ColumnSpacing="14" Visibility="{x:Bind CompactListLayoutVisibility, Mode=OneWay}">
+                                                                                                <Grid.ColumnDefinitions>
+                                                                                                    <ColumnDefinition Width="Auto" />
+                                                                                                    <ColumnDefinition Width="*" />
+                                                                                                    <ColumnDefinition Width="150" />
+                                                                                                    <ColumnDefinition Width="90" />
+                                                                                                    <ColumnDefinition Width="180" />
+                                                                                                    <ColumnDefinition Width="Auto" />
+                                                                                                </Grid.ColumnDefinitions>
+                                                                                                <Grid Width="{x:Bind ListPreviewWidth, Mode=OneWay}" Height="{x:Bind ListPreviewHeight, Mode=OneWay}" Visibility="{x:Bind ListPreviewVisibility, Mode=OneWay}" Background="Transparent" PointerEntered="PreviewImage_PointerEntered" PointerExited="PreviewImage_PointerExited">
+                                                                                                    <Border Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="4">
+                                                                                                        <Image Source="{x:Bind PreviewImage}" Stretch="UniformToFill" Opacity="{x:Bind BlurOpacity, Mode=OneWay}" />
+                                                                                                    </Border>
+                                                                                                    <Grid Visibility="{x:Bind BlurOverlayVisibility, Mode=OneWay}" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" IsHitTestVisible="False">
+                                                                                                        <Border CornerRadius="4" Loaded="BlurOverlay_Loaded" Unloaded="BlurOverlay_Unloaded" />
+                                                                                                    </Grid>
+                                                                                                    <Grid Visibility="{x:Bind NsfwOverlayVisibility, Mode=OneWay}" IsHitTestVisible="False">
+                                                                                                        <Border Background="Black" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="4" />
+                                                                                                    </Grid>
+                                                                                                    <Grid Visibility="{x:Bind MatureOverlayVisibility, Mode=OneWay}" IsHitTestVisible="False">
+                                                                                                        <Border Background="Black" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="4" />
+                                                                                                    </Grid>
+                                                                                                </Grid>
+                                                                                                <TextBlock Grid.Column="1" Text="{x:Bind DisplayName, Mode=OneWay}" FontSize="{x:Bind ListTitleFontSize, Mode=OneWay}" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Visibility="{x:Bind LocalNameColumnVisibility, Mode=OneWay}" />
+                                                                                                <TextBlock Grid.Column="2" Text="{x:Bind IdText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                                                                                <TextBlock Grid.Column="3" Text="{x:Bind SizeText}" VerticalAlignment="Center" />
+                                                                                                <TextBlock Grid.Column="4" Text="{x:Bind TagsText, Mode=OneWay}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                                                                                                                                                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                                                    <Button Visibility="{x:Bind Button3Visibility, Mode=OneWay}" Tag="ChangeList" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="32" Height="32" ToolTipService.ToolTip="Change List">
+                                                                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE90B;" FontSize="12" />
+                                                                    </Button>
+                                                                    <Button Tag="RemoveFromHome" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="32" Height="32" ToolTipService.ToolTip="Remove from Home">
+                                                                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE738;" FontSize="12" />
+                                                                    </Button>
+                                                                </StackPanel>
+                                                                                            </Grid>
+                                                                                            </Grid>
+                                                                                        </Border>
+                                                                                    </DataTemplate>
+                                                                                </ListView.ItemTemplate>
+                                                                            </ListView>
+
+                                                <GridView  ItemsSource="{x:Bind Wallpapers, Mode=OneWay}" SelectionMode="None" Visibility="{x:Bind GridVisibility, Mode=OneWay}" CanDragItems="{x:Bind CanReorder, Mode=OneWay}" CanReorderItems="{x:Bind CanReorder, Mode=OneWay}" AllowDrop="{x:Bind CanReorder, Mode=OneWay}" DragItemsCompleted="HomeView_DragItemsCompleted" DragItemsStarting="HomeView_DragItemsStarting" DragOver="HomeView_DragOver" Drop="HomeView_Drop">
+                                                                                <GridView.ItemTemplate>
+                                                                                    <DataTemplate x:DataType="models:WallpaperItem">
+                                                                                        <Border Width="{x:Bind CardWidth, Mode=OneWay}" Padding="12" Background="{x:Bind RowBackground, Mode=OneWay}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                                                                                            <Grid>
+                                                                                            <StackPanel Spacing="10">
+                                                                                                <Grid Height="{x:Bind CardPreviewHeight, Mode=OneWay}" Background="Transparent" PointerEntered="PreviewImage_PointerEntered" PointerExited="PreviewImage_PointerExited">
+                                                                                                    <Border Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="6">
+                                                                                                        <Image Source="{x:Bind PreviewImage}" Stretch="UniformToFill" Opacity="{x:Bind BlurOpacity, Mode=OneWay}" />
+                                                                                                    </Border>
+                                                                                                    <Grid Visibility="{x:Bind BlurOverlayVisibility, Mode=OneWay}" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" IsHitTestVisible="False">
+                                                                                                        <Border CornerRadius="6" Loaded="BlurOverlay_Loaded" Unloaded="BlurOverlay_Unloaded" />
+                                                                                                    </Grid>
+                                                                                                    <Grid Visibility="{x:Bind NsfwOverlayVisibility, Mode=OneWay}" IsHitTestVisible="False">
+                                                                                                        <Border Background="Black" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="6" />
+                                                                                                    </Grid>
+                                                                                                    <Grid Visibility="{x:Bind MatureOverlayVisibility, Mode=OneWay}" IsHitTestVisible="False">
+                                                                                                        <Border Background="Black" Opacity="{x:Bind CensorshipOverlayOpacity, Mode=OneWay}" CornerRadius="6" />
+                                                                                                    </Grid>
+                                                                                                                                                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="6" Spacing="4">
+                                                                        <Button Padding="6" Width="32" Height="32" Style="{StaticResource SubtleButtonStyle}" CornerRadius="4" Tag="ChangeList" Click="DynamicCardButton_Click" ToolTipService.ToolTip="Change List">
+                                                                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE90B;" FontSize="12" />
+                                                                        </Button>
+                                                                        <Button Padding="6" Width="32" Height="32" Style="{StaticResource SubtleButtonStyle}" CornerRadius="4" Tag="RemoveFromHome" Click="DynamicCardButton_Click" ToolTipService.ToolTip="Remove from Home">
+                                                                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE738;" FontSize="12" />
+                                                                        </Button>
+                                                                    </StackPanel>
+                                                                                                </Grid>
+                                                                                                <TextBlock Text="{x:Bind DisplayName, Mode=OneWay}" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="Wrap" />
+                                                                                                <Grid ColumnSpacing="8" Visibility="Visible">
+                                                                                                    <Grid.ColumnDefinitions>
+                                                                                                        <ColumnDefinition Width="*" />
+                                                                                                        <ColumnDefinition Width="Auto" />
+                                                                                                        <ColumnDefinition Width="Auto" />
+                                                                                                    </Grid.ColumnDefinitions>
+                                                                                                    <TextBlock Text="{x:Bind IdText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
+                                                                                                    <TextBlock Grid.Column="1" Text="{x:Bind SizeText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                                                                    <Button Grid.Column="2" Content="USE" Click="RunWallpaper_Click" />
+                                                                                                </Grid>
+                                                                                            </StackPanel>
+                                                                                            </Grid>
+                                                                                        </Border>
+                                                                                    </DataTemplate>
+                                                                                </GridView.ItemTemplate>
+                                                                            </GridView>
                                             </Grid>
-                                        </Border>
+                                        </StackPanel>
                                     </DataTemplate>
-                                </GridView.ItemTemplate>
-                            </GridView>
-                        </Grid>
+                                </ItemsRepeater.ItemTemplate>
+                            </ItemsRepeater>
+                        </ScrollViewer>
                     </Grid>
 
                     <Grid x:Name="LibraryPage" Visibility="Collapsed">
@@ -276,7 +289,7 @@
                             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
                                 <Button MinHeight="36" Click="ScanLibrary_Click">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <FontIcon Glyph="&#xE72C;" FontSize="15" />
+                                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE72C;" FontSize="15" />
                                         <TextBlock Text="Scan" />
                                     </StackPanel>
                                 </Button>
@@ -309,7 +322,7 @@
                                     <TextBlock x:Name="SizeHeader" Grid.Column="3" Text="Size" Style="{StaticResource CaptionTextBlockStyle}" />
                                     <TextBlock x:Name="TagsHeader" Grid.Column="4" Text="Tags" Style="{StaticResource CaptionTextBlockStyle}" />
                                 </Grid>
-                                <ListView ItemsSource="{x:Bind VisibleWallpapers, Mode=OneWay}" Grid.Row="1" SelectionMode="None">
+                                <ListView ItemsSource="{x:Bind VisibleWallpapers, Mode=OneWay}" VerticalAlignment="Stretch" Grid.Row="1" SelectionMode="None">
                                     <ListView.ItemContainerStyle>
                                         <Style TargetType="ListViewItem">
                                             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
@@ -373,22 +386,22 @@
                                                         <RowDefinition Height="Auto" />
                                                     </Grid.RowDefinitions>
                                                     <Button Grid.Row="0" Grid.Column="1" Visibility="{x:Bind Button1Visibility, Mode=OneWay}" Tag="{x:Bind Button1Id, Mode=OneWay}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="36" Height="36" ToolTipService.ToolTip="{x:Bind Button1Tooltip, Mode=OneWay}">
-                                                        <FontIcon Glyph="{x:Bind Button1Glyph, Mode=OneWay}" FontSize="16" />
+                                                        <FontIcon Glyph="{x:Bind Button1Glyph, Mode=OneWay}" FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="16" />
                                                     </Button>
                                                     <Button Grid.Row="1" Grid.Column="1" Visibility="{x:Bind Button2Visibility, Mode=OneWay}" Tag="{x:Bind Button2Id, Mode=OneWay}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="36" Height="36" ToolTipService.ToolTip="{x:Bind Button2Tooltip, Mode=OneWay}">
-                                                        <FontIcon Glyph="{x:Bind Button2Glyph, Mode=OneWay}" FontSize="16" />
+                                                        <FontIcon Glyph="{x:Bind Button2Glyph, Mode=OneWay}" FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="16" />
                                                     </Button>
-                                                    <Button Grid.Row="2" Grid.Column="1" Visibility="{x:Bind Button3Visibility, Mode=OneWay}" Tag="{x:Bind Button3Id, Mode=OneWay}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="32" Height="32" ToolTipService.ToolTip="{x:Bind Button3Tooltip, Mode=OneWay}">
-                                                        <FontIcon Glyph="{x:Bind Button3Glyph, Mode=OneWay}" FontSize="16" />
+                                                    <Button Grid.Row="2" Grid.Column="1" Visibility="{x:Bind Button3Visibility, Mode=OneWay}" Tag="{x:Bind Button3Id, Mode=OneWay}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="36" Height="36" ToolTipService.ToolTip="{x:Bind Button3Tooltip, Mode=OneWay}">
+                                                        <FontIcon Glyph="{x:Bind Button3Glyph, Mode=OneWay}" FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="16" />
                                                     </Button>
                                                     <Button Grid.Row="0" Grid.Column="0" Visibility="{x:Bind Button4Visibility, Mode=OneWay}" Tag="{x:Bind Button4Id, Mode=OneWay}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="36" Height="36" ToolTipService.ToolTip="{x:Bind Button4Tooltip, Mode=OneWay}">
-                                                        <FontIcon Glyph="{x:Bind Button4Glyph, Mode=OneWay}" FontSize="16" />
+                                                        <FontIcon Glyph="{x:Bind Button4Glyph, Mode=OneWay}" FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="16" />
                                                     </Button>
                                                     <Button Grid.Row="1" Grid.Column="0" Visibility="{x:Bind Button5Visibility, Mode=OneWay}" Tag="{x:Bind Button5Id, Mode=OneWay}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="36" Height="36" ToolTipService.ToolTip="{x:Bind Button5Tooltip, Mode=OneWay}">
-                                                        <FontIcon Glyph="{x:Bind Button5Glyph, Mode=OneWay}" FontSize="16" />
+                                                        <FontIcon Glyph="{x:Bind Button5Glyph, Mode=OneWay}" FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="16" />
                                                     </Button>
                                                     <Button Grid.Row="2" Grid.Column="0" Visibility="{x:Bind Button6Visibility, Mode=OneWay}" Tag="{x:Bind Button6Id, Mode=OneWay}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="36" Height="36" ToolTipService.ToolTip="{x:Bind Button6Tooltip, Mode=OneWay}">
-                                                        <FontIcon Glyph="{x:Bind Button6Glyph, Mode=OneWay}" FontSize="16" />
+                                                        <FontIcon Glyph="{x:Bind Button6Glyph, Mode=OneWay}" FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="16" />
                                                     </Button>
                                                 </Grid>
                                                 </Grid>
@@ -420,15 +433,15 @@
                                                     <TextBlock Grid.Column="2" Text="{x:Bind IdText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Visibility="{x:Bind IdColumnVisibility, Mode=OneWay}" />
                                                     <TextBlock Grid.Column="3" Text="{x:Bind SizeText}" VerticalAlignment="Center" Visibility="{x:Bind SizeColumnVisibility, Mode=OneWay}" />
                                                     <TextBlock Grid.Column="4" Text="{x:Bind TagsText, Mode=OneWay}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Visibility="{x:Bind TagsColumnVisibility, Mode=OneWay}" />
-                                                    <StackPanel Grid.Column="5" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" HorizontalAlignment="Right">
+                                                    <StackPanel Grid.Column="5" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,12,0">
                                                         <Button Visibility="{x:Bind Button3Visibility, Mode=OneWay}" Tag="{x:Bind Button3Id, Mode=OneWay}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="32" Height="32" ToolTipService.ToolTip="{x:Bind Button3Tooltip, Mode=OneWay}">
-                                                            <FontIcon Glyph="{x:Bind Button3Glyph, Mode=OneWay}" FontSize="14" />
+                                                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="{x:Bind Button3Glyph, Mode=OneWay}" FontSize="14" />
                                                         </Button>
                                                         <Button Visibility="{x:Bind Button2Visibility, Mode=OneWay}" Tag="{x:Bind Button2Id, Mode=OneWay}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="32" Height="32" ToolTipService.ToolTip="{x:Bind Button2Tooltip, Mode=OneWay}">
-                                                            <FontIcon Glyph="{x:Bind Button2Glyph, Mode=OneWay}" FontSize="14" />
+                                                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="{x:Bind Button2Glyph, Mode=OneWay}" FontSize="14" />
                                                         </Button>
                                                         <Button Visibility="{x:Bind Button1Visibility, Mode=OneWay}" Tag="{x:Bind Button1Id, Mode=OneWay}" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="32" Height="32" ToolTipService.ToolTip="{x:Bind Button1Tooltip, Mode=OneWay}">
-                                                            <FontIcon Glyph="{x:Bind Button1Glyph, Mode=OneWay}" FontSize="14" />
+                                                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="{x:Bind Button1Glyph, Mode=OneWay}" FontSize="14" />
                                                         </Button>
                                                     </StackPanel>
                                                 </Grid>
@@ -439,7 +452,7 @@
                                 </ListView>
                             </Grid>
 
-                            <GridView x:Name="LibraryThumbnailView" ItemsSource="{x:Bind VisibleWallpapers, Mode=OneWay}" SelectionMode="None" Visibility="Collapsed">
+                            <GridView x:Name="LibraryThumbnailView" VerticalAlignment="Stretch" ItemsSource="{x:Bind VisibleWallpapers, Mode=OneWay}" SelectionMode="None" Visibility="Collapsed">
                                 <GridView.ItemTemplate>
                                     <DataTemplate x:DataType="models:WallpaperItem">
                                         <Border Width="{x:Bind CardWidth, Mode=OneWay}" Padding="12" Background="{x:Bind RowBackground, Mode=OneWay}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
@@ -460,7 +473,7 @@
                                                         </Grid>
                                                     </Grid>
                                                     <TextBlock Text="{x:Bind DisplayName, Mode=OneWay}" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="Wrap" />
-                                                    <Grid ColumnSpacing="8" Visibility="{x:Bind ThumbnailDetailsVisibility, Mode=OneWay}">
+                                                    <Grid ColumnSpacing="8" Visibility="Visible">
                                                         <Grid.ColumnDefinitions>
                                                             <ColumnDefinition Width="*" />
                                                             <ColumnDefinition Width="Auto" />
@@ -470,7 +483,7 @@
                                                     </Grid>
                                                 </StackPanel>
                                                 <Button HorizontalAlignment="Right" VerticalAlignment="Top" Margin="6" Padding="6" Width="32" Height="32" Style="{StaticResource SubtleButtonStyle}" CornerRadius="4" Tag="ThreeDot" Click="DynamicCardButton_Click" ToolTipService.ToolTip="More actions">
-                                                    <FontIcon Glyph="&#xE712;" FontSize="12" />
+                                                    <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE712;" FontSize="12" />
                                                 </Button>
                                             </Grid>
                                         </Border>
@@ -514,7 +527,7 @@
                                             <ColumnDefinition Width="24" />
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
-                                        <FontIcon Glyph="{Binding Icon}" FontSize="16" VerticalAlignment="Center" />
+                                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="{Binding Icon}" FontSize="16" VerticalAlignment="Center" />
                                         <TextBlock Grid.Column="1" Text="{Binding Title}" VerticalAlignment="Center" FontSize="15" />
                                     </Grid>
                                 </DataTemplate>
@@ -532,25 +545,25 @@
 
                                     <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                        <FontIcon Glyph="&#xE756;" FontSize="18" VerticalAlignment="Center" />
+                                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE756;" FontSize="18" VerticalAlignment="Center" />
                                         <StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Engine executable path" FontSize="17" /><TextBlock Text="wallpaper32.exe or wallpaper64.exe" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel>
                                         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8"><TextBox x:Name="EnginePathTextBox" Width="320" PlaceholderText="wallpaper32.exe or wallpaper64.exe" TextChanged="EnginePathTextBox_TextChanged" /><Button Content="Browse" Click="BrowseEngineExecutable_Click" /></StackPanel>
                                     </Grid>
                                     <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                        <FontIcon Glyph="&#xE7F5;" FontSize="18" VerticalAlignment="Center" />
+                                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE7F5;" FontSize="18" VerticalAlignment="Center" />
                                         <StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Run on startup" FontSize="17" /><TextBlock Text="Start the application automatically when you sign in to Windows." Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" /></StackPanel>
                                         <ToggleSwitch x:Name="RunOnStartupToggle" Grid.Column="2" Toggled="RunOnStartupToggle_Toggled" />
                                     </Grid>
                                     <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                        <FontIcon Glyph="&#xE713;" FontSize="18" VerticalAlignment="Center" />
+                                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE713;" FontSize="18" VerticalAlignment="Center" />
                                         <StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Quit to tray" FontSize="17" /><TextBlock Text="Closing the window will hide it to the system tray instead of exiting." Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" /></StackPanel>
                                         <ToggleSwitch x:Name="QuitToTrayToggle" Grid.Column="2" Toggled="QuitToTrayToggle_Toggled" />
                                     </Grid>
                                     <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                        <FontIcon Glyph="&#xE793;" FontSize="18" VerticalAlignment="Center" />
+                                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE793;" FontSize="18" VerticalAlignment="Center" />
                                         <StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Memory usage" FontSize="17" /><TextBlock Text="Placeholder profile selector" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel>
                                         <ComboBox x:Name="MemoryUsageComboBox" Grid.Column="2" Width="220" SelectionChanged="MemoryUsageComboBox_SelectionChanged">
                                             <x:String>Low</x:String>
@@ -568,7 +581,7 @@
                                 <StackPanel Spacing="5">
                                     <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                        <FontIcon Glyph="&#xE771;" FontSize="18" VerticalAlignment="Center" />
+                                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE771;" FontSize="18" VerticalAlignment="Center" />
                                         <StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Theme mode" FontSize="17" /><TextBlock Text="Dark, light, or auto" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel>
                                         <ComboBox x:Name="ThemeComboBox" Grid.Column="2" Width="220" SelectionChanged="ThemeComboBox_SelectionChanged">
                                             <x:String>Auto</x:String>
@@ -578,7 +591,7 @@
                                     </Grid>
                                     <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                        <FontIcon Glyph="&#xE790;" FontSize="18" VerticalAlignment="Center" />
+                                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE790;" FontSize="18" VerticalAlignment="Center" />
                                         <StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Theme color preset" FontSize="17" /><TextBlock Text="Pick a base color preset" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel>
                                         <ComboBox x:Name="ThemeColorPresetComboBox" Grid.Column="2" Width="220" SelectionChanged="ThemeColorPresetComboBox_SelectionChanged">
                                             <x:String>Blue</x:String>
@@ -595,7 +608,7 @@
                                     </Grid>
                                     <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                        <FontIcon Glyph="&#xE790;" FontSize="18" VerticalAlignment="Center" />
+                                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE790;" FontSize="18" VerticalAlignment="Center" />
                                         <StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Custom theme color" FontSize="17" /><TextBlock Text="Hex color with picker" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel>
                                         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
                                             <TextBox x:Name="ThemeColorTextBox" Width="130" TextChanged="ThemeColorTextBox_TextChanged" />
@@ -604,7 +617,7 @@
                                     </Grid>
                                     <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18" Visibility="Collapsed">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                        <FontIcon Glyph="&#xE8A9;" FontSize="18" VerticalAlignment="Center" />
+                                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE8A9;" FontSize="18" VerticalAlignment="Center" />
                                         <StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="List columns" FontSize="17" /><TextBlock Text="Advanced compact list columns" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel>
                                         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6">
                                             <ToggleButton x:Name="PreviewColumnToggle" Content="Preview" Tag="Preview" Click="ColumnToggle_Click" />
@@ -624,34 +637,18 @@
                                 <StackPanel Spacing="5">
                                     <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                        <FontIcon Glyph="&#xE8B7;" FontSize="18" VerticalAlignment="Center" />
-                                        <StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Wallpaper directories" FontSize="17" /><TextBlock Text="Folders scanned for wallpapers" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel>
-                                        <Button Grid.Column="2" Content="Add directory" Click="AddDirectory_Click" />
+                                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE8B7;" FontSize="18" VerticalAlignment="Center" />
+                                        <StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Wallpaper directory" FontSize="17" /><TextBlock Text="Folder scanned for wallpapers" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel>
+                                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+                                            <TextBox x:Name="WallpaperDirectoryTextBox" Width="320" PlaceholderText="No directory selected" IsReadOnly="True" />
+                                            <Button Content="Browse" Click="BrowseDirectory_Click" />
+                                            <Button Content="Clear" Click="ClearDirectory_Click" />
+                                        </StackPanel>
                                     </Grid>
-                                    <ListView ItemsSource="{x:Bind LibraryRoots, Mode=OneWay}" SelectionMode="None">
-                                        <ListView.ItemContainerStyle>
-                                            <Style TargetType="ListViewItem">
-                                                <Setter Property="Padding" Value="0" />
-                                                <Setter Property="Margin" Value="0,5,0,0" />
-                                                <Setter Property="MinHeight" Value="0" />
-                                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                                            </Style>
-                                        </ListView.ItemContainerStyle>
-                                        <ListView.ItemTemplate>
-                                            <DataTemplate x:DataType="models:WallpaperLibraryRoot">
-                                                <Grid Padding="18,10" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="12">
-                                                    <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                                    <FontIcon Glyph="&#xE8B7;" />
-                                                    <StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="{x:Bind DisplayName}" /><TextBlock Text="{x:Bind Path}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" /></StackPanel>
-                                                    <Button Grid.Column="2" Content="Remove" Tag="{x:Bind Path}" Click="RemoveDirectory_Click" />
-                                                </Grid>
-                                            </DataTemplate>
-                                        </ListView.ItemTemplate>
-                                    </ListView>
 
-                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><FontIcon Glyph="&#xED1A;" FontSize="18" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Hide NSFW/Mature" FontSize="17" /><TextBlock Text="Filter adult content from the library view" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel><ComboBox x:Name="LibraryHideComboBox" Grid.Column="2" Width="160" SelectionChanged="LibraryHideComboBox_SelectionChanged"><x:String>Off</x:String><x:String>Only NSFW</x:String><x:String>NSFW and Mature</x:String></ComboBox></Grid>
-                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><FontIcon Glyph="&#xE814;" FontSize="18" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="NSFW tab" FontSize="17" /><TextBlock Text="Control how adult and mature content is displayed" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel><ComboBox x:Name="NsfwTabComboBox" ItemsSource="{x:Bind NsfwTabChoices, Mode=OneWay}" Grid.Column="2" Width="160" SelectionChanged="NsfwTabComboBox_SelectionChanged" /></Grid>
-                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><FontIcon Glyph="&#xE790;" FontSize="18" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Color wallpaper cards with highest priority tag" FontSize="17" /><TextBlock Text="Tags stay enabled; only color highlighting changes" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel><ToggleSwitch x:Name="ColorRowsToggle" Grid.Column="2" Toggled="ColorRowsToggle_Toggled" /></Grid>
+                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xED1A;" FontSize="18" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Hide NSFW/Mature" FontSize="17" /><TextBlock Text="Filter adult content from the library view" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel><ComboBox x:Name="LibraryHideComboBox" Grid.Column="2" Width="160" SelectionChanged="LibraryHideComboBox_SelectionChanged"><x:String>Off</x:String><x:String>Only NSFW</x:String><x:String>NSFW and Mature</x:String></ComboBox></Grid>
+                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE814;" FontSize="18" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="NSFW tab" FontSize="17" /><TextBlock Text="Control how adult and mature content is displayed" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel><ComboBox x:Name="NsfwTabComboBox" ItemsSource="{x:Bind NsfwTabChoices, Mode=OneWay}" Grid.Column="2" Width="160" SelectionChanged="NsfwTabComboBox_SelectionChanged" /></Grid>
+                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE790;" FontSize="18" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Color wallpaper cards with highest priority tag" FontSize="17" /><TextBlock Text="Tags stay enabled; only color highlighting changes" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel><ToggleSwitch x:Name="ColorRowsToggle" Grid.Column="2" Toggled="ColorRowsToggle_Toggled" /></Grid>
                                      <StackPanel Spacing="10" Margin="0,10,0,0">
                                         <TextBlock Text="Wallpaper Card Buttons" FontSize="17" Margin="18,0" />
                                         <TextBlock Text="Choose which buttons appear on cards and reorder them (top 3 shown on compact/medium views)" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="18,-5,18,5" />
@@ -692,8 +689,8 @@
                                                                 <ColumnDefinition Width="*" />
                                                                 <ColumnDefinition Width="Auto" />
                                                             </Grid.ColumnDefinitions>
-                                                            <FontIcon Glyph="&#xE700;" FontSize="14" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" ToolTipService.ToolTip="Drag to reorder" />
-                                                            <FontIcon Grid.Column="1" Glyph="{x:Bind Glyph}" FontSize="20" VerticalAlignment="Center" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                                                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE700;" FontSize="14" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" ToolTipService.ToolTip="Drag to reorder" />
+                                                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Grid.Column="1" Glyph="{x:Bind Glyph}" FontSize="20" VerticalAlignment="Center" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
                                                             <StackPanel Grid.Column="2" VerticalAlignment="Center">
                                                                 <TextBlock Text="{x:Bind Name}" FontSize="15" FontWeight="Normal" />
                                                             </StackPanel>
@@ -712,16 +709,16 @@
                                     <TextBlock Text="NSFW / Mature" FontSize="28" FontWeight="SemiBold" />
                                 </StackPanel>
                                 <StackPanel Spacing="5">
-                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><FontIcon Glyph="&#xE9CE;" FontSize="18" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Remove Censor on Hover" FontSize="17" /><TextBlock Text="Temporarily hide censorship overlay when hovering over a wallpaper" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel><ToggleSwitch x:Name="RemoveCensorOnHoverToggle" Grid.Column="2" Toggled="RemoveCensorOnHoverToggle_Toggled" /></Grid>
-                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><FontIcon Glyph="&#xE7C5;" FontSize="18" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Automark NSFW/mature from workshop" FontSize="17" /><TextBlock Text="Automatically tag wallpapers based on Steam metadata" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel><ToggleSwitch x:Name="AutoMarkNsfwToggle" Grid.Column="2" Toggled="AutoMarkNsfwToggle_Toggled" /></Grid>
-                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><FontIcon Glyph="&#xE8D4;" FontSize="18" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="NSFW censorship mode" FontSize="17" /><TextBlock Text="How NSFW wallpapers are censored" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel><ComboBox x:Name="NsfwModeComboBox" Grid.Column="2" Width="160" SelectionChanged="NsfwModeComboBox_SelectionChanged"><x:String>Off</x:String><x:String>Blur</x:String><x:String>Overlay</x:String></ComboBox></Grid>
-                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><FontIcon Glyph="&#xE8D4;" FontSize="18" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Mature censorship mode" FontSize="17" /><TextBlock Text="How Mature wallpapers are censored" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel><ComboBox x:Name="MatureModeComboBox" Grid.Column="2" Width="160" SelectionChanged="MatureModeComboBox_SelectionChanged"><x:String>Off</x:String><x:String>Blur</x:String><x:String>Overlay</x:String></ComboBox></Grid>
-                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><FontIcon Glyph="&#xE9E9;" FontSize="18" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Blur intensity" FontSize="17" /><TextBlock Text="Adjust the fading/blur effect for preview images" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel><Slider x:Name="BlurIntensitySlider" Grid.Column="2" Width="200" Minimum="0" Maximum="100" StepFrequency="5" ValueChanged="BlurIntensitySlider_ValueChanged" /></Grid>
-                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><FontIcon Glyph="&#xE9E9;" FontSize="18" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Overlay opacity" FontSize="17" /><TextBlock Text="Adjust darkness of the censorship overlay" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel><Slider x:Name="OverlayOpacitySlider" Grid.Column="2" Width="200" Minimum="0" Maximum="1" StepFrequency="0.05" ValueChanged="OverlayOpacitySlider_ValueChanged" /></Grid>
+                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE9CE;" FontSize="18" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Remove Censor on Hover" FontSize="17" /><TextBlock Text="Temporarily hide censorship overlay when hovering over a wallpaper" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel><ToggleSwitch x:Name="RemoveCensorOnHoverToggle" Grid.Column="2" Toggled="RemoveCensorOnHoverToggle_Toggled" /></Grid>
+                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE7C5;" FontSize="18" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Automark NSFW/mature from workshop" FontSize="17" /><TextBlock Text="Automatically tag wallpapers based on Steam metadata" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel><ToggleSwitch x:Name="AutoMarkNsfwToggle" Grid.Column="2" Toggled="AutoMarkNsfwToggle_Toggled" /></Grid>
+                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE8D4;" FontSize="18" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="NSFW censorship mode" FontSize="17" /><TextBlock Text="How NSFW wallpapers are censored" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel><ComboBox x:Name="NsfwModeComboBox" Grid.Column="2" Width="160" SelectionChanged="NsfwModeComboBox_SelectionChanged"><x:String>Off</x:String><x:String>Blur</x:String><x:String>Overlay</x:String></ComboBox></Grid>
+                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE8D4;" FontSize="18" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Mature censorship mode" FontSize="17" /><TextBlock Text="How Mature wallpapers are censored" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel><ComboBox x:Name="MatureModeComboBox" Grid.Column="2" Width="160" SelectionChanged="MatureModeComboBox_SelectionChanged"><x:String>Off</x:String><x:String>Blur</x:String><x:String>Overlay</x:String></ComboBox></Grid>
+                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE9E9;" FontSize="18" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Blur intensity" FontSize="17" /><TextBlock Text="Adjust the fading/blur effect for preview images" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel><Slider x:Name="BlurIntensitySlider" Grid.Column="2" Width="200" Minimum="0" Maximum="100" StepFrequency="5" ValueChanged="BlurIntensitySlider_ValueChanged" /></Grid>
+                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE9E9;" FontSize="18" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Overlay opacity" FontSize="17" /><TextBlock Text="Adjust darkness of the censorship overlay" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel><Slider x:Name="OverlayOpacitySlider" Grid.Column="2" Width="200" Minimum="0" Maximum="1" StepFrequency="0.05" ValueChanged="OverlayOpacitySlider_ValueChanged" /></Grid>
                                     <!-- Censorship Previews -->
                                     <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                        <FontIcon Glyph="&#xE8B9;" FontSize="18" VerticalAlignment="Top" Margin="0,6,0,0" />
+                                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE8B9;" FontSize="18" VerticalAlignment="Top" Margin="0,6,0,0" />
                                         <StackPanel Grid.Column="1" Spacing="12">
                                             <TextBlock Text="Censorship Preview" FontSize="17" />
                                             <StackPanel Orientation="Horizontal" Spacing="24">
@@ -760,8 +757,8 @@
                                     <TextBlock Text="Tags" FontSize="28" FontWeight="SemiBold" />
                                 </StackPanel>
                                 <StackPanel Spacing="5">
-                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><FontIcon Glyph="&#xE8EC;" FontSize="18" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Use Workshop Tags" FontSize="17" /><TextBlock Text="Show workshop tags alongside local tags" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel><ToggleSwitch x:Name="UseWorkshopTagsToggle" Grid.Column="2" Toggled="UseWorkshopTagsToggle_Toggled" /></Grid>
-                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBox x:Name="TagSearchTextBox" PlaceholderText="Search tag" TextChanged="TagSearchTextBox_TextChanged" /><Button Grid.Column="1" Click="CreateTag_Click"><FontIcon Glyph="&#xE710;" /></Button></Grid>
+                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE8EC;" FontSize="18" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Use Workshop Tags" FontSize="17" /><TextBlock Text="Show workshop tags alongside local tags" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel><ToggleSwitch x:Name="UseWorkshopTagsToggle" Grid.Column="2" Toggled="UseWorkshopTagsToggle_Toggled" /></Grid>
+                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBox x:Name="TagSearchTextBox" PlaceholderText="Search tag" TextChanged="TagSearchTextBox_TextChanged" /><Button Grid.Column="1" Click="CreateTag_Click"><FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE710;" /></Button></Grid>
                                     <ListView x:Name="TagsListView" ItemsSource="{x:Bind VisibleTags, Mode=OneWay}" SelectionMode="None" CanDragItems="True" CanReorderItems="True" AllowDrop="True" DragItemsCompleted="TagsListView_DragItemsCompleted">
                                         <ListView.ItemContainerStyle>
                                             <Style TargetType="ListViewItem">
@@ -775,11 +772,11 @@
                                             <DataTemplate x:DataType="models:WallpaperTag">
                                                 <Grid Padding="18,10" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="12">
                                                     <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                                    <FontIcon Glyph="&#xE700;" FontSize="14" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                                                    <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE700;" FontSize="14" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
                                                     <Border Grid.Column="1" Width="22" Height="22" CornerRadius="4" Background="{x:Bind ColorBrush}" />
                                                     <TextBlock Grid.Column="2" Text="{x:Bind Name}" VerticalAlignment="Center" FontSize="20" />
-                                                    <Button Grid.Column="3" Click="EditTagButton_Click"><FontIcon Glyph="&#xE713;" /></Button>
-                                                    <Button Grid.Column="4" Click="RemoveTag_Click"><FontIcon Glyph="&#xE74D;" /></Button>
+                                                    <Button Grid.Column="3" Click="EditTagButton_Click"><FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE713;" /></Button>
+                                                    <Button Grid.Column="4" Click="RemoveTag_Click"><FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE74D;" /></Button>
                                                 </Grid>
                                             </DataTemplate>
                                         </ListView.ItemTemplate>
@@ -792,11 +789,37 @@
                                     <TextBlock Text="About" FontSize="28" FontWeight="SemiBold" />
                                 </StackPanel>
                                 <StackPanel Spacing="5">
-                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><FontIcon Glyph="&#xE946;" FontSize="18" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="App Name + Version" FontSize="17" /><TextBlock Text="Carbon Wallpaper - Prerelease V1" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" /></StackPanel></Grid>
-                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="90" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><FontIcon Glyph="&#xE77B;" FontSize="18" VerticalAlignment="Center" /><Image Grid.Column="1" Width="72" Height="72" Stretch="UniformToFill" Source="https://github.com/SupremeMuhit.png" /><StackPanel Grid.Column="2" Spacing="2"><TextBlock Text="Dev Detail" FontSize="17" /><Button HorizontalAlignment="Left" Content="GitHub: SupremeMuhit" Tag="https://github.com/SupremeMuhit" Click="OpenExternalLink_Click" /><Button HorizontalAlignment="Left" Content="Discord Profile" Tag="https://discord.com/users/1341440502104592507" Click="OpenExternalLink_Click" /></StackPanel></Grid>
-                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><FontIcon Glyph="&#xE8F1;" FontSize="18" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Acknowledgements" FontSize="17" /><TextBlock Text="Built with WinUI and Windows App SDK. Thanks to Wallpaper Engine and all open source dependencies used by this project." Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" /></StackPanel></Grid>
+                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE946;" FontSize="18" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Carbon Wallpaper Manager" FontSize="17" /><TextBlock Text="Kazi Testing v2" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" /></StackPanel></Grid>
+                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="90" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE77B;" FontSize="18" VerticalAlignment="Center" /><Image Grid.Column="1" Width="72" Height="72" Stretch="UniformToFill" Source="https://github.com/SupremeMuhit.png" /><StackPanel Grid.Column="2" Spacing="2"><TextBlock Text="Dev Detail" FontSize="17" /><Button HorizontalAlignment="Left" Content="GitHub: SupremeMuhit" Tag="https://github.com/SupremeMuhit" Click="OpenExternalLink_Click" /><Button HorizontalAlignment="Left" Content="Discord Profile" Tag="https://discord.com/users/1341440502104592507" Click="OpenExternalLink_Click" /></StackPanel></Grid>
+                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE8F1;" FontSize="18" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Acknowledgements" FontSize="17" /><TextBlock Text="Built with WinUI and Windows App SDK. Thanks to Wallpaper Engine and all open source dependencies used by this project." Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" /></StackPanel></Grid>
 
-                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><FontIcon Glyph="&#xE72E;" FontSize="18" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="License" FontSize="17" /><TextBlock Text="Open source license will be added later." Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" /></StackPanel></Grid>
+                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE72E;" FontSize="18" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="License" FontSize="17" /><TextBlock Text="Open source license will be added later." Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" /></StackPanel></Grid>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <StackPanel x:Name="ContextMenuSettingsPanel" Visibility="Collapsed" Spacing="20">
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <TextBlock Text="Desktop Context Menu Integration" FontSize="28" FontWeight="SemiBold" />
+                                </StackPanel>
+                                <StackPanel Spacing="5">
+                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE8AB;" FontSize="18" VerticalAlignment="Center" />
+                                        <StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Next Desktop Wallpaper" FontSize="17" /><TextBlock Text="Adds a context menu button to switch to the next wallpaper (sorted or random)" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" /></StackPanel>
+                                        <ToggleSwitch x:Name="ContextMenuNextToggle" Grid.Column="2" Toggled="ContextMenuNextToggle_Toggled" />
+                                    </Grid>
+                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE737;" FontSize="18" VerticalAlignment="Center" />
+                                        <StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Switch Desktop Wallpaper" FontSize="17" /><TextBlock Text="Adds a sub-menu showing wallpapers to pick from directly" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" /></StackPanel>
+                                        <ToggleSwitch x:Name="ContextMenuSwitchToggle" Grid.Column="2" Toggled="ContextMenuSwitchToggle_Toggled" />
+                                    </Grid>
+                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE8FD;" FontSize="18" VerticalAlignment="Center" />
+                                        <StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Which list to use for context menu" FontSize="17" /><TextBlock Text="Choose which wallpaper list is used in the desktop context menu" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" /></StackPanel>
+                                        <ComboBox x:Name="ContextMenuListComboBox" Grid.Column="2" Width="220" SelectionChanged="ContextMenuListComboBox_SelectionChanged" />
+                                    </Grid>
                                 </StackPanel>
                             </StackPanel>
 
@@ -807,7 +830,7 @@
                                 <StackPanel Spacing="5">
                                     <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                        <FontIcon Glyph="&#xE9CC;" FontSize="18" VerticalAlignment="Center" />
+                                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE9CC;" FontSize="18" VerticalAlignment="Center" />
                                         <StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Dev Mode" FontSize="17" /><TextBlock Text="Enable developer features (requires password)" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel>
                                         <ToggleSwitch x:Name="DevModeToggle" Grid.Column="2" Toggled="DevModeToggle_Toggled" />
                                     </Grid>
@@ -817,7 +840,7 @@
                                 <StackPanel Orientation="Horizontal" Spacing="10">
                                     <TextBlock Text="Contact" FontSize="28" FontWeight="SemiBold" />
                                 </StackPanel>
-                                <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><FontIcon Glyph="&#xE715;" FontSize="18" VerticalAlignment="Top" Margin="0,6,0,0" /><StackPanel Grid.Column="1" Spacing="12"><TextBlock Text="Contact Form" FontSize="17" /><Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><TextBox x:Name="ContactMailTextBox" Header="Mail" PlaceholderText="name@example.com" /><TextBox x:Name="ContactDiscordTextBox" Grid.Column="1" Header="Discord username" PlaceholderText="username" /></Grid><TextBox x:Name="ContactMessageTextBox" Header="Message" PlaceholderText="Write your message" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="130" MaxLength="1500" /><StackPanel Orientation="Horizontal" Spacing="10"><Button x:Name="SendContactButton" Content="Send" Click="SendContact_Click" /><ProgressRing x:Name="ContactProgressRing" Width="28" Height="28" IsActive="False" Visibility="Collapsed" /></StackPanel><InfoBar x:Name="ContactInfoBar" IsOpen="False" /></StackPanel></Grid>
+                                <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE715;" FontSize="18" VerticalAlignment="Top" Margin="0,6,0,0" /><StackPanel Grid.Column="1" Spacing="12"><TextBlock Text="Contact Form" FontSize="17" /><Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><TextBox x:Name="ContactMailTextBox" Header="Mail" PlaceholderText="name@example.com" /><TextBox x:Name="ContactDiscordTextBox" Grid.Column="1" Header="Discord username" PlaceholderText="username" /></Grid><TextBox x:Name="ContactMessageTextBox" Header="Message" PlaceholderText="Write your message" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="130" MaxLength="1500" /><StackPanel Orientation="Horizontal" Spacing="10"><Button x:Name="SendContactButton" Content="Send" Click="SendContact_Click" /><ProgressRing x:Name="ContactProgressRing" Width="28" Height="28" IsActive="False" Visibility="Collapsed" /></StackPanel><InfoBar x:Name="ContactInfoBar" IsOpen="False" /></StackPanel></Grid>
                             </StackPanel>
                         </Grid>
                     </ScrollViewer>
@@ -887,7 +910,7 @@
                                                             <ColumnDefinition Width="Auto" />
                                                         </Grid.ColumnDefinitions>
                                                         <Border Width="44" Height="44" CornerRadius="6" Background="{ThemeResource AccentFillColorDefaultBrush}">
-                                                            <FontIcon Glyph="&#xE8B7;" Foreground="White" FontSize="18" />
+                                                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE8B7;" Foreground="White" FontSize="18" />
                                                         </Border>
                                                         <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
                                                             <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
@@ -956,7 +979,7 @@
 
                                 <Border x:Name="DownloadSuccessPanel" Visibility="Collapsed" Background="{ThemeResource SystemFillColorSuccessBackgroundBrush}" CornerRadius="8" Padding="16">
                                     <StackPanel Orientation="Horizontal" Spacing="12">
-                                        <FontIcon Glyph="&#xE73E;" Foreground="White" />
+                                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE73E;" Foreground="White" />
                                         <TextBlock Text="Wallpaper downloaded successfully and added to library." VerticalAlignment="Center" Foreground="White" />
                                     </StackPanel>
                                 </Border>
@@ -1047,7 +1070,7 @@
                                                     <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
                                                         <TextBlock Text="{x:Bind Status, Mode=OneWay}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Visibility="{x:Bind StatusVisibility, Mode=OneWay}" />
                                                         <Button x:Name="RemoveFromBatchButton" Click="RemoveFromBatch_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Visibility="{x:Bind StatusVisibility, Mode=OneWay}">
-                                                            <FontIcon Glyph="&#xE711;" FontSize="14" />
+                                                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE711;" FontSize="14" />
                                                         </Button>
                                                     </StackPanel>
                                                 </Grid>

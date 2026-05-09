@@ -449,7 +449,7 @@ public sealed class WallpaperItem : INotifyPropertyChanged
         }
     }
 
-    public string HomeActionGlyph => IsSelected ? "\uE711" : "\uE710"; // Minus vs Add
+    public string HomeActionGlyph => IsSelected ? "\uE738" : "\uE710"; // Remove vs Add
 
     public BitmapImage? PreviewImage => string.IsNullOrWhiteSpace(PreviewPath) || !File.Exists(PreviewPath)
         ? null

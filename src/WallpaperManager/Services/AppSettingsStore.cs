@@ -25,28 +25,44 @@ public sealed class AppSettingsStore
 
     public async Task<AppSettings> LoadAsync()
     {
+        AppSettings settings;
+
         if (File.Exists(_settingsPath))
         {
             try
             {
                 await using var stream = File.OpenRead(_settingsPath);
-                return await JsonSerializer.DeserializeAsync<AppSettings>(stream, JsonOptions) ?? new AppSettings();
+                settings = await JsonSerializer.DeserializeAsync<AppSettings>(stream, JsonOptions) ?? new AppSettings();
             }
             catch (JsonException)
             {
                 // File is empty or corrupted
-                return new AppSettings();
+                settings = new AppSettings();
             }
             catch (Exception)
             {
-                return new AppSettings();
+                settings = new AppSettings();
+            }
+        }
+        else
+        {
+            settings = new AppSettings();
+
+            // Migrate from legacy multi-directory file
+            var legacyRoots = await LoadLegacyRootsAsync();
+            if (legacyRoots.Count > 0)
+            {
+                settings.WallpaperDirectory = legacyRoots[0].Path;
             }
         }
 
-        return new AppSettings
+        // Migrate from multi-directory list to single directory (one-time)
+        if (string.IsNullOrWhiteSpace(settings.WallpaperDirectory) && settings.WallpaperDirectories.Count > 0)
         {
-            WallpaperDirectories = await LoadLegacyRootsAsync()
-        };
+            settings.WallpaperDirectory = settings.WallpaperDirectories[0].Path;
+        }
+
+        return settings;
     }
 
     public async Task SaveAsync(AppSettings settings)

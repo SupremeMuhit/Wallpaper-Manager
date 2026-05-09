@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using Windows.ApplicationModel.DataTransfer;
 using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -70,6 +71,10 @@ public sealed partial class MainWindow : Window
 
     public ObservableCollection<WallpaperItem> SelectedWallpapers { get; } = [];
 
+    public ObservableCollection<HomeGroupViewModel> HomeGroups { get; } = [];
+
+    public ObservableCollection<WallpaperList> HomeListButtons { get; } = [];
+
     public ObservableCollection<WorkshopDownloadItem> BatchDownloadItems { get; } = [];
 
     public ObservableCollection<SceneExtractionItem> SceneExtractionItems { get; } = [];
@@ -93,6 +98,8 @@ public sealed partial class MainWindow : Window
 
     public IReadOnlyList<string> LibrarySortChoices { get; } = ["Name", "Date Added", "Workshop Updated", "Subscribers", "Size"];
     public IReadOnlyList<string> HomeSortChoices { get; } = ["Free Movement", "Name", "Date Added", "Workshop Updated", "Subscribers", "Size"];
+    
+    private List<WallpaperItem> _draggedWallpapers = [];
 
     public IReadOnlyList<string> NsfwTabChoices { get; } = ["Off", "Only NSFW", "NSFW and Mature"];
 
@@ -105,6 +112,7 @@ public sealed partial class MainWindow : Window
         new() { Tag = "Tags", Title = "Tags", Icon = "\uE8EC" },
         new() { Tag = "AdvanceSettings", Title = "Advance Settings", Icon = "\uE713" },
         new() { Tag = "About", Title = "About", Icon = "\uE946" },
+        new() { Tag = "ContextMenu", Title = "Desktop Context Menu Integration", Icon = "\uE81E" },
         new() { Tag = "Contact", Title = "Contact", Icon = "\uE715" }
     ];
 
@@ -408,11 +416,7 @@ public sealed partial class MainWindow : Window
         _isLoadingSettings = true;
         CurrentSettings = await _settingsStore.LoadAsync();
 
-        LibraryRoots.Clear();
-        foreach (var root in CurrentSettings.WallpaperDirectories)
-        {
-            LibraryRoots.Add(root);
-        }
+        WallpaperDirectoryTextBox.Text = CurrentSettings.WallpaperDirectory;
 
         Tags.Clear();
         foreach (var tag in CurrentSettings.Tags)
@@ -440,6 +444,10 @@ public sealed partial class MainWindow : Window
         MatureModeComboBox.SelectedIndex = (int)CurrentSettings.MatureMode;
         LibraryHideComboBox.SelectedIndex = (int)CurrentSettings.LibraryHideMode;
         QuitToTrayToggle.IsOn = CurrentSettings.QuitToTray;
+        ContextMenuNextToggle.IsOn = CurrentSettings.ContextMenuNextWallpaper;
+        ContextMenuSwitchToggle.IsOn = CurrentSettings.ContextMenuSwitchWallpaper;
+        RefreshHomeListButtons();
+        RefreshContextMenuListComboBox();
 
         
         InitializeCardButtonsList();
@@ -466,7 +474,7 @@ public sealed partial class MainWindow : Window
         await ScanLibraryAsync();
     }
 
-    private async void AddDirectory_Click(object sender, RoutedEventArgs e)
+    private async void BrowseDirectory_Click(object sender, RoutedEventArgs e)
     {
         var picker = new FolderPicker
         {
@@ -482,30 +490,16 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        if (LibraryRoots.Any(root => string.Equals(root.Path, folder.Path, StringComparison.OrdinalIgnoreCase)))
-        {
-            return;
-        }
-
-        LibraryRoots.Add(WallpaperLibraryRoot.FromPath(folder.Path));
+        CurrentSettings.WallpaperDirectory = System.IO.Path.GetFullPath(folder.Path);
+        WallpaperDirectoryTextBox.Text = CurrentSettings.WallpaperDirectory;
         TriggerSaveSettings();
         await ScanLibraryAsync();
     }
 
-    private async void RemoveDirectory_Click(object sender, RoutedEventArgs e)
+    private async void ClearDirectory_Click(object sender, RoutedEventArgs e)
     {
-        if ((sender as Button)?.Tag is not string path)
-        {
-            return;
-        }
-
-        var root = LibraryRoots.FirstOrDefault(item => string.Equals(item.Path, path, StringComparison.OrdinalIgnoreCase));
-        if (root is null)
-        {
-            return;
-        }
-
-        LibraryRoots.Remove(root);
+        CurrentSettings.WallpaperDirectory = string.Empty;
+        WallpaperDirectoryTextBox.Text = string.Empty;
         TriggerSaveSettings();
         await ScanLibraryAsync();
     }
@@ -1794,9 +1788,10 @@ public sealed partial class MainWindow : Window
     private void RefreshSceneExtractionItems()
     {
         var items = new List<SceneExtractionItem>();
-        foreach (var root in LibraryRoots.Where(root => !string.IsNullOrWhiteSpace(root.Path)))
+        var sceneRoots = string.IsNullOrWhiteSpace(CurrentSettings.WallpaperDirectory) ? Array.Empty<string>() : new[] { CurrentSettings.WallpaperDirectory };
+        foreach (var rootPath in sceneRoots)
         {
-            var extractionRoot = _localMetadataStore.GetSceneExtractionsDirectory(root.Path);
+            var extractionRoot = _localMetadataStore.GetSceneExtractionsDirectory(rootPath);
             if (!Directory.Exists(extractionRoot))
             {
                 continue;
@@ -1804,7 +1799,7 @@ public sealed partial class MainWindow : Window
 
             foreach (var directory in Directory.GetDirectories(extractionRoot))
             {
-                var item = CreateSceneExtractionItem(directory, root.Path);
+                var item = CreateSceneExtractionItem(directory, rootPath);
                 if (item.FileCount > 0)
                 {
                     items.Add(item);
@@ -2024,8 +2019,11 @@ public sealed partial class MainWindow : Window
 
         if (page == "Downloader")
         {
-            DownloadPathSelector.ItemsSource = LibraryRoots;
-            if (LibraryRoots.Count > 0 && DownloadPathSelector.SelectedIndex == -1)
+            var downloadRoots = string.IsNullOrWhiteSpace(CurrentSettings.WallpaperDirectory)
+                ? Array.Empty<WallpaperLibraryRoot>()
+                : new[] { WallpaperLibraryRoot.FromPath(CurrentSettings.WallpaperDirectory) };
+            DownloadPathSelector.ItemsSource = downloadRoots;
+            if (downloadRoots.Length > 0 && DownloadPathSelector.SelectedIndex == -1)
             {
                 DownloadPathSelector.SelectedIndex = 0;
             }
@@ -2052,10 +2050,13 @@ public sealed partial class MainWindow : Window
         {
         ScanLibraryFromSettings();
 
-        _localMetadataByRoot = await _localMetadataStore.LoadForRootsAsync(LibraryRoots.Select(root => root.Path));
+        var libraryRoots = string.IsNullOrWhiteSpace(CurrentSettings.WallpaperDirectory)
+            ? Array.Empty<WallpaperLibraryRoot>()
+            : new[] { WallpaperLibraryRoot.FromPath(CurrentSettings.WallpaperDirectory) };
+        _localMetadataByRoot = await _localMetadataStore.LoadForRootsAsync(libraryRoots.Select(root => root.Path));
 
         var scannedWallpapers = await _wallpaperScanner.ScanAsync(
-            LibraryRoots,
+            libraryRoots,
             CurrentSettings.SelectedWallpaperKeys.ToHashSet(StringComparer.OrdinalIgnoreCase),
             CurrentSettings.NsfwWallpaperKeys.ToHashSet(StringComparer.OrdinalIgnoreCase),
             CurrentSettings.MatureWallpaperKeys.ToHashSet(StringComparer.OrdinalIgnoreCase),
@@ -2156,34 +2157,82 @@ public sealed partial class MainWindow : Window
     private void RefreshSelectedWallpapers()
     {
         SelectedWallpapers.Clear();
-        var selected = Wallpapers.Where(item => item.IsSelected);
+        foreach (var wallpaper in Wallpapers.Where(item => item.IsSelected))
+        {
+            SelectedWallpapers.Add(wallpaper);
+        }
+
+        // Rebuild HomeGroups
+        var previousGroups = HomeGroups.ToList();
+        HomeGroups.Clear();
+
+        // 1. Unlisted Group
+        var unlistedKeys = SelectedWallpapers.Select(w => w.Key).ToList();
+        foreach (var list in CurrentSettings.WallpaperLists)
+        {
+            var listKeys = list.WallpaperKeys.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            unlistedKeys.RemoveAll(k => listKeys.Contains(k));
+        }
+
+        // Ensure HomeViewMode is valid
+        if (string.IsNullOrEmpty(CurrentSettings.HomeViewMode) || !LibraryViewModes.All.Contains(CurrentSettings.HomeViewMode))
+        {
+            CurrentSettings.HomeViewMode = LibraryViewModes.Thumbnail;
+        }
+
+        var isListVisible = CurrentSettings.HomeViewMode == LibraryViewModes.List ? Visibility.Visible : Visibility.Collapsed;
+        var isGridVisible = CurrentSettings.HomeViewMode == LibraryViewModes.Thumbnail ? Visibility.Visible : Visibility.Collapsed;
+        var canReorder = CurrentSettings.HomeSortMode == "Free Movement";
+        var compactHeaderVisible = CurrentSettings.CardSize == CardSizeOptions.Large ? Visibility.Collapsed : Visibility.Visible;
+
+        var unlistedGroup = new HomeGroupViewModel 
+        { 
+            Title = "Unlisted", 
+            ListId = string.Empty,
+            IsCollapsed = previousGroups.FirstOrDefault(g => g.ListId == string.Empty)?.IsCollapsed ?? false,
+            ListVisibility = isListVisible,
+            GridVisibility = isGridVisible,
+            CanReorder = canReorder,
+            CompactHeaderVisibility = compactHeaderVisible
+        };
+        
+        var unlistedItems = SelectedWallpapers.Where(w => unlistedKeys.Contains(w.Key, StringComparer.OrdinalIgnoreCase));
         if (CurrentSettings.HomeSortMode == "Free Movement")
         {
-            // Preserve the order defined in SelectedWallpaperKeys
-            var keyOrder = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-            for (int i = 0; i < CurrentSettings.SelectedWallpaperKeys.Count; i++)
-            {
-                var k = CurrentSettings.SelectedWallpaperKeys[i];
-                if (!keyOrder.ContainsKey(k))
-                    keyOrder[k] = i;
-            }
-
-            selected = selected.OrderBy(w => keyOrder.TryGetValue(w.Key, out var idx) ? idx : int.MaxValue);
+            unlistedItems = unlistedItems.OrderBy(w => CurrentSettings.SelectedWallpaperKeys.IndexOf(w.Key));
         }
         else
         {
-            selected = SortWallpapers(selected, CurrentSettings.HomeSortMode);
-            
-            // Sync the keys when a specific sort is active so the order persists
-            CurrentSettings.SelectedWallpaperKeys = selected
-                .Select(wallpaper => wallpaper.Key)
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList();
+            unlistedItems = SortWallpapers(unlistedItems, CurrentSettings.HomeSortMode);
         }
+        foreach (var item in unlistedItems) unlistedGroup.Wallpapers.Add(item);
+        HomeGroups.Add(unlistedGroup);
 
-        foreach (var wallpaper in selected)
+        // 2. Custom Lists
+        foreach (var list in CurrentSettings.WallpaperLists)
         {
-            SelectedWallpapers.Add(wallpaper);
+            var group = new HomeGroupViewModel 
+            { 
+                Title = list.Name, 
+                ListId = list.Id,
+                IsCollapsed = previousGroups.FirstOrDefault(g => g.ListId == list.Id)?.IsCollapsed ?? false,
+                ListVisibility = isListVisible,
+                GridVisibility = isGridVisible,
+                CanReorder = canReorder,
+                CompactHeaderVisibility = compactHeaderVisible
+            };
+            
+            var listItems = SelectedWallpapers.Where(w => list.WallpaperKeys.Contains(w.Key, StringComparer.OrdinalIgnoreCase));
+            if (CurrentSettings.HomeSortMode == "Free Movement")
+            {
+                listItems = listItems.OrderBy(w => list.WallpaperKeys.IndexOf(w.Key));
+            }
+            else
+            {
+                listItems = SortWallpapers(listItems, CurrentSettings.HomeSortMode);
+            }
+            foreach (var item in listItems) group.Wallpapers.Add(item);
+            HomeGroups.Add(group);
         }
 
         UpdateEmptyStates();
@@ -2433,7 +2482,12 @@ public sealed partial class MainWindow : Window
         var visible = CurrentSettings.CardSize == CardSizeOptions.Large
             ? Visibility.Collapsed
             : Visibility.Visible;
-        HomeCompactListHeader.Visibility = visible;
+            
+        foreach (var group in HomeGroups)
+        {
+            group.CompactHeaderVisibility = visible;
+        }
+            
         LibraryCompactListHeader.Visibility = visible;
     }
 
@@ -2459,24 +2513,25 @@ public sealed partial class MainWindow : Window
 
     private void ApplyHomeViewMode(string viewMode)
     {
-        var isThumbnail = viewMode == LibraryViewModes.Thumbnail;
-        HomeListView.Visibility = isThumbnail ? Visibility.Collapsed : Visibility.Visible;
-        HomeThumbnailView.Visibility = isThumbnail ? Visibility.Visible : Visibility.Collapsed;
+        var isListVisible = viewMode == LibraryViewModes.List ? Visibility.Visible : Visibility.Collapsed;
+        var isGridVisible = viewMode == LibraryViewModes.Thumbnail ? Visibility.Visible : Visibility.Collapsed;
+        
+        foreach (var group in HomeGroups)
+        {
+            group.ListVisibility = isListVisible;
+            group.GridVisibility = isGridVisible;
+        }
+
         ApplyWallpaperPresentation();
     }
 
     private void ApplyHomeSortMode()
     {
-        if (HomeListView == null || HomeThumbnailView == null) return;
-
         var canReorder = CurrentSettings.HomeSortMode == "Free Movement";
-        HomeListView.CanDragItems = canReorder;
-        HomeListView.CanReorderItems = canReorder;
-        HomeListView.AllowDrop = canReorder;
-        
-        HomeThumbnailView.CanDragItems = canReorder;
-        HomeThumbnailView.CanReorderItems = canReorder;
-        HomeThumbnailView.AllowDrop = canReorder;
+        foreach (var group in HomeGroups)
+        {
+            group.CanReorder = canReorder;
+        }
     }
 
     private Brush GetWallpaperRowBrush(WallpaperItem wallpaper)
@@ -2625,6 +2680,197 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    private void RefreshHomeListButtons()
+    {
+        HomeListButtons.Clear();
+        foreach (var list in CurrentSettings.WallpaperLists)
+        {
+            HomeListButtons.Add(list);
+        }
+    }
+
+    private void RefreshContextMenuListComboBox()
+    {
+        var items = new List<string> { "Entire Home" };
+        items.AddRange(CurrentSettings.WallpaperLists.Select(l => l.Name));
+        
+        ContextMenuListComboBox.ItemsSource = items;
+        
+        if (string.IsNullOrEmpty(CurrentSettings.ContextMenuListId))
+        {
+            ContextMenuListComboBox.SelectedIndex = 0;
+        }
+        else
+        {
+            var targetList = CurrentSettings.WallpaperLists.FirstOrDefault(l => l.Id == CurrentSettings.ContextMenuListId);
+            if (targetList != null)
+            {
+                ContextMenuListComboBox.SelectedIndex = items.IndexOf(targetList.Name);
+            }
+            else
+            {
+                ContextMenuListComboBox.SelectedIndex = 0;
+            }
+        }
+    }
+
+    private void ContextMenuNextToggle_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (_isLoadingSettings) return;
+        CurrentSettings.ContextMenuNextWallpaper = ContextMenuNextToggle.IsOn;
+        TriggerSaveSettings();
+    }
+
+    private void ContextMenuSwitchToggle_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (_isLoadingSettings) return;
+        CurrentSettings.ContextMenuSwitchWallpaper = ContextMenuSwitchToggle.IsOn;
+        TriggerSaveSettings();
+    }
+
+    private void ContextMenuListComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isLoadingSettings || ContextMenuListComboBox.SelectedIndex == -1) return;
+        
+        if (ContextMenuListComboBox.SelectedIndex == 0)
+        {
+            CurrentSettings.ContextMenuListId = string.Empty;
+        }
+        else
+        {
+            var selectedName = ContextMenuListComboBox.SelectedItem as string;
+            var list = CurrentSettings.WallpaperLists.FirstOrDefault(l => l.Name == selectedName);
+            if (list != null)
+            {
+                CurrentSettings.ContextMenuListId = list.Id;
+            }
+        }
+        TriggerSaveSettings();
+    }
+
+    private void HomeListEntireHome_Click(object sender, RoutedEventArgs e)
+    {
+        // No longer used, handled by grouping
+    }
+
+    private void HomeListButton_Click(object sender, RoutedEventArgs e)
+    {
+        // No longer used, handled by grouping
+    }
+
+    private async void CreateHomeList_Click(object sender, RoutedEventArgs e)
+    {
+        var nameBox = new TextBox { PlaceholderText = "List name", Width = 300 };
+        var dialog = new ContentDialog
+        {
+            Title = "Create New List",
+            Content = nameBox,
+            PrimaryButtonText = "Create",
+            CloseButtonText = "Cancel",
+            DefaultButton = ContentDialogButton.Primary,
+            XamlRoot = RootGrid.XamlRoot
+        };
+
+        if (await dialog.ShowAsync() == ContentDialogResult.Primary && !string.IsNullOrWhiteSpace(nameBox.Text))
+        {
+            var name = nameBox.Text.Trim();
+            if (CurrentSettings.WallpaperLists.Any(l => string.Equals(l.Name, name, StringComparison.OrdinalIgnoreCase)))
+            {
+                ShowDownloadInfo("List exists", $"A list named '{name}' already exists.", InfoBarSeverity.Error);
+                return;
+            }
+
+            var newList = new WallpaperList { Id = Guid.NewGuid().ToString(), Name = name };
+            CurrentSettings.WallpaperLists.Add(newList);
+            RefreshHomeListButtons();
+            RefreshContextMenuListComboBox();
+            TriggerSaveSettings();
+        }
+    }
+
+    private async void RenameHomeList_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuFlyoutItem item && item.Tag is string listId)
+        {
+            var list = CurrentSettings.WallpaperLists.FirstOrDefault(l => l.Id == listId);
+            if (list == null) return;
+            
+            var nameBox = new TextBox { Text = list.Name, Width = 300 };
+            var dialog = new ContentDialog
+            {
+                Title = "Rename List",
+                Content = nameBox,
+                PrimaryButtonText = "Rename",
+                CloseButtonText = "Cancel",
+                DefaultButton = ContentDialogButton.Primary,
+                XamlRoot = RootGrid.XamlRoot
+            };
+
+            if (await dialog.ShowAsync() == ContentDialogResult.Primary && !string.IsNullOrWhiteSpace(nameBox.Text))
+            {
+                var name = nameBox.Text.Trim();
+                if (!string.Equals(list.Name, name, StringComparison.OrdinalIgnoreCase) && 
+                    CurrentSettings.WallpaperLists.Any(l => string.Equals(l.Name, name, StringComparison.OrdinalIgnoreCase)))
+                {
+                    ShowDownloadInfo("List exists", $"A list named '{name}' already exists.", InfoBarSeverity.Error);
+                    return;
+                }
+
+                list.Name = name;
+                RefreshHomeListButtons();
+                RefreshContextMenuListComboBox();
+                TriggerSaveSettings();
+                RefreshSelectedWallpapers();
+            }
+        }
+    }
+
+    private async void DeleteHomeList_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuFlyoutItem item && item.Tag is string listId)
+        {
+            var list = CurrentSettings.WallpaperLists.FirstOrDefault(l => l.Id == listId);
+            if (list == null) return;
+            
+            var dialog = new ContentDialog
+            {
+                Title = "Delete List",
+                Content = $"Are you sure you want to delete the list '{list.Name}'? The wallpapers will remain in 'Unlisted'.",
+                PrimaryButtonText = "Delete",
+                CloseButtonText = "Cancel",
+                DefaultButton = ContentDialogButton.Close,
+                XamlRoot = RootGrid.XamlRoot
+            };
+
+            if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+            {
+                CurrentSettings.WallpaperLists.Remove(list);
+                RefreshHomeListButtons();
+                RefreshContextMenuListComboBox();
+                TriggerSaveSettings();
+                RefreshSelectedWallpapers();
+            }
+        }
+    }
+
+    private void GroupSettings_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is string listId)
+        {
+            var menu = new MenuFlyout();
+            
+            var renameItem = new MenuFlyoutItem { Text = "Rename", Icon = new FontIcon { Glyph = "\uE8AC" }, Tag = listId };
+            renameItem.Click += RenameHomeList_Click;
+            menu.Items.Add(renameItem);
+            
+            var deleteItem = new MenuFlyoutItem { Text = "Delete", Icon = new FontIcon { Glyph = "\uE74D" }, Tag = listId };
+            deleteItem.Click += DeleteHomeList_Click;
+            menu.Items.Add(deleteItem);
+            
+            menu.ShowAt(btn);
+        }
+    }
+
     private void ShowSettingsSection(string? section)
     {
         EngineWallpaperSettingsPanel.Visibility = section == "EngineWallpaper" ? Visibility.Visible : Visibility.Collapsed;
@@ -2632,6 +2878,7 @@ public sealed partial class MainWindow : Window
         LibrarySettingsPanel.Visibility = section == "Library" ? Visibility.Visible : Visibility.Collapsed;
         NsfwMatureSettingsPanel.Visibility = section == "NsfwMature" ? Visibility.Visible : Visibility.Collapsed;
         TagSettingsPanel.Visibility = section == "Tags" ? Visibility.Visible : Visibility.Collapsed;
+        ContextMenuSettingsPanel.Visibility = section == "ContextMenu" ? Visibility.Visible : Visibility.Collapsed;
         AdvanceSettingsPanel.Visibility = section == "AdvanceSettings" ? Visibility.Visible : Visibility.Collapsed;
         AboutSettingsPanel.Visibility = section == "About" ? Visibility.Visible : Visibility.Collapsed;
         ContactSettingsPanel.Visibility = section == "Contact" ? Visibility.Visible : Visibility.Collapsed;
@@ -2662,7 +2909,7 @@ public sealed partial class MainWindow : Window
                 {
                     // Update collection-based settings that aren't easily tracked by single handlers
                     CurrentSettings.Tags = Tags.ToList();
-                    CurrentSettings.WallpaperDirectories = LibraryRoots.ToList();
+                    CurrentSettings.WallpaperLists = HomeListButtons.ToList();
                     CurrentSettings.WallpaperTags = [];
                     CurrentSettings.UseWorkshopTags = true;
 
@@ -2747,9 +2994,9 @@ public sealed partial class MainWindow : Window
             _localMetadataByRoot[rootPath] = file;
         }
 
-        foreach (var root in LibraryRoots)
+        if (!string.IsNullOrWhiteSpace(CurrentSettings.WallpaperDirectory))
         {
-            _localMetadataStore.EnsureCarbonDirectories(root.Path);
+            _localMetadataStore.EnsureCarbonDirectories(CurrentSettings.WallpaperDirectory);
         }
     }
     private void UpdateEmptyStates()
@@ -3275,7 +3522,7 @@ public sealed partial class MainWindow : Window
         (wallpaper.CardWidth, wallpaper.CardPreviewHeight) = GetCardSize(CurrentSettings.CardSize);
         if (CurrentSettings.CardSize == CardSizeOptions.Large)
         {
-            var availableWidth = Math.Max(LibraryThumbnailView.ActualWidth, HomeThumbnailView.ActualWidth);
+            var availableWidth = LibraryThumbnailView.ActualWidth;
             if (availableWidth > 900)
             {
                 const double cardGap = 12;
@@ -3668,16 +3915,57 @@ public sealed partial class MainWindow : Window
         TriggerSaveSettings();
     }
 
+    private void HomeView_DragItemsStarting(object sender, DragItemsStartingEventArgs e)
+    {
+        _draggedWallpapers = e.Items.Cast<WallpaperItem>().ToList();
+    }
+
+    private void HomeView_DragOver(object sender, DragEventArgs e)
+    {
+        e.AcceptedOperation = DataPackageOperation.Move;
+    }
+
+    private void HomeView_Drop(object sender, DragEventArgs e)
+    {
+        if (sender is not FrameworkElement fe || fe.DataContext is not HomeGroupViewModel targetGroup)
+        {
+            return;
+        }
+
+        if (_draggedWallpapers == null || _draggedWallpapers.Count == 0) return;
+
+        foreach (var item in _draggedWallpapers)
+        {
+            MoveWallpaperToList(item, targetGroup.ListId);
+        }
+        
+        _draggedWallpapers.Clear();
+    }
+
     private void HomeView_DragItemsCompleted(ListViewBase sender, DragItemsCompletedEventArgs args)
     {
         if (CurrentSettings.HomeSortMode != "Free Movement")
             return;
+            
+        if (sender.DataContext is not HomeGroupViewModel group)
+            return;
 
-        // Save the new order
-        CurrentSettings.SelectedWallpaperKeys = SelectedWallpapers
+        // The items in the group.Wallpapers observable collection have been reordered by the GridView/ListView
+        var newKeys = group.Wallpapers
             .Select(wallpaper => wallpaper.Key)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
+            
+        var activeList = CurrentSettings.WallpaperLists.FirstOrDefault(l => l.Id == group.ListId);
+
+        if (activeList != null)
+        {
+            activeList.WallpaperKeys = newKeys;
+        }
+        else
+        {
+            CurrentSettings.SelectedWallpaperKeys = newKeys;
+        }
 
         TriggerSaveSettings();
     }
@@ -3691,6 +3979,12 @@ public sealed partial class MainWindow : Window
 
             switch (buttonId)
             {
+                case "ChangeList":
+                    ShowChangeListMenu(btn, item);
+                    break;
+                case "RemoveFromHome":
+                    ToggleHomeStatus(item);
+                    break;
                 case CardButtonIds.ThreeDot:
                     ShowWallpaperActions(btn, item);
                     break;
@@ -3936,8 +4230,58 @@ public sealed partial class MainWindow : Window
         else
         {
             CurrentSettings.SelectedWallpaperKeys.Remove(item.Key);
+            // Also remove from any lists
+            foreach (var list in CurrentSettings.WallpaperLists)
+            {
+                list.WallpaperKeys.Remove(item.Key);
+            }
         }
 
+        RefreshSelectedWallpapers();
+        TriggerSaveSettings();
+    }
+
+    private void ShowChangeListMenu(FrameworkElement anchor, WallpaperItem item)
+    {
+        var menu = new MenuFlyout();
+        
+        // Unlisted option
+        var unlistedItem = new MenuFlyoutItem { Text = "Unlisted" };
+        unlistedItem.Click += (s, e) => MoveWallpaperToList(item, string.Empty);
+        menu.Items.Add(unlistedItem);
+        
+        if (CurrentSettings.WallpaperLists.Any())
+        {
+            menu.Items.Add(new MenuFlyoutSeparator());
+            foreach (var list in CurrentSettings.WallpaperLists)
+            {
+                var listItem = new MenuFlyoutItem { Text = list.Name, Tag = list.Id };
+                listItem.Click += (s, e) => MoveWallpaperToList(item, (string)listItem.Tag);
+                menu.Items.Add(listItem);
+            }
+        }
+        
+        menu.ShowAt(anchor);
+    }
+
+    private void MoveWallpaperToList(WallpaperItem item, string targetListId)
+    {
+        // Remove from all existing lists
+        foreach (var list in CurrentSettings.WallpaperLists)
+        {
+            list.WallpaperKeys.Remove(item.Key);
+        }
+        
+        // Add to target list if not unlisted
+        if (!string.IsNullOrEmpty(targetListId))
+        {
+            var targetList = CurrentSettings.WallpaperLists.FirstOrDefault(l => l.Id == targetListId);
+            if (targetList != null && !targetList.WallpaperKeys.Contains(item.Key))
+            {
+                targetList.WallpaperKeys.Add(item.Key);
+            }
+        }
+        
         RefreshSelectedWallpapers();
         TriggerSaveSettings();
     }

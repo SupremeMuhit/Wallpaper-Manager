@@ -9,6 +9,10 @@ public enum CensorshipMode
 
 public sealed class AppSettings
 {
+    /// <summary>Single wallpaper directory path (replaces the old multi-directory list).</summary>
+    public string WallpaperDirectory { get; set; } = string.Empty;
+
+    /// <summary>Legacy multi-directory list kept for migration only. Not used at runtime.</summary>
     public List<WallpaperLibraryRoot> WallpaperDirectories { get; set; } = [];
 
     public string EngineExecutablePath { get; set; } = string.Empty;
@@ -70,7 +74,23 @@ public sealed class AppSettings
     public List<string> CardButtons { get; set; } = ["ThreeDot", "AddToHome", "AddLocalName", "Details"];
 
     public bool IsDevMode { get; set; }
-    public bool QuitToTray { get; set; } = true;
+
+    // ── Wallpaper Lists ────────────────────────────────────────────────
+    public List<WallpaperList> WallpaperLists { get; set; } = [];
+
+    // ── Desktop Context Menu Integration ───────────────────────────────
+    public bool ContextMenuNextWallpaper { get; set; }
+    public bool ContextMenuSwitchWallpaper { get; set; }
+    /// <summary>Empty string means "Entire Home". Otherwise holds the list Id.</summary>
+    public string ContextMenuListId { get; set; } = string.Empty;
+}
+
+/// <summary>A named subset of wallpapers in the Home view.</summary>
+public class WallpaperList
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString("N");
+    public string Name { get; set; } = string.Empty;
+    public List<string> WallpaperKeys { get; set; } = [];
 }
 
 
