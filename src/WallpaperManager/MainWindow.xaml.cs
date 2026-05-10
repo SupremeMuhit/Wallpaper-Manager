@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using Windows.ApplicationModel.DataTransfer;
+using Windows.System;
 using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -51,6 +52,7 @@ public sealed partial class MainWindow : Window
     private readonly ScenePackageExtractor _scenePackageExtractor = new();
     private readonly ScenePackageRepacker _scenePackageRepacker = new();
     private readonly DispatcherTimer _engineStatusTimer = new();
+    private readonly GlobalHotkeyService _hotkeyService = new();
     private MicaBackdrop? _micaBackdrop;
     private AppWindow? _appWindow;
     private IntPtr _hwnd;
@@ -110,9 +112,9 @@ public sealed partial class MainWindow : Window
         new() { Tag = "Library", Title = "Library", Icon = "\uE8B7" },
         new() { Tag = "NsfwMature", Title = "NSFW / Mature", Icon = "\uE8D4" },
         new() { Tag = "Tags", Title = "Tags", Icon = "\uE8EC" },
+        new() { Tag = "SwitchingShortcuts", Title = "Switching Shortcuts", Icon = "\uE81E" },
         new() { Tag = "AdvanceSettings", Title = "Advance Settings", Icon = "\uE713" },
         new() { Tag = "About", Title = "About", Icon = "\uE946" },
-        new() { Tag = "ContextMenu", Title = "Desktop Context Menu Integration", Icon = "\uE81E" },
         new() { Tag = "Contact", Title = "Contact", Icon = "\uE715" }
     ];
 
@@ -142,7 +144,8 @@ public sealed partial class MainWindow : Window
                 _sizeChangedTimer.Start();
             }
         };
-
+        
+        _hotkeyService.HotkeyPressed += (_, _) => _appWindow?.DispatcherQueue.TryEnqueue(TriggerNextWallpaperAction);
         LoadSettings();
     }
 
@@ -157,6 +160,7 @@ public sealed partial class MainWindow : Window
 
         _newWndProc = TrayWndProc;
         _oldWndProc = SetWindowLongPtr(_hwnd, GWLP_WNDPROC, Marshal.GetFunctionPointerForDelegate(_newWndProc));
+        _hotkeyService.Initialize(_hwnd);
         AddTrayIcon();
     }
 
@@ -257,6 +261,7 @@ public sealed partial class MainWindow : Window
 
     private IntPtr TrayWndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
     {
+        _hotkeyService.HandleMessage(msg, wParam);
         if (msg == WM_TRAYICON)
         {
             var mouseMessage = lParam.ToInt32();
@@ -447,6 +452,9 @@ public sealed partial class MainWindow : Window
         ContextMenuNextToggle.IsOn = CurrentSettings.ContextMenuNextWallpaper;
         ContextMenuSwitchToggle.IsOn = CurrentSettings.ContextMenuSwitchWallpaper;
         ContextMenuNextModeComboBox.SelectedItem = CurrentSettings.ContextMenuNextMode;
+        GlobalShortcutTextBox.Text = CurrentSettings.GlobalShortcut;
+        _hotkeyService.RegisterShortcut(CurrentSettings.GlobalShortcut);
+
         RefreshHomeListButtons();
         RefreshContextMenuListComboBox();
 
@@ -2718,6 +2726,88 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    private void GlobalShortcutTextBox_KeyDown(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
+    {
+        var key = e.Key;
+        if (key == VirtualKey.Control || key == VirtualKey.Shift || key == VirtualKey.Menu) return;
+
+        var modifiers = new List<string>();
+        var state = Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(VirtualKey.Control);
+        if (state.HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down)) modifiers.Add("Ctrl");
+        
+        state = Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(VirtualKey.Shift);
+        if (state.HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down)) modifiers.Add("Shift");
+        
+        state = Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(VirtualKey.Menu);
+        if (state.HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down)) modifiers.Add("Alt");
+
+        modifiers.Add(key.ToString());
+        string shortcut = string.Join("+", modifiers);
+        
+        GlobalShortcutTextBox.Text = shortcut;
+        CurrentSettings.GlobalShortcut = shortcut;
+        _hotkeyService.RegisterShortcut(shortcut);
+        TriggerSaveSettings();
+        e.Handled = true;
+    }
+
+    private void ClearGlobalShortcut_Click(object sender, RoutedEventArgs e)
+    {
+        GlobalShortcutTextBox.Text = "None";
+        CurrentSettings.GlobalShortcut = "None";
+        _hotkeyService.Unregister();
+        TriggerSaveSettings();
+    }
+
+    private void TriggerNextWallpaperAction()
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine("Hotkey pressed! Triggering next wallpaper action...");
+            var listId = CurrentSettings.ContextMenuListId;
+            var mode = CurrentSettings.ContextMenuNextMode;
+            
+            List<WallpaperItem> candidates;
+            if (string.IsNullOrEmpty(listId) || listId == "home")
+            {
+                candidates = Wallpapers.ToList();
+            }
+            else
+            {
+                // Access HomeGroups safely on UI thread
+                var group = HomeGroups.FirstOrDefault(g => g.ListId == listId);
+                candidates = group?.Wallpapers.ToList() ?? [];
+            }
+
+            if (candidates == null || candidates.Count == 0)
+            {
+                System.Diagnostics.Debug.WriteLine("No candidates found for next wallpaper.");
+                return;
+            }
+
+            WallpaperItem chosen;
+            var random = new Random();
+            if (mode == "Random")
+            {
+                chosen = candidates[random.Next(candidates.Count)];
+            }
+            else
+            {
+                chosen = candidates[random.Next(candidates.Count)];
+            }
+
+            if (chosen != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"Switching to: {chosen.DisplayName}");
+                RunWallpaper(chosen);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"CRITICAL ERROR in TriggerNextWallpaperAction: {ex}");
+        }
+    }
+
     private void ContextMenuNextToggle_Toggled(object sender, RoutedEventArgs e)
     {
         if (_isLoadingSettings) return;
@@ -2905,7 +2995,7 @@ public sealed partial class MainWindow : Window
         LibrarySettingsPanel.Visibility = section == "Library" ? Visibility.Visible : Visibility.Collapsed;
         NsfwMatureSettingsPanel.Visibility = section == "NsfwMature" ? Visibility.Visible : Visibility.Collapsed;
         TagSettingsPanel.Visibility = section == "Tags" ? Visibility.Visible : Visibility.Collapsed;
-        ContextMenuSettingsPanel.Visibility = section == "ContextMenu" ? Visibility.Visible : Visibility.Collapsed;
+        SwitchingShortcutsSettingsPanel.Visibility = section == "SwitchingShortcuts" ? Visibility.Visible : Visibility.Collapsed;
         AdvanceSettingsPanel.Visibility = section == "AdvanceSettings" ? Visibility.Visible : Visibility.Collapsed;
         AboutSettingsPanel.Visibility = section == "About" ? Visibility.Visible : Visibility.Collapsed;
         ContactSettingsPanel.Visibility = section == "Contact" ? Visibility.Visible : Visibility.Collapsed;

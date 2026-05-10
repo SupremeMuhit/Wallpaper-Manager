@@ -171,7 +171,7 @@
                                                                                                 </StackPanel>
                                                                                                                                                                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                                                     <Button Visibility="{x:Bind Button3Visibility, Mode=OneWay}" Tag="ChangeList" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="32" Height="32" ToolTipService.ToolTip="Change List">
-                                                                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE90B;" FontSize="12" />
+                                                                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE8FD;" FontSize="12" />
                                                                     </Button>
                                                                     <Button Tag="RemoveFromHome" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="32" Height="32" ToolTipService.ToolTip="Remove from Home">
                                                                         <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE738;" FontSize="12" />
@@ -207,7 +207,7 @@
                                                                                                 <TextBlock Grid.Column="4" Text="{x:Bind TagsText, Mode=OneWay}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                                                                                                                                                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                                                     <Button Visibility="{x:Bind Button3Visibility, Mode=OneWay}" Tag="ChangeList" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="32" Height="32" ToolTipService.ToolTip="Change List">
-                                                                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE90B;" FontSize="12" />
+                                                                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE8FD;" FontSize="12" />
                                                                     </Button>
                                                                     <Button Tag="RemoveFromHome" Click="DynamicCardButton_Click" Style="{StaticResource SubtleButtonStyle}" Padding="6" Width="32" Height="32" ToolTipService.ToolTip="Remove from Home">
                                                                         <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE738;" FontSize="12" />
@@ -241,7 +241,7 @@
                                                                                                     </Grid>
                                                                                                                                                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="6" Spacing="4">
                                                                         <Button Padding="6" Width="32" Height="32" Style="{StaticResource SubtleButtonStyle}" CornerRadius="4" Tag="ChangeList" Click="DynamicCardButton_Click" ToolTipService.ToolTip="Change List">
-                                                                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE90B;" FontSize="12" />
+                                                                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE8FD;" FontSize="12" />
                                                                         </Button>
                                                                         <Button Padding="6" Width="32" Height="32" Style="{StaticResource SubtleButtonStyle}" CornerRadius="4" Tag="RemoveFromHome" Click="DynamicCardButton_Click" ToolTipService.ToolTip="Remove from Home">
                                                                             <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE738;" FontSize="12" />
@@ -797,11 +797,23 @@
                                 </StackPanel>
                             </StackPanel>
 
-                            <StackPanel x:Name="ContextMenuSettingsPanel" Visibility="Collapsed" Spacing="20">
+                            <StackPanel x:Name="SwitchingShortcutsSettingsPanel" Visibility="Collapsed" Spacing="20">
                                 <StackPanel Orientation="Horizontal" Spacing="10">
-                                    <TextBlock Text="Desktop Context Menu Integration" FontSize="28" FontWeight="SemiBold" />
+                                    <TextBlock Text="Switching Shortcuts" FontSize="28" FontWeight="SemiBold" />
                                 </StackPanel>
                                 <StackPanel Spacing="5">
+                                    <TextBlock Text="Global Keyboard Shortcut" FontSize="18" FontWeight="SemiBold" Margin="0,10,0,5" />
+                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE765;" FontSize="18" VerticalAlignment="Center" />
+                                        <StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Next Wallpaper Shortcut" FontSize="17" /><TextBlock Text="Press a key combination to quickly switch wallpapers globally" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" /></StackPanel>
+                                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+                                            <TextBox x:Name="GlobalShortcutTextBox" Width="150" IsReadOnly="True" PlaceholderText="None" KeyDown="GlobalShortcutTextBox_KeyDown" VerticalAlignment="Center" />
+                                            <Button Content="Clear" Click="ClearGlobalShortcut_Click" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <TextBlock Text="Desktop Context Menu Integration" FontSize="18" FontWeight="SemiBold" Margin="0,20,0,5" />
                                     <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                         <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE8AB;" FontSize="18" VerticalAlignment="Center" />

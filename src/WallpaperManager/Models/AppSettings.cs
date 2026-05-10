@@ -85,6 +85,7 @@ public sealed class AppSettings
     public string ContextMenuNextMode { get; set; } = "Random";
     /// <summary>Empty string means "Entire Home". Otherwise holds the list Id.</summary>
     public string ContextMenuListId { get; set; } = string.Empty;
+    public string GlobalShortcut { get; set; } = "None";
 }
 
 /// <summary>A named subset of wallpapers in the Home view.</summary>
