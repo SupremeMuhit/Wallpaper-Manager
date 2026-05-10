@@ -808,6 +808,7 @@
                                         <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE765;" FontSize="18" VerticalAlignment="Center" />
                                         <StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Next Wallpaper Shortcut" FontSize="17" /><TextBlock Text="Press a key combination to quickly switch wallpapers globally" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" /></StackPanel>
                                         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+                                            <Border x:Name="HotkeyDebugIndicator" Visibility="Collapsed" Width="14" Height="14" CornerRadius="7" Background="{ThemeResource SystemFillColorNeutralBrush}" VerticalAlignment="Center" ToolTipService.ToolTip="Dev: Gray = idle, Green = shortcut fired" />
                                             <TextBox x:Name="GlobalShortcutTextBox" Width="150" IsReadOnly="True" PlaceholderText="None" KeyDown="GlobalShortcutTextBox_KeyDown" VerticalAlignment="Center" />
                                             <Button Content="Clear" Click="ClearGlobalShortcut_Click" VerticalAlignment="Center" />
                                         </StackPanel>

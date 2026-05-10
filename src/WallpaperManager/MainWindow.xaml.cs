@@ -145,11 +145,47 @@ public sealed partial class MainWindow : Window
             }
         };
         
-        _hotkeyService.HotkeyPressed += (_, _) => _appWindow?.DispatcherQueue.TryEnqueue(TriggerNextWallpaperAction);
+        _hotkeyService.HotkeyPressed += (_, _) =>
+        {
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                TriggerNextWallpaperAction();
+                FlashHotkeyIndicator();
+            });
+        };
         LoadSettings();
     }
 
     private readonly DispatcherTimer _sizeChangedTimer = new();
+
+    private readonly DispatcherTimer _hotkeyIndicatorTimer = new()
+    {
+        Interval = TimeSpan.FromSeconds(2)
+    };
+
+    private void FlashHotkeyIndicator()
+    {
+        if (!CurrentSettings.IsDevMode) return;
+        if (HotkeyDebugIndicator == null) return;
+
+        // Turn green
+        HotkeyDebugIndicator.Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 34, 197, 94));
+
+        _hotkeyIndicatorTimer.Stop();
+        _hotkeyIndicatorTimer.Tick -= HotkeyIndicatorTimer_Tick;
+        _hotkeyIndicatorTimer.Tick += HotkeyIndicatorTimer_Tick;
+        _hotkeyIndicatorTimer.Start();
+    }
+
+    private void HotkeyIndicatorTimer_Tick(object? sender, object e)
+    {
+        _hotkeyIndicatorTimer.Stop();
+        if (HotkeyDebugIndicator != null)
+        {
+            // Restore to gray
+            HotkeyDebugIndicator.Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 107, 114, 128));
+        }
+    }
 
     private void InitializeTrayBehavior()
     {
@@ -160,7 +196,6 @@ public sealed partial class MainWindow : Window
 
         _newWndProc = TrayWndProc;
         _oldWndProc = SetWindowLongPtr(_hwnd, GWLP_WNDPROC, Marshal.GetFunctionPointerForDelegate(_newWndProc));
-        _hotkeyService.Initialize(_hwnd);
         AddTrayIcon();
     }
 
@@ -261,7 +296,6 @@ public sealed partial class MainWindow : Window
 
     private IntPtr TrayWndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
     {
-        _hotkeyService.HandleMessage(msg, wParam);
         if (msg == WM_TRAYICON)
         {
             var mouseMessage = lParam.ToInt32();
@@ -2643,6 +2677,13 @@ public sealed partial class MainWindow : Window
         if (DevAccountSelectorPanel == null) return;
         
         DevAccountSelectorPanel.Visibility = CurrentSettings.IsDevMode ? Visibility.Visible : Visibility.Collapsed;
+
+        // Show/hide the hotkey indicator dot
+        if (HotkeyDebugIndicator != null)
+        {
+            HotkeyDebugIndicator.Visibility = CurrentSettings.IsDevMode ? Visibility.Visible : Visibility.Collapsed;
+            HotkeyDebugIndicator.Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 107, 114, 128)); // reset to gray
+        }
         if (CurrentSettings.IsDevMode)
         {
             var accounts = _downloadService.GetAvailableAccounts();
