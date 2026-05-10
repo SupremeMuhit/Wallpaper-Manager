@@ -446,6 +446,7 @@ public sealed partial class MainWindow : Window
         QuitToTrayToggle.IsOn = CurrentSettings.QuitToTray;
         ContextMenuNextToggle.IsOn = CurrentSettings.ContextMenuNextWallpaper;
         ContextMenuSwitchToggle.IsOn = CurrentSettings.ContextMenuSwitchWallpaper;
+        ContextMenuNextModeComboBox.SelectedItem = CurrentSettings.ContextMenuNextMode;
         RefreshHomeListButtons();
         RefreshContextMenuListComboBox();
 
@@ -2767,6 +2768,13 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    private void ContextMenuNextModeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isLoadingSettings || ContextMenuNextModeComboBox.SelectedItem is not string mode) return;
+        CurrentSettings.ContextMenuNextMode = mode;
+        TriggerSaveSettings();
+    }
+
     private void HomeListEntireHome_Click(object sender, RoutedEventArgs e)
     {
         // No longer used, handled by grouping
@@ -2935,6 +2943,9 @@ public sealed partial class MainWindow : Window
                     await SaveLocalMetadataAsync();
 
                     await _settingsStore.SaveAsync(CurrentSettings);
+
+                    // Sync context menu
+                    ContextMenuService.ApplySettings(CurrentSettings, Wallpapers.ToList());
                 }
                 catch (Exception ex)
                 {

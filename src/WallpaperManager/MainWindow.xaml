@@ -810,6 +810,15 @@
                                     </Grid>
                                     <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE8B1;" FontSize="18" VerticalAlignment="Center" />
+                                        <StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Next wallpaper mode" FontSize="17" /><TextBlock Text="Random picks any wallpaper, Serial goes through them in order" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" /></StackPanel>
+                                        <ComboBox x:Name="ContextMenuNextModeComboBox" Grid.Column="2" Width="220" SelectionChanged="ContextMenuNextModeComboBox_SelectionChanged">
+                                            <x:String>Random</x:String>
+                                            <x:String>Serial</x:String>
+                                        </ComboBox>
+                                    </Grid>
+                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                         <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE737;" FontSize="18" VerticalAlignment="Center" />
                                         <StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Switch Desktop Wallpaper" FontSize="17" /><TextBlock Text="Adds a sub-menu showing wallpapers to pick from directly" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" /></StackPanel>
                                         <ToggleSwitch x:Name="ContextMenuSwitchToggle" Grid.Column="2" Toggled="ContextMenuSwitchToggle_Toggled" />

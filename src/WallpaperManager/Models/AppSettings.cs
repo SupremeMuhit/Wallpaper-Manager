@@ -81,6 +81,8 @@ public sealed class AppSettings
     // ── Desktop Context Menu Integration ───────────────────────────────
     public bool ContextMenuNextWallpaper { get; set; }
     public bool ContextMenuSwitchWallpaper { get; set; }
+    /// <summary>"Random" or "Serial" — controls how "Next Desktop Wallpaper" picks the next one.</summary>
+    public string ContextMenuNextMode { get; set; } = "Random";
     /// <summary>Empty string means "Entire Home". Otherwise holds the list Id.</summary>
     public string ContextMenuListId { get; set; } = string.Empty;
 }

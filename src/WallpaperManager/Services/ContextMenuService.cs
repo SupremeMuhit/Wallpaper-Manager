@@ -209,22 +209,40 @@ public sealed class ContextMenuService
     private static List<WallpaperItem> GetWallpapersForList(
         AppSettings settings, IReadOnlyList<WallpaperItem> allWallpapers)
     {
-        // Mark which ones are selected (in Home)
-        var selectedKeys = new HashSet<string>(settings.SelectedWallpaperKeys);
-        var homeWallpapers = allWallpapers.Where(w => selectedKeys.Contains(w.Key)).ToList();
+        var selectedKeys = settings.SelectedWallpaperKeys;
+        var selectedKeysSet = new HashSet<string>(selectedKeys);
+        var homeWallpapers = allWallpapers.Where(w => selectedKeysSet.Contains(w.Key)).ToList();
 
+        List<WallpaperItem> candidates;
         if (string.IsNullOrEmpty(settings.ContextMenuListId))
         {
-            // "Entire Home"
-            return homeWallpapers;
+            candidates = homeWallpapers;
+            candidates = SortWallpapers(candidates, settings.HomeSortMode, selectedKeys);
+        }
+        else
+        {
+            var list = settings.WallpaperLists.FirstOrDefault(l => l.Id == settings.ContextMenuListId);
+            if (list == null) return homeWallpapers;
+
+            var listKeysSet = new HashSet<string>(list.WallpaperKeys);
+            candidates = homeWallpapers.Where(w => listKeysSet.Contains(w.Key)).ToList();
+            candidates = SortWallpapers(candidates, settings.HomeSortMode, list.WallpaperKeys);
         }
 
-        // Specific list
-        var list = settings.WallpaperLists.FirstOrDefault(l => l.Id == settings.ContextMenuListId);
-        if (list == null) return homeWallpapers;
+        return candidates;
+    }
 
-        var listKeys = new HashSet<string>(list.WallpaperKeys);
-        return homeWallpapers.Where(w => listKeys.Contains(w.Key)).ToList();
+    private static List<WallpaperItem> SortWallpapers(List<WallpaperItem> items, string mode, List<string> freeMovementKeys)
+    {
+        return mode switch
+        {
+            "Free Movement" => items.OrderBy(w => freeMovementKeys.IndexOf(w.Key)).ToList(),
+            "Date Added" => items.OrderByDescending(w => w.DateModified).ThenBy(w => w.DisplayName).ToList(),
+            "Workshop Updated" => items.OrderByDescending(w => w.WorkshopMetadata?.TimeUpdated ?? DateTime.MinValue).ThenBy(w => w.DisplayName).ToList(),
+            "Subscribers" => items.OrderByDescending(w => w.WorkshopMetadata?.SubscriptionCount ?? 0).ThenBy(w => w.DisplayName).ToList(),
+            "Size" => items.OrderByDescending(w => w.SizeBytes).ThenBy(w => w.DisplayName).ToList(),
+            _ => items.OrderBy(w => w.DisplayName, StringComparer.CurrentCultureIgnoreCase).ToList()
+        };
     }
 
     private static string SanitizeRegistryKeyName(string key, int index)

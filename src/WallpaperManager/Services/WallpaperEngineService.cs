@@ -42,13 +42,16 @@ public sealed class WallpaperEngineService
         var startInfo = new ProcessStartInfo
         {
             FileName = executablePath,
-            UseShellExecute = false
+            UseShellExecute = false,
+            Arguments = $"-control openWallpaper -file \"{wallpaper.LaunchPath}\""
         };
 
-        startInfo.ArgumentList.Add("-control");
-        startInfo.ArgumentList.Add("openWallpaper");
-        startInfo.ArgumentList.Add("-file");
-        startInfo.ArgumentList.Add(wallpaper.LaunchPath);
+        try
+        {
+            var logPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WallpaperManager", "contextmenu-log.txt");
+            File.AppendAllText(logPath, $"{DateTime.Now:HH:mm:ss.fff}: Starting WE with args: {startInfo.Arguments}\n");
+        }
+        catch { }
 
         Process.Start(startInfo);
         return true;
