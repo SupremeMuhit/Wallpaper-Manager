@@ -51,7 +51,7 @@ public sealed partial class WallpaperScanner
                     {
                         var relativePath = Path.GetRelativePath(root.Path, directory);
                         var parts = relativePath.Split(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries);
-                        if (parts.Length > 0 && parts[0] != ".")
+                        if (parts.Length > 1 && parts[0] != ".")
                         {
                             var subDirName = parts[0];
                             if (!string.IsNullOrWhiteSpace(subDirName) && !item.Tags.Contains(subDirName, StringComparer.OrdinalIgnoreCase))

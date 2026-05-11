@@ -129,6 +129,26 @@ public sealed partial class MainWindow : Window
         _engineStatusTimer.Tick += (_, _) => UpdateEngineStatus();
         _engineStatusTimer.Start();
 
+        _saveSettingsTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(400) };
+        _saveSettingsTimer.Tick += async (_, _) =>
+        {
+            _saveSettingsTimer.Stop();
+            try
+            {
+                CurrentSettings.Tags = Tags.ToList();
+                CurrentSettings.WallpaperLists = HomeListButtons.ToList();
+                CurrentSettings.WallpaperTags = [];
+                CurrentSettings.UseWorkshopTags = true;
+                await SaveLocalMetadataAsync();
+                await _settingsStore.SaveAsync(CurrentSettings);
+                ContextMenuService.ApplySettings(CurrentSettings, Wallpapers.ToList());
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Save failed: {ex.Message}");
+            }
+        };
+
         _sizeChangedTimer.Interval = TimeSpan.FromMilliseconds(200);
         _sizeChangedTimer.Tick += (_, _) =>
         {
@@ -153,6 +173,10 @@ public sealed partial class MainWindow : Window
                 FlashHotkeyIndicator();
             });
         };
+
+        // Ensure ComboBox items are loaded synchronously before loading settings
+        NsfwTabComboBox.ItemsSource = NsfwTabChoices;
+        
         LoadSettings();
     }
 
@@ -475,6 +499,7 @@ public sealed partial class MainWindow : Window
         HomeCardSizeComboBox.SelectedItem = CurrentSettings.CardSize;
         ColorRowsToggle.IsOn = CurrentSettings.ColorRowsByHighestPriorityTag;
         NsfwTabComboBox.SelectedIndex = (int)CurrentSettings.NsfwTabMode;
+        NsfwNavTab.Visibility = CurrentSettings.NsfwTabMode != NsfwTabMode.Off ? Visibility.Visible : Visibility.Collapsed;
         RunOnStartupToggle.IsOn = CurrentSettings.RunOnStartup;
         MemoryUsageComboBox.SelectedItem = CurrentSettings.MemoryUsageProfile;
         AutoMarkNsfwToggle.IsOn = CurrentSettings.AutoMarkNsfwFromWorkshop;
@@ -513,9 +538,9 @@ public sealed partial class MainWindow : Window
         UpdateDevModeUi();
         RefreshVisibleTags();
         UpdateEngineStatus();
-        _isLoadingSettings = false;
-
+        
         await ScanLibraryAsync();
+        _isLoadingSettings = false;
     }
 
     private async void BrowseDirectory_Click(object sender, RoutedEventArgs e)
@@ -646,7 +671,7 @@ public sealed partial class MainWindow : Window
 
     private void NsfwTabComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (_isLoadingSettings)
+        if (_isLoadingSettings || NsfwTabComboBox.SelectedIndex == -1)
         {
             return;
         }
@@ -3083,34 +3108,6 @@ public sealed partial class MainWindow : Window
 
     private void TriggerSaveSettings()
     {
-        if (_saveSettingsTimer == null)
-        {
-            _saveSettingsTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(400) };
-            _saveSettingsTimer.Tick += async (_, _) =>
-            {
-                _saveSettingsTimer.Stop();
-                try
-                {
-                    // Update collection-based settings that aren't easily tracked by single handlers
-                    CurrentSettings.Tags = Tags.ToList();
-                    CurrentSettings.WallpaperLists = HomeListButtons.ToList();
-                    CurrentSettings.WallpaperTags = [];
-                    CurrentSettings.UseWorkshopTags = true;
-
-                    await SaveLocalMetadataAsync();
-
-                    await _settingsStore.SaveAsync(CurrentSettings);
-
-                    // Sync context menu
-                    ContextMenuService.ApplySettings(CurrentSettings, Wallpapers.ToList());
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Save failed: {ex.Message}");
-                }
-            };
-        }
-
         _saveSettingsTimer.Stop();
         _saveSettingsTimer.Start();
     }
