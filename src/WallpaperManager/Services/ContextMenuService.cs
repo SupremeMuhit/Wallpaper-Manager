@@ -206,7 +206,7 @@ public sealed class ContextMenuService
 
     // ── Helpers ──────────────────────────────────────────────────────────
 
-    private static List<WallpaperItem> GetWallpapersForList(
+    public static List<WallpaperItem> GetWallpapersForList(
         AppSettings settings, IReadOnlyList<WallpaperItem> allWallpapers)
     {
         var selectedKeys = settings.SelectedWallpaperKeys;
@@ -225,7 +225,7 @@ public sealed class ContextMenuService
             if (list == null) return homeWallpapers;
 
             var listKeysSet = new HashSet<string>(list.WallpaperKeys);
-            candidates = homeWallpapers.Where(w => listKeysSet.Contains(w.Key)).ToList();
+            candidates = allWallpapers.Where(w => listKeysSet.Contains(w.Key)).ToList();
             candidates = SortWallpapers(candidates, settings.HomeSortMode, list.WallpaperKeys);
         }
 

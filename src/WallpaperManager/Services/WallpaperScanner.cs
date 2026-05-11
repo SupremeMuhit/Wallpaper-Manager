@@ -20,7 +20,8 @@ public sealed partial class WallpaperScanner
         IReadOnlySet<string> selectedKeys,
         IReadOnlySet<string> nsfwKeys,
         IReadOnlySet<string> matureKeys,
-        IReadOnlyDictionary<string, List<string>> wallpaperTags)
+        IReadOnlyDictionary<string, List<string>> wallpaperTags,
+        bool considerSubdirectoryAsTag = false)
     {
         return Task.Run(() =>
         {
@@ -46,6 +47,19 @@ public sealed partial class WallpaperScanner
                     item.IsNsfw = nsfwKeys.Contains(item.Key);
                     item.IsMature = matureKeys.Contains(item.Key);
                     item.Tags = wallpaperTags.TryGetValue(item.Key, out var tags) ? [.. tags] : [];
+                    if (considerSubdirectoryAsTag)
+                    {
+                        var relativePath = Path.GetRelativePath(root.Path, directory);
+                        var parts = relativePath.Split(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries);
+                        if (parts.Length > 0 && parts[0] != ".")
+                        {
+                            var subDirName = parts[0];
+                            if (!string.IsNullOrWhiteSpace(subDirName) && !item.Tags.Contains(subDirName, StringComparer.OrdinalIgnoreCase))
+                            {
+                                item.Tags.Add(subDirName);
+                            }
+                        }
+                    }
                     wallpapers.Add(item);
                 }
             }

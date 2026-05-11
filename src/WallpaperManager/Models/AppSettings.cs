@@ -57,7 +57,6 @@ public sealed class AppSettings
     public double OverlayOpacity { get; set; } = 0.5;
     public bool RemoveCensorOnHover { get; set; } = true;
 
-    public bool UseWorkshopTags { get; set; }
 
     public List<string> HiddenLibraryColumns { get; set; } = [];
 
@@ -74,6 +73,10 @@ public sealed class AppSettings
     public List<string> CardButtons { get; set; } = ["ThreeDot", "AddToHome", "AddLocalName", "Details"];
 
     public bool IsDevMode { get; set; }
+    
+    // ── Tag Settings ───────────────────────────────────────────────────
+    public bool UseWorkshopTags { get; set; } = true;
+    public bool ConsiderSubdirectoryAsTag { get; set; } = false;
 
     // ── Wallpaper Lists ────────────────────────────────────────────────
     public List<WallpaperList> WallpaperLists { get; set; } = [];
@@ -86,6 +89,7 @@ public sealed class AppSettings
     /// <summary>Empty string means "Entire Home". Otherwise holds the list Id.</summary>
     public string ContextMenuListId { get; set; } = string.Empty;
     public string GlobalShortcut { get; set; } = "None";
+    public string CurrentlyPlayingWallpaperKey { get; set; } = string.Empty;
 }
 
 /// <summary>A named subset of wallpapers in the Home view.</summary>

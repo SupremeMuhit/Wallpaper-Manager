@@ -500,6 +500,7 @@ public sealed partial class MainWindow : Window
         CurrentSettings.UseWorkshopTags = true;
         UseWorkshopTagsToggle.IsOn = true;
         UseWorkshopTagsToggle.IsEnabled = false;
+        ConsiderSubdirectoryAsTagToggle.IsOn = CurrentSettings.ConsiderSubdirectoryAsTag;
 
         ApplyTheme(CurrentSettings.Theme);
         CurrentSettings.UseMicaBackdrop = true;
@@ -930,6 +931,14 @@ public sealed partial class MainWindow : Window
         UseWorkshopTagsToggle.IsOn = true;
         ApplyWallpaperPresentation();
         RefreshVisibleWallpapers();
+        TriggerSaveSettings();
+    }
+
+    private void ConsiderSubdirectoryAsTagToggle_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (_isLoadingSettings) return;
+        CurrentSettings.ConsiderSubdirectoryAsTag = ConsiderSubdirectoryAsTagToggle.IsOn;
+        _ = ScanLibraryAsync();
         TriggerSaveSettings();
     }
 
@@ -1690,6 +1699,8 @@ public sealed partial class MainWindow : Window
         }
 
         _engineService.RunWallpaper(CurrentSettings.EngineExecutablePath, wallpaper);
+        CurrentSettings.CurrentlyPlayingWallpaperKey = wallpaper.Key;
+        TriggerSaveSettings();
         UpdateEngineStatus();
     }
 
@@ -2103,15 +2114,25 @@ public sealed partial class MainWindow : Window
             CurrentSettings.SelectedWallpaperKeys.ToHashSet(StringComparer.OrdinalIgnoreCase),
             CurrentSettings.NsfwWallpaperKeys.ToHashSet(StringComparer.OrdinalIgnoreCase),
             CurrentSettings.MatureWallpaperKeys.ToHashSet(StringComparer.OrdinalIgnoreCase),
-            new Dictionary<string, List<string>>());
+            new Dictionary<string, List<string>>(),
+            CurrentSettings.ConsiderSubdirectoryAsTag);
 
         Wallpapers.Clear();
         foreach (var wallpaper in scannedWallpapers)
         {
             ApplyLocalMetadata(wallpaper);
             Wallpapers.Add(wallpaper);
+            
+            foreach (var tag in wallpaper.Tags)
+            {
+                if (!string.IsNullOrWhiteSpace(tag) && !Tags.Any(t => string.Equals(t.Name, tag, StringComparison.OrdinalIgnoreCase)))
+                {
+                    Tags.Add(new WallpaperTag { Name = tag, Color = "#3A7AFE" });
+                }
+            }
         }
 
+        RefreshVisibleTags();
         ApplyWallpaperPresentation();
         RefreshVisibleWallpapers();
         RefreshSelectedWallpapers();
@@ -2808,17 +2829,7 @@ public sealed partial class MainWindow : Window
             var listId = CurrentSettings.ContextMenuListId;
             var mode = CurrentSettings.ContextMenuNextMode;
             
-            List<WallpaperItem> candidates;
-            if (string.IsNullOrEmpty(listId) || listId == "home")
-            {
-                candidates = Wallpapers.ToList();
-            }
-            else
-            {
-                // Access HomeGroups safely on UI thread
-                var group = HomeGroups.FirstOrDefault(g => g.ListId == listId);
-                candidates = group?.Wallpapers.ToList() ?? [];
-            }
+            var candidates = ContextMenuService.GetWallpapersForList(CurrentSettings, Wallpapers.ToList());
 
             if (candidates == null || candidates.Count == 0)
             {
@@ -2826,7 +2837,7 @@ public sealed partial class MainWindow : Window
                 return;
             }
 
-            WallpaperItem chosen;
+            WallpaperItem chosen = null;
             var random = new Random();
             if (mode == "Random")
             {
@@ -2834,7 +2845,22 @@ public sealed partial class MainWindow : Window
             }
             else
             {
-                chosen = candidates[random.Next(candidates.Count)];
+                if (!string.IsNullOrEmpty(CurrentSettings.CurrentlyPlayingWallpaperKey))
+                {
+                    var currentIndex = candidates.FindIndex(c => c.Key == CurrentSettings.CurrentlyPlayingWallpaperKey);
+                    if (currentIndex >= 0 && currentIndex < candidates.Count - 1)
+                    {
+                        chosen = candidates[currentIndex + 1];
+                    }
+                    else
+                    {
+                        chosen = candidates[0];
+                    }
+                }
+                else
+                {
+                    chosen = candidates[0];
+                }
             }
 
             if (chosen != null)
@@ -3053,7 +3079,7 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    private DispatcherTimer? _saveSettingsTimer;
+    private DispatcherTimer _saveSettingsTimer;
 
     private void TriggerSaveSettings()
     {
@@ -3117,7 +3143,15 @@ public sealed partial class MainWindow : Window
         }
 
         wallpaper.LocalName = localMeta.LocalName ?? string.Empty;
-        wallpaper.Tags = localMeta.LocalTags?.Distinct(StringComparer.OrdinalIgnoreCase).ToList() ?? [];
+        
+        var loadedTags = localMeta.LocalTags?.Distinct(StringComparer.OrdinalIgnoreCase).ToList() ?? [];
+        foreach (var tag in loadedTags)
+        {
+            if (!wallpaper.Tags.Contains(tag, StringComparer.OrdinalIgnoreCase))
+            {
+                wallpaper.Tags.Add(tag);
+            }
+        }
     }
 
     private async Task SaveLocalMetadataAsync()
