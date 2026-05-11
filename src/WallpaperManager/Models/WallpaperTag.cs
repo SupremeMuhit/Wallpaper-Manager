@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace WallpaperManager.Models;
 
 public sealed class WallpaperTag
@@ -6,6 +8,7 @@ public sealed class WallpaperTag
 
     public string Color { get; set; } = "#3A7AFE";
 
+    [JsonIgnore]
     public Microsoft.UI.Xaml.Media.Brush ColorBrush => new Microsoft.UI.Xaml.Media.SolidColorBrush(ParseColor(Color));
 
     private static Windows.UI.Color ParseColor(string value)

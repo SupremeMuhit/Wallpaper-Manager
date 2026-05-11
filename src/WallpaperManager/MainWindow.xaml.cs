@@ -133,19 +133,22 @@ public sealed partial class MainWindow : Window
         _saveSettingsTimer.Tick += async (_, _) =>
         {
             _saveSettingsTimer.Stop();
+            CurrentSettings.Tags = Tags.ToList();
+            CurrentSettings.WallpaperLists = HomeListButtons.ToList();
+            CurrentSettings.WallpaperTags = [];
+            CurrentSettings.UseWorkshopTags = true;
+
+            try { await SaveLocalMetadataAsync(); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"SaveLocalMetadata failed: {ex.Message}"); }
+
             try
             {
-                CurrentSettings.Tags = Tags.ToList();
-                CurrentSettings.WallpaperLists = HomeListButtons.ToList();
-                CurrentSettings.WallpaperTags = [];
-                CurrentSettings.UseWorkshopTags = true;
-                await SaveLocalMetadataAsync();
                 await _settingsStore.SaveAsync(CurrentSettings);
                 ContextMenuService.ApplySettings(CurrentSettings, Wallpapers.ToList());
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Save failed: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Save settings failed: {ex.Message}");
             }
         };
 
@@ -173,9 +176,6 @@ public sealed partial class MainWindow : Window
                 FlashHotkeyIndicator();
             });
         };
-
-        // Ensure ComboBox items are loaded synchronously before loading settings
-        NsfwTabComboBox.ItemsSource = NsfwTabChoices;
         
         LoadSettings();
     }
@@ -669,17 +669,45 @@ public sealed partial class MainWindow : Window
         TriggerSaveSettings();
     }
 
-    private void NsfwTabComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private async void NsfwTabComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        var logPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WallpaperManager", "nsfw_debug.log");
+        var timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
+
+        try
+        {
+            File.AppendAllText(logPath, $"[{timestamp}] Handler fired. _isLoadingSettings={_isLoadingSettings}, SelectedIndex={NsfwTabComboBox.SelectedIndex}, CurrentSettings.NsfwTabMode={CurrentSettings.NsfwTabMode}\n");
+        }
+        catch { }
+
         if (_isLoadingSettings || NsfwTabComboBox.SelectedIndex == -1)
         {
+            try { File.AppendAllText(logPath, $"[{timestamp}] EARLY RETURN: _isLoadingSettings={_isLoadingSettings}, SelectedIndex={NsfwTabComboBox.SelectedIndex}\n"); } catch { }
             return;
         }
 
-        CurrentSettings.NsfwTabMode = (NsfwTabMode)NsfwTabComboBox.SelectedIndex;
+        var newMode = (NsfwTabMode)NsfwTabComboBox.SelectedIndex;
+        if (newMode == CurrentSettings.NsfwTabMode)
+        {
+            try { File.AppendAllText(logPath, $"[{timestamp}] EARLY RETURN: newMode ({newMode}) == CurrentSettings.NsfwTabMode ({CurrentSettings.NsfwTabMode})\n"); } catch { }
+            return;
+        }
+
+        CurrentSettings.NsfwTabMode = newMode;
         NsfwNavTab.Visibility = CurrentSettings.NsfwTabMode != NsfwTabMode.Off ? Visibility.Visible : Visibility.Collapsed;
         RefreshVisibleWallpapers();
-        TriggerSaveSettings();
+
+        try { File.AppendAllText(logPath, $"[{timestamp}] About to save. CurrentSettings.NsfwTabMode={CurrentSettings.NsfwTabMode}\n"); } catch { }
+
+        try
+        {
+            await _settingsStore.SaveAsync(CurrentSettings);
+            try { File.AppendAllText(logPath, $"[{timestamp}] SAVE SUCCEEDED\n"); } catch { }
+        }
+        catch (Exception ex)
+        {
+            try { File.AppendAllText(logPath, $"[{timestamp}] SAVE FAILED: {ex.Message}\n"); } catch { }
+        }
     }
 
     private void QuitToTrayToggle_Toggled(object sender, RoutedEventArgs e)
