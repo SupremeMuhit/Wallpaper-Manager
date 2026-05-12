@@ -138,6 +138,10 @@ public sealed partial class MainWindow : Window
             CurrentSettings.WallpaperTags = [];
             CurrentSettings.UseWorkshopTags = true;
 
+            // Update keys from current wallpapers
+            CurrentSettings.NsfwWallpaperKeys = Wallpapers.Where(w => w.IsNsfw).Select(w => w.Key).ToList();
+            CurrentSettings.MatureWallpaperKeys = Wallpapers.Where(w => w.IsMature).Select(w => w.Key).ToList();
+
             try { await SaveLocalMetadataAsync(); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"SaveLocalMetadata failed: {ex.Message}"); }
 
@@ -502,7 +506,7 @@ public sealed partial class MainWindow : Window
         NsfwNavTab.Visibility = CurrentSettings.NsfwTabMode != NsfwTabMode.Off ? Visibility.Visible : Visibility.Collapsed;
         RunOnStartupToggle.IsOn = CurrentSettings.RunOnStartup;
         MemoryUsageComboBox.SelectedItem = CurrentSettings.MemoryUsageProfile;
-        AutoMarkNsfwToggle.IsOn = CurrentSettings.AutoMarkNsfwFromWorkshop;
+        AutoMarkNsfwToggle.IsOn = CurrentSettings.DontAutoMarkNsfwFromWorkshop;
         RemoveCensorOnHoverToggle.IsOn = CurrentSettings.RemoveCensorOnHover;
         NsfwModeComboBox.SelectedIndex = (int)CurrentSettings.NsfwMode;
         MatureModeComboBox.SelectedIndex = (int)CurrentSettings.MatureMode;
@@ -828,7 +832,7 @@ public sealed partial class MainWindow : Window
     private void AutoMarkNsfwToggle_Toggled(object sender, RoutedEventArgs e)
     {
         if (_isLoadingSettings) return;
-        CurrentSettings.AutoMarkNsfwFromWorkshop = AutoMarkNsfwToggle.IsOn;
+        CurrentSettings.DontAutoMarkNsfwFromWorkshop = AutoMarkNsfwToggle.IsOn;
         TriggerSaveSettings();
     }
 
@@ -2221,7 +2225,7 @@ public sealed partial class MainWindow : Window
 
             wallpaper.WorkshopMetadata = meta;
 
-            if (CurrentSettings.AutoMarkNsfwFromWorkshop)
+            if (!CurrentSettings.DontAutoMarkNsfwFromWorkshop)
             {
                 if (meta.IsMature && !wallpaper.IsMature)
                 {
@@ -2231,6 +2235,21 @@ public sealed partial class MainWindow : Window
                 if (meta.IsAdult && !wallpaper.IsNsfw)
                 {
                     wallpaper.IsNsfw = true;
+                    needsSave = true;
+                }
+            }
+            else
+            {
+                // If "Dont Automark" is ON, we should also unmark those that match workshop metadata
+                // to effectively "disable" the automatic treatment.
+                if (meta.IsMature && wallpaper.IsMature)
+                {
+                    wallpaper.IsMature = false;
+                    needsSave = true;
+                }
+                if (meta.IsAdult && wallpaper.IsNsfw)
+                {
+                    wallpaper.IsNsfw = false;
                     needsSave = true;
                 }
             }

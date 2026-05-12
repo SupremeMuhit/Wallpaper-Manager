@@ -46,7 +46,7 @@ public sealed class AppSettings
 
     public string MemoryUsageProfile { get; set; } = "Balanced";
 
-    public bool AutoMarkNsfwFromWorkshop { get; set; } = true;
+    public bool DontAutoMarkNsfwFromWorkshop { get; set; } = false;
 
     public CensorshipMode NsfwMode { get; set; } = CensorshipMode.Blur;
 
