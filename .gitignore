@@ -13,35 +13,38 @@ bld/
 [Oo]bj/
 [Ll]og/
 [Ll]ogs/
-.userref/
-# Visual Studio files
+
+# Visual Studio / VS Code files
 .vs/
+.vscode/
 *.user
 *.userosscache
 *.sln.docstates
+*.suo
+*.rsuser
+*.vsp
+*.vspx
+*.sap
 
-# Visual Studio Code files
-.vscode/
+# JetBrains IDEs
+.idea/
+*.sln.iml
 
 # Windows
 [Tt]humbs.db
 [Ee]hthumbs.db
 Desktop.ini
+$RECYCLE.BIN/
 
-# User-specific files
-*.rsuser
-*.suo
-*.user
-*.userosscache
-*.sln.docstates
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
 
 # NuGet Packages
 *.nupkg
-# The packages folder can be ignored because of PackageReference usage
 **/[Pp]ackages/*
 !**/[Pp]ackages/build/
-# Build log files
-*.log
 
 # Windows App SDK / WinUI 3 specific
 AppPackages/
@@ -53,9 +56,23 @@ _pkginfo.txt
 *.appxbundle
 *.msixbundle
 
-# Temporary files
+# Temporary / Log files
 *.tmp
 *.temp
+*.log
 
-# Secrets
+# Secrets and Local Config
 .env
+.env.*
+!.env.example
+*.pfx
+*.snk
+*.secret
+*.credentials
+
+# Project Specific
+.dotnet-home/
+artifacts/
+.userref/
+.agents/
+.codex/
