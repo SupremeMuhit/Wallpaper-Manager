@@ -36,11 +36,11 @@ public sealed class AppSettings
 
     public bool ColorRowsByHighestPriorityTag { get; set; } = true;
 
-    public NsfwTabMode NsfwTabMode { get; set; } = NsfwTabMode.Off;
+    public NsfwTabMode NsfwTabMode { get; set; } = NsfwTabMode.NsfwAndMature;
 
     public bool UseMicaBackdrop { get; set; } = true;
 
-    public bool RunOnStartup { get; set; }
+    public bool RunOnStartup { get; set; } = true;
 
     public bool QuitToTray { get; set; } = true;
 
@@ -70,12 +70,12 @@ public sealed class AppSettings
 
     public string HomeSortMode { get; set; } = "Free Movement";
     public LibraryHideMode LibraryHideMode { get; set; } = LibraryHideMode.Off;
-    public List<string> CardButtons { get; set; } = ["ThreeDot", "AddToHome", "AddLocalName", "Details"];
+    public List<string> CardButtons { get; set; } = ["ThreeDot", "Details", "AddToHome"];
 
     public bool IsDevMode { get; set; }
     
     // ── Tag Settings ───────────────────────────────────────────────────
-    public bool UseWorkshopTags { get; set; } = true;
+    public bool DontShowWorkshopTags { get; set; } = false;
     public bool ConsiderSubdirectoryAsTag { get; set; } = false;
 
     // ── Wallpaper Lists ────────────────────────────────────────────────

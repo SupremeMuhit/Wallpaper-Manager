@@ -82,11 +82,11 @@ public sealed class WallpaperItem : INotifyPropertyChanged
 
     public List<string> Tags { get; set; } = [];
 
-    private bool _useWorkshopTags;
-    public bool UseWorkshopTags
+    private bool _dontShowWorkshopTags;
+    public bool DontShowWorkshopTags
     {
-        get => _useWorkshopTags;
-        set { if (_useWorkshopTags != value) { _useWorkshopTags = value; OnPropertyChanged(); OnPropertyChanged(nameof(TagsText)); } }
+        get => _dontShowWorkshopTags;
+        set { if (_dontShowWorkshopTags != value) { _dontShowWorkshopTags = value; OnPropertyChanged(); OnPropertyChanged(nameof(TagsText)); } }
     }
 
     private Brush? _rowBackground;
@@ -323,7 +323,7 @@ public sealed class WallpaperItem : INotifyPropertyChanged
         get
         {
             var displayTags = new List<string>(Tags);
-            if (WorkshopMetadata != null)
+            if (!DontShowWorkshopTags && WorkshopMetadata != null)
             {
                 displayTags.AddRange(WorkshopMetadata.Tags);
                 displayTags = displayTags.Distinct().ToList();

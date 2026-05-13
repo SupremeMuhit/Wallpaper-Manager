@@ -136,7 +136,6 @@ public sealed partial class MainWindow : Window
             CurrentSettings.Tags = Tags.ToList();
             CurrentSettings.WallpaperLists = HomeListButtons.ToList();
             CurrentSettings.WallpaperTags = [];
-            CurrentSettings.UseWorkshopTags = true;
 
             // Update keys from current wallpapers
             CurrentSettings.NsfwWallpaperKeys = Wallpapers.Where(w => w.IsNsfw).Select(w => w.Key).ToList();
@@ -526,9 +525,7 @@ public sealed partial class MainWindow : Window
 
         BlurIntensitySlider.Value = CurrentSettings.BlurIntensity;
         OverlayOpacitySlider.Value = CurrentSettings.OverlayOpacity;
-        CurrentSettings.UseWorkshopTags = true;
-        UseWorkshopTagsToggle.IsOn = true;
-        UseWorkshopTagsToggle.IsEnabled = false;
+        DontShowWorkshopTagsToggle.IsOn = CurrentSettings.DontShowWorkshopTags;
         ConsiderSubdirectoryAsTagToggle.IsOn = CurrentSettings.ConsiderSubdirectoryAsTag;
 
         ApplyTheme(CurrentSettings.Theme);
@@ -981,11 +978,10 @@ public sealed partial class MainWindow : Window
         TriggerSaveSettings();
     }
 
-    private void UseWorkshopTagsToggle_Toggled(object sender, RoutedEventArgs e)
+    private void DontShowWorkshopTagsToggle_Toggled(object sender, RoutedEventArgs e)
     {
         if (_isLoadingSettings) return;
-        CurrentSettings.UseWorkshopTags = true;
-        UseWorkshopTagsToggle.IsOn = true;
+        CurrentSettings.DontShowWorkshopTags = DontShowWorkshopTagsToggle.IsOn;
         ApplyWallpaperPresentation();
         RefreshVisibleWallpapers();
         TriggerSaveSettings();
@@ -2433,7 +2429,7 @@ public sealed partial class MainWindow : Window
             wallpaper.SizeColumnWidth = GetColumnWidth(hiddenColumns, SizeColumn, new GridLength(110));
             wallpaper.TagsColumnWidth = GetColumnWidth(hiddenColumns, TagsColumn, new GridLength(180));
 
-            wallpaper.UseWorkshopTags = true;
+            wallpaper.DontShowWorkshopTags = CurrentSettings.DontShowWorkshopTags;
 
             ApplyCensorship(wallpaper);
             ApplySizePresentation(wallpaper, hiddenColumns);
