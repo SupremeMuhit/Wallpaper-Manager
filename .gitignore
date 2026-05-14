@@ -76,3 +76,8 @@ artifacts/
 .userref/
 .agents/
 .codex/
+AGENTS.md
+graphify-out/
+GEMINI.md
+.gemini/
+.opencode/
