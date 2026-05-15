@@ -223,6 +223,7 @@ public sealed partial class MainWindow : Window
 
         _newWndProc = TrayWndProc;
         _oldWndProc = SetWindowLongPtr(_hwnd, GWLP_WNDPROC, Marshal.GetFunctionPointerForDelegate(_newWndProc));
+        SetAppIcon();
         AddTrayIcon();
     }
 
@@ -245,7 +246,7 @@ public sealed partial class MainWindow : Window
         if (!_hasShownTrayHint)
         {
             ShowTrayBalloon(
-                "Carbon Wallpaper is still running",
+                "Carbon is still running",
                 "Use the tray icon to reopen it or exit.");
             _hasShownTrayHint = true;
         }
@@ -262,6 +263,31 @@ public sealed partial class MainWindow : Window
         _isExitRequested = true;
         DisposeTrayIcon();
         Close();
+    }
+
+    private static string GetIcoPath()
+    {
+        var path = System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "logo.ico");
+        if (System.IO.File.Exists(path))
+            return path;
+        path = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(typeof(Program).Assembly.Location)!, "Assets", "logo.ico");
+        return path;
+    }
+
+    private void SetAppIcon()
+    {
+        var icoPath = GetIcoPath();
+        if (!System.IO.File.Exists(icoPath))
+            return;
+
+        try { _appWindow?.SetIcon(icoPath); } catch { }
+
+        var hIcon = LoadImage(IntPtr.Zero, icoPath, IMAGE_ICON, 0, 0, LR_LOADFROMFILE | LR_DEFAULTSIZE);
+        if (hIcon != IntPtr.Zero)
+        {
+            SendMessage(_hwnd, WM_SETICON, new IntPtr(ICON_SMALL), hIcon);
+            SendMessage(_hwnd, WM_SETICON, new IntPtr(ICON_BIG), hIcon);
+        }
     }
 
     private void DisposeTrayIcon()
@@ -282,11 +308,14 @@ public sealed partial class MainWindow : Window
 
     private void AddTrayIcon()
     {
-        _trayIconHandle = LoadIcon(IntPtr.Zero, IDI_APPLICATION);
+        var icoPath = GetIcoPath();
+        _trayIconHandle = LoadImage(IntPtr.Zero, icoPath, IMAGE_ICON, 16, 16, LR_LOADFROMFILE);
+        if (_trayIconHandle == IntPtr.Zero)
+            _trayIconHandle = LoadIcon(IntPtr.Zero, IDI_APPLICATION);
         var data = CreateNotifyIconData();
         data.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
         data.hIcon = _trayIconHandle;
-        data.szTip = "Carbon Wallpaper";
+        data.szTip = "Carbon";
         _trayIconAdded = Shell_NotifyIcon(NIM_ADD, ref data);
     }
 
@@ -350,7 +379,7 @@ public sealed partial class MainWindow : Window
         }
 
         var menu = CreatePopupMenu();
-        AppendMenu(menu, MF_STRING, TrayCommandOpen, "Open Carbon Wallpaper");
+        AppendMenu(menu, MF_STRING, TrayCommandOpen, "Open Carbon");
         AppendMenu(menu, MF_SEPARATOR, 0, string.Empty);
         AppendMenu(menu, MF_STRING, TrayCommandExit, "Exit");
 
@@ -392,6 +421,9 @@ public sealed partial class MainWindow : Window
     private const uint TPM_RETURNCMD = 0x0100;
     private const uint TrayCommandOpen = 1001;
     private const uint TrayCommandExit = 1002;
+    private const uint WM_SETICON = 0x0080;
+    private const int ICON_SMALL = 0;
+    private const int ICON_BIG = 1;
     private static readonly IntPtr IDI_APPLICATION = new(32512);
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
@@ -427,6 +459,9 @@ public sealed partial class MainWindow : Window
     [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
     private static extern bool Shell_NotifyIcon(uint dwMessage, ref NOTIFYICONDATA lpData);
 
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+    private static extern IntPtr ExtractAssociatedIcon(IntPtr hInst, string lpIconPath, out int lpiIcon);
+
     [DllImport("user32.dll", SetLastError = true)]
     private static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
 
@@ -435,6 +470,16 @@ public sealed partial class MainWindow : Window
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     private static extern IntPtr LoadIcon(IntPtr hInstance, IntPtr lpIconName);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+
+    [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+    private static extern IntPtr LoadImage(IntPtr hInst, string name, uint type, int cx, int cy, uint fuLoad);
+
+    private const uint IMAGE_ICON = 1;
+    private const uint LR_LOADFROMFILE = 0x00000010;
+    private const uint LR_DEFAULTSIZE = 0x00000040;
 
     [DllImport("user32.dll")]
     private static extern IntPtr CreatePopupMenu();
@@ -1701,7 +1746,7 @@ public sealed partial class MainWindow : Window
             var content = BuildContactMessage(mail, discord, message);
             var payload = JsonSerializer.Serialize(new
             {
-                username = "Carbon Wallpaper",
+                username = "Carbon",
                 content,
                 allowed_mentions = new
                 {

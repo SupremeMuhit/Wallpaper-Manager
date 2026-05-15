@@ -4,7 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:models="using:WallpaperManager.Models"
     xmlns:local="using:WallpaperManager"
-    Title="Carbon Wallpaper">
+    Title="Carbon">
 
     <Grid x:Name="RootGrid" Background="Transparent">
         <Grid.Resources>
@@ -18,7 +18,7 @@
             x:Name="Navigation" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"
             IsBackButtonVisible="Collapsed"
             IsSettingsVisible="True"
-            PaneTitle="Carbon Wallpaper"
+            PaneTitle="Carbon"
             Background="Transparent"
             SelectionChanged="Navigation_SelectionChanged">
             <NavigationView.MenuItems>
@@ -790,7 +790,7 @@
                                     <TextBlock Text="About" FontSize="28" FontWeight="SemiBold" />
                                 </StackPanel>
                                 <StackPanel Spacing="5">
-                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE946;" FontSize="18" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Carbon Wallpaper Manager" FontSize="17" /><TextBlock Text="Kazi Testing v2" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" /></StackPanel></Grid>
+                                    <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE946;" FontSize="18" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Carbon" FontSize="17" /><TextBlock Text="Kazi Testing v2" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" /></StackPanel></Grid>
                                     <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="90" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE77B;" FontSize="18" VerticalAlignment="Center" /><Image Grid.Column="1" Width="72" Height="72" Stretch="UniformToFill" Source="https://github.com/SupremeMuhit.png" /><StackPanel Grid.Column="2" Spacing="2"><TextBlock Text="Dev Detail" FontSize="17" /><Button HorizontalAlignment="Left" Content="GitHub: SupremeMuhit" Tag="https://github.com/SupremeMuhit" Click="OpenExternalLink_Click" /><Button HorizontalAlignment="Left" Content="Discord Profile" Tag="https://discord.com/users/1341440502104592507" Click="OpenExternalLink_Click" /></StackPanel></Grid>
                                     <Grid Padding="18,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" ColumnSpacing="18"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE8F1;" FontSize="18" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="Acknowledgements" FontSize="17" /><TextBlock Text="Built with WinUI and Windows App SDK. Thanks to Wallpaper Engine and all open source dependencies used by this project." Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" /></StackPanel></Grid>
 
