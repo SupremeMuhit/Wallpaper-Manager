@@ -81,3 +81,4 @@ graphify-out/
 GEMINI.md
 .gemini/
 .opencode/
+.aider*
